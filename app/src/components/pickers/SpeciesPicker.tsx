@@ -51,7 +51,9 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
         value={query}
         onChange={e => setQuery(e.target.value)}
         placeholder="Search Pokémon"
-        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-3 text-sm"
+        // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
+        // Anything <16px triggers it; pinch-zoom stays available either way.
+        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-3 text-base"
       />
       <div className="overflow-y-auto flex-1 -mx-1 px-1">
         {showRecentsHeader && (

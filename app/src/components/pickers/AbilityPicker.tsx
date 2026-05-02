@@ -34,7 +34,8 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
     <PickerShell open={open} onClose={onClose} title="Pick an ability">
       <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
              placeholder="Search abilities"
-             className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-3 text-sm" />
+             // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
+             className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-3 text-base" />
       <div className="overflow-y-auto flex-1 -mx-1 px-1">
         {filtered.map(name => (
           <button key={name} onClick={() => { onPick(name); onClose(); }}
