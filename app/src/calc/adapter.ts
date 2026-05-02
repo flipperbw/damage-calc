@@ -5,7 +5,16 @@ import {
   Field,
   calculate,
 } from '@smogon/calc';
-import type { SavedMon, FieldState, SideState, StatID } from '../types';
+import type { SavedMon, FieldState, SideState, StatusName } from '../types';
+
+const STATUS_TO_CALC: Record<Exclude<StatusName, 'Healthy'>, 'psn' | 'tox' | 'brn' | 'par' | 'slp' | 'frz'> = {
+  Poisoned: 'psn',
+  'Badly Poisoned': 'tox',
+  Burned: 'brn',
+  Paralyzed: 'par',
+  Asleep: 'slp',
+  Frozen: 'frz',
+};
 
 const GEN = Generations.get(0); // Champions
 
@@ -51,7 +60,10 @@ function buildPokemon(mon: SavedMon) {
     nature: mon.nature,
     evs: mon.sps,                  // Champions: sps map onto evs (verified in spike)
     boosts: mon.boosts,
-    status: mon.status === 'Healthy' || !mon.status ? '' : mon.status,
+    status:
+      !mon.status || mon.status === 'Healthy'
+        ? ''
+        : STATUS_TO_CALC[mon.status],
     curHP: mon.currentHp,
   });
 }
@@ -83,7 +95,7 @@ function buildSide(s: SideState) {
     isPowerTrick: !!s.isPowerTrick,
     isFriendGuard: !!s.friendGuard,
     isStatBoost: !!s.isStatBoost,
-    isSwitching: s.isSwitching ? 'out' : undefined,
+    isSwitching: s.isSwitching ? ('out' as const) : undefined,
   };
 }
 
