@@ -14,14 +14,14 @@ test('create a new team and see it in the list', async ({ page }) => {
 test('rename a team via the ⋯ menu', async ({ page }) => {
   await createTeam(page);
 
-  // window.prompt is the rename UI; intercept it before opening the menu.
-  page.once('dialog', async dialog => {
-    expect(dialog.type()).toBe('prompt');
-    await dialog.accept('My Cool Team');
-  });
-
   await page.getByRole('button', { name: 'Team menu' }).click();
   await page.getByRole('button', { name: 'Rename' }).click();
+
+  // The in-app PromptDialog (replaces window.prompt for iOS Brave compat).
+  const input = page.getByTestId('prompt-input');
+  await expect(input).toBeVisible();
+  await input.fill('My Cool Team');
+  await page.getByTestId('prompt-ok').click();
 
   await expect(page.getByText('My Cool Team')).toBeVisible();
 });
@@ -42,9 +42,12 @@ test('duplicate a team', async ({ page }) => {
 
 test('delete a team after confirm', async ({ page }) => {
   await createTeam(page);
-  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Team menu' }).click();
   await page.getByRole('button', { name: 'Delete' }).click();
+
+  // ConfirmDialog now drives the destructive flow (replaces window.confirm).
+  await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+  await page.getByTestId('confirm-ok').click();
   await expect(page.getByText('No teams yet')).toBeVisible();
 });
 
@@ -66,9 +69,14 @@ test('remove a mon from a team via the trash button in MonEditor', async ({ page
   // Re-open the editor by clicking the slot sprite.
   await page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)').first().click();
 
-  // Confirm dialog for delete.
-  page.once('dialog', dialog => dialog.accept());
-  await page.getByRole('button', { name: 'Remove from team' }).click();
+  await page.getByTestId('delete-mon').click();
+
+  // The ConfirmDialog (replaces window.confirm so iOS Brave doesn't swallow it).
+  await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+  await page.getByTestId('confirm-ok').click();
+
+  // Toast confirms the removal.
+  await expect(page.getByText('Garchomp removed')).toBeVisible();
 
   // Slot is empty again — no sprites in the slot row.
   await expect(

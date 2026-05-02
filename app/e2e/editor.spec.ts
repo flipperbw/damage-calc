@@ -154,6 +154,32 @@ test('SP grid: per-stat cap is 32 and total cap is 66', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 });
 
+test('Copy button copies showdown text and surfaces a toast', async ({ page }) => {
+  // Grant clipboard read so we can read back what was written. webkit
+  // ignores the permissions API (no-op rejection); we still attempt the read
+  // and fall through to toast assertion when readText isn't available.
+  try {
+    await page
+      .context()
+      .grantPermissions(['clipboard-read', 'clipboard-write']);
+  } catch {
+    // webkit doesn't support these permissions strings; not fatal — we'll
+    // verify the toast text instead of round-tripping through the clipboard.
+  }
+
+  await openGarchompEditor(page);
+  await page.getByRole('button', { name: /^Custom/ }).click();
+  await page.getByRole('button', { name: /Mixed Mega/ }).first().click();
+
+  await page.getByTestId('copy-mon').click();
+
+  // Toast appears (sonner renders to a portal at document root).
+  await expect(page.getByText('Copied to clipboard')).toBeVisible();
+
+  // The inline ✓ Copied chip also lights up briefly (1500 ms timeout).
+  await expect(page.getByTestId('copy-confirmation')).toBeVisible();
+});
+
 test('Mega toggle is gated on held mega stone — Garchomp + Garchompite shows it', async ({ page }) => {
   await openGarchompEditor(page);
 

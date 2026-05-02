@@ -57,8 +57,11 @@ test('reset everything wipes teams (with confirm)', async ({ page }) => {
   await createTeam(page);
 
   await nav(page, 'Settings');
-  page.once('dialog', d => d.accept());
   await page.getByRole('button', { name: 'Reset everything' }).click();
+
+  // ConfirmDialog replaces window.confirm here too.
+  await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+  await page.getByTestId('confirm-ok').click();
 
   await nav(page, 'Teams');
   await expect(page.getByText('No teams yet')).toBeVisible();

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { freshStart, nav } from './helpers';
+import { freshStart, nav, createTeam, addMonToFirstSlot } from './helpers';
 
 /**
  * Regression: when the dev server is reached over LAN from a phone (e.g.
@@ -22,4 +22,42 @@ test('Create Team works when crypto.randomUUID is unavailable', async ({ page })
 
   await page.getByTestId('create-team').click();
   await expect(page.getByText('New team').first()).toBeVisible();
+});
+
+/**
+ * Same family of bug: `navigator.clipboard.writeText` is undefined in a
+ * non-secure context. The Copy button used to call it directly and the
+ * TypeError swallowed inside the handler left the user with a Copy button
+ * that did nothing. This test simulates the LAN-IP environment by stubbing
+ * out `navigator.clipboard` AND lying about `isSecureContext`. The
+ * copyToClipboard util's execCommand fallback should still produce a
+ * "Copied to clipboard" toast.
+ */
+test('Copy button works when navigator.clipboard is unavailable (LAN/non-secure)', async ({ page }) => {
+  await page.addInitScript(() => {
+    // Pretend we're on a non-secure origin (LAN IP).
+    Object.defineProperty(window, 'isSecureContext', {
+      value: false,
+      configurable: true,
+    });
+    // Strip the async clipboard so the Copy handler is forced through
+    // the execCommand fallback.
+    Object.defineProperty(navigator, 'clipboard', {
+      value: undefined,
+      configurable: true,
+    });
+  });
+
+  await freshStart(page);
+  await nav(page, 'Teams');
+  await createTeam(page);
+  await addMonToFirstSlot(page, 'Garchomp', /Swords Dance/);
+
+  // Re-open the editor on the saved Garchomp.
+  await page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)').first().click();
+  await page.getByTestId('copy-mon').click();
+
+  // The toast confirms the fallback path produced a "real" copy.
+  await expect(page.getByText('Copied to clipboard')).toBeVisible();
+  await expect(page.getByTestId('copy-confirmation')).toBeVisible();
 });

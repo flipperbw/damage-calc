@@ -1,4 +1,6 @@
+import { toast } from 'sonner';
 import { useStore, PERSISTED_KEYS } from '../store';
+import { useConfirm } from '../components/ConfirmDialog';
 import type { AppState } from '../types';
 
 const APP_VERSION = '0.1.0';
@@ -35,6 +37,7 @@ export function SettingsScreen() {
   const setNotation = useStore(s => s.setNotation);
   const clearAllRecents = useStore(s => s.clearAllRecents);
   const resetAll = useStore(s => s.resetAll);
+  const confirm = useConfirm();
 
   function exportJson() {
     const state = useStore.getState();
@@ -46,6 +49,7 @@ export function SettingsScreen() {
     a.download = `champions-calc-export-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success('Export downloaded');
   }
 
   async function importJson() {
@@ -56,17 +60,33 @@ export function SettingsScreen() {
     try {
       parsed = JSON.parse(text);
     } catch {
-      alert('Invalid JSON file.');
+      toast.error('Invalid JSON file');
       return;
     }
     if (!isImportShape(parsed)) {
-      alert('That file doesn\'t look like a Champions Calc export.');
+      toast.error("That file doesn't look like a Champions Calc export");
       return;
     }
     const slice = pickPersisted(parsed);
     // Merge into existing state, preserving action functions and transient UI.
     useStore.setState(s => ({ ...s, ...slice }));
-    alert('Import complete.');
+    toast.success('Import complete');
+  }
+
+  function clearRecents() {
+    clearAllRecents();
+    toast.success('Recent opponents cleared');
+  }
+
+  async function handleResetAll() {
+    const ok = await confirm(
+      'All teams, recent opponents, and settings will be permanently deleted.',
+      { title: 'Reset everything?', danger: true, okLabel: 'Reset' },
+    );
+    if (ok) {
+      resetAll();
+      toast.success('Reset complete');
+    }
   }
 
   return (
@@ -81,10 +101,8 @@ export function SettingsScreen() {
       <Section title="Data">
         <Action label="Export all data" onClick={exportJson} />
         <Action label="Import data" onClick={importJson} />
-        <Action label="Clear recent opponents" onClick={clearAllRecents} />
-        <Action label="Reset everything" tone="danger" onClick={() => {
-          if (confirm('Wipe all teams, recents, and settings?')) resetAll();
-        }} />
+        <Action label="Clear recent opponents" onClick={clearRecents} />
+        <Action label="Reset everything" tone="danger" onClick={handleResetAll} />
       </Section>
 
       <div className="mt-8 pt-4 border-t border-surface-hi text-[11px] opacity-50">

@@ -1,11 +1,14 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useStore } from '../store';
 import { spriteUrl } from '../data/sprites';
 import { MonEditor } from '../components/editor/MonEditor';
 import { SpeciesPicker } from '../components/pickers/SpeciesPicker';
 import { PickerShell } from '../components/pickers/PickerShell';
+import { useConfirm, usePrompt } from '../components/ConfirmDialog';
 import { emptyMon } from '../store/factories';
 import { teamToShowdownText } from '../store/exporters';
+import { copyToClipboard } from '../util/clipboard';
 import type { SavedMon, Team } from '../types';
 
 export function TeamsScreen() {
@@ -20,6 +23,9 @@ export function TeamsScreen() {
   const deleteTeam = useStore(s => s.deleteTeam);
   const recents = useStore(s => s.recentOpponents);
   const clearRecent = useStore(s => s.clearRecent);
+
+  const confirm = useConfirm();
+  const prompt = usePrompt();
 
   const [picker, setPicker] = useState<{ teamId: string; slotIndex: number } | null>(null);
   // Editor target lives in the store so it survives iOS unloading the tab.
@@ -38,31 +44,43 @@ export function TeamsScreen() {
     return { team: t, mon: m };
   })();
 
-  function handleRename(team: Team) {
-    const next = window.prompt('Rename team', team.name);
+  async function handleRename(team: Team) {
+    const next = await prompt('Enter a new team name', {
+      title: 'Rename team',
+      defaultValue: team.name,
+      placeholder: 'Team name',
+    });
     if (next && next.trim() && next.trim() !== team.name) {
       renameTeam(team.id, next.trim());
+      toast.success('Team renamed');
     }
   }
 
   function handleDuplicate(team: Team) {
     duplicateTeam(team.id);
+    toast.success('Team duplicated');
   }
 
-  function handleDelete(team: Team) {
-    if (window.confirm(`Delete "${team.name}"? This cannot be undone.`)) {
+  async function handleDelete(team: Team) {
+    const ok = await confirm(
+      `"${team.name}" will be permanently deleted. This cannot be undone.`,
+      { title: 'Delete team?', danger: true, okLabel: 'Delete' },
+    );
+    if (ok) {
       deleteTeam(team.id);
+      toast.success('Team deleted');
     }
   }
 
   async function handleExport(team: Team) {
     const text = teamToShowdownText(team);
-    try {
-      await navigator.clipboard.writeText(text);
-      window.alert('Team copied to clipboard.');
-    } catch {
-      // Fallback: show in a prompt for manual copy.
-      window.prompt('Copy this team text:', text);
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      toast.success('Team copied to clipboard');
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn('[TeamsScreen] team export copy failed; text was:\n', text);
+      toast.error('Could not copy team');
     }
   }
 
@@ -156,13 +174,14 @@ export function TeamsScreen() {
 
       {editorTeamMon && <MonEditor
         open initial={editorTeamMon.mon}
+        teamName={editorTeamMon.team.name}
         onClose={() => setEditor(null)}
         onSave={mon => { upsertMon(editorTeamMon.team.id, mon); setEditor(null); }}
         onDelete={() => {
-          if (window.confirm(`Remove ${editorTeamMon.mon.species} from ${editorTeamMon.team.name}?`)) {
-            // removeMon also clears the editor pointer for us — see store impl.
-            removeMon(editorTeamMon.team.id, editorTeamMon.mon.id);
-          }
+          // The confirm now lives inside MonEditor (so iOS doesn't lose the
+          // gesture chain through a window.confirm). We just commit the
+          // delete here. removeMon also clears the editor pointer.
+          removeMon(editorTeamMon.team.id, editorTeamMon.mon.id);
         }}
       />}
 

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import type { SavedMon } from '../../types';
 import { spriteUrl } from '../../data/sprites';
 import { SpeciesPicker } from '../pickers/SpeciesPicker';
@@ -14,6 +15,8 @@ import { TypeBadge } from '../TypeBadge';
 import { Generations, toID } from '@smogon/calc';
 import { validateSps } from '../../store/validators';
 import { monToShowdownText } from '../../store/exporters';
+import { copyToClipboard } from '../../util/clipboard';
+import { useConfirm } from '../ConfirmDialog';
 
 const GEN = Generations.get(0);
 
@@ -29,15 +32,48 @@ interface Props {
    * brand-new-mon flows shouldn't expose delete here.
    */
   onDelete?: () => void;
+  /** Optional team name shown in the trash confirm body. */
+  teamName?: string;
 }
 
-export function MonEditor({ open, initial, onClose, onSave, onDelete }: Props) {
+/**
+ * Shared "press" hook for the Copy/Trash buttons. iOS Brave occasionally
+ * loses synthetic click events on transform/blur-styled buttons or grabs the
+ * touch on the emoji glyph layer. Belt-and-suspenders fix:
+ *   - emoji wrapped in `<span style={{ pointerEvents: 'none' }}>` so the hit
+ *     target is the button itself.
+ *   - run the action in `onPointerUp` AND `onClick`, but track a per-press
+ *     ref so a successful pointerup doesn't double-fire when the click
+ *     synthesizes after.
+ *   - real fix is the clipboard / confirm refactor above; this just hardens
+ *     against any remaining hit-test weirdness.
+ */
+function usePressHandlers(action: () => void) {
+  const firedRef = useRef(false);
+  // Reset shortly after a press so subsequent presses still work.
+  function fire() {
+    if (firedRef.current) return;
+    firedRef.current = true;
+    try { action(); } finally {
+      // Microtask reset is enough — the click event after pointerup is
+      // dispatched in the same task and would observe firedRef===true.
+      setTimeout(() => { firedRef.current = false; }, 250);
+    }
+  }
+  return {
+    onClick: () => fire(),
+    onPointerUp: () => fire(),
+  };
+}
+
+export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName }: Props) {
   const [draft, setDraft] = useState<SavedMon>(initial);
   useEffect(() => setDraft(initial), [initial]);
 
   const [picker, setPicker] = useState<'species' | 'item' | 'ability' | 'nature' | null>(null);
-  // Brief inline confirmation after a successful clipboard copy. Cleared on a
-  // timer (no alert() — we want the editor to stay open after Copy).
+  // Brief inline confirmation chip after a successful clipboard copy. Kept
+  // alongside the toast so the editor itself shows feedback even if the
+  // toast is dismissed/missed by the user.
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -45,24 +81,43 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete }: Props) {
     return () => window.clearTimeout(id);
   }, [copied]);
 
+  const confirm = useConfirm();
+
+  async function handleCopy() {
+    const text = monToShowdownText(draft);
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      setCopied(true);
+      toast.success('Copied to clipboard', { id: 'mon-copy' });
+    } else {
+      // Last-resort: log the text so a tech-savvy user can grab it from
+      // devtools, then surface an error toast they can't miss.
+      // eslint-disable-next-line no-console
+      console.warn('[MonEditor] copy failed; text was:', text);
+      toast.error('Could not copy to clipboard', { id: 'mon-copy' });
+    }
+  }
+
+  async function handleDelete() {
+    if (!onDelete) return;
+    const where = teamName ? ` from ${teamName}` : '';
+    const ok = await confirm(
+      `${draft.species} will be removed${where}.`,
+      { title: 'Remove from team?', danger: true, okLabel: 'Remove' },
+    );
+    if (!ok) return;
+    onDelete();
+    toast.success(`${draft.species} removed`);
+  }
+
+  const copyHandlers = usePressHandlers(handleCopy);
+  const deleteHandlers = usePressHandlers(handleDelete);
+
   if (!open) return null;
 
   const speciesData = GEN.species.get(toID(draft.species) as any);
   const types = speciesData?.types ?? [];
   const valid = validateSps(draft.sps).ok;
-
-  async function handleCopy() {
-    const text = monToShowdownText(draft);
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-    } catch {
-      // Some iOS Safari/Brave configurations reject writeText outside a
-      // strict user-gesture chain. Fall back to a prompt so the text is
-      // still recoverable.
-      window.prompt('Copy this:', text);
-    }
-  }
 
   function patch(p: Partial<SavedMon>) {
     setDraft(prev => {
@@ -98,23 +153,23 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete }: Props) {
             <button
               type="button"
               aria-label="Copy Pokémon to clipboard"
-              onClick={handleCopy}
+              {...copyHandlers}
               data-testid="copy-mon"
               style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.25)' }}
               className={`min-w-[44px] min-h-[44px] flex items-center justify-center text-lg rounded-lg select-none cursor-pointer ${copied ? 'bg-ok/20' : 'bg-surface border border-surface-hi'}`}
             >
-              📋
+              <span style={{ pointerEvents: 'none' }}>📋</span>
             </button>
             {onDelete ? (
               <button
                 type="button"
                 aria-label="Remove from team"
-                onClick={onDelete}
+                {...deleteHandlers}
                 data-testid="delete-mon"
                 style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,107,107,0.3)' }}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg rounded-lg bg-danger/10 border border-danger/30 text-danger select-none cursor-pointer"
               >
-                🗑
+                <span style={{ pointerEvents: 'none' }}>🗑</span>
               </button>
             ) : null}
           </div>
