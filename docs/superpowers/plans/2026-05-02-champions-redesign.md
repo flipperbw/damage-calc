@@ -699,10 +699,13 @@ Notes carried forward into the adapter:
 
   const blankField = (): FieldState => ({ yourSide: {}, oppSide: {} });
 
+  // Items omitted on app-side fixtures: Life Orb / Rocky Helmet aren't in the
+  // Champions item list (gen 0, calc/src/data/items.ts:551-669). The adapter
+  // handles missing items via `item || undefined`. These tests don't assert
+  // item behavior.
   const garchomp: SavedMon = {
     id: 'a',
     species: 'Garchomp',
-    item: 'Life Orb',
     ability: 'Rough Skin',
     nature: 'Jolly',
     sps: { atk: 32, spe: 32 },
