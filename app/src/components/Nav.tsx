@@ -8,7 +8,8 @@ const ITEMS: Array<{ id: Tab; icon: string; label: string }> = [
 ];
 
 export function Nav() {
-  const { tab, setTab } = useStore();
+  const tab = useStore(s => s.tab);
+  const setTab = useStore(s => s.setTab);
   return (
     <>
       {/* Mobile bottom nav */}

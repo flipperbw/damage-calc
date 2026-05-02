@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from '../store';
 import { calculateMatchup } from '../calc/adapter';
 import { MonCard } from '../components/MonCard';
@@ -23,6 +23,30 @@ export function BattleScreen() {
   const [editor, setEditor] = useState<{ side: 'you' | 'opp'; mon: SavedMon } | null>(null);
   const [oppPicker, setOppPicker] = useState(false);
 
+  const you = team?.mons[activeIndex];
+
+  // Memo so we don't recompute when unrelated store slices change.
+  const matchup = useMemo(
+    () => (you && opponent ? calculateMatchup(you, opponent, field) : null),
+    [you, opponent, field],
+  );
+
+  // Priority-flips-order warning. Fires when:
+  // - You outspeed but opponent has a positive-priority move (they hit first), or
+  // - You're slower but you have a positive-priority move (you hit first).
+  const priorityWarning = useMemo(() => {
+    if (!matchup) return undefined;
+    const { speed, attackerMoves, defenderMoves } = matchup;
+    if (speed.attackerOutspeeds) {
+      const oppPrio = defenderMoves.find(m => m.priority > 0 && m.moveName);
+      if (oppPrio) return `${oppPrio.moveName} flips order`;
+    } else if (speed.delta < 0) {
+      const yourPrio = attackerMoves.find(m => m.priority > 0 && m.moveName);
+      if (yourPrio) return `${yourPrio.moveName} flips order`;
+    }
+    return undefined;
+  }, [matchup]);
+
   if (!team || team.mons.length === 0) {
     return (
       <div className="text-center mt-10 opacity-70">
@@ -32,10 +56,9 @@ export function BattleScreen() {
       </div>
     );
   }
-  const you = team.mons[activeIndex];
   if (!you) return null;
 
-  if (!opponent) {
+  if (!opponent || !matchup) {
     return (
       <div className="md:grid md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
         <div className="md:col-span-3">
@@ -65,8 +88,6 @@ export function BattleScreen() {
       </div>
     );
   }
-
-  const matchup = calculateMatchup(you, opponent, field);
 
   return (
     <div className="md:grid md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
@@ -101,11 +122,11 @@ export function BattleScreen() {
             Your moves → opponent
           </div>
           {matchup.attackerMoves.map((r, i) => (
-            <MoveRow key={i} result={r} />
+            <MoveRow key={i} result={r} defenderForSturdy={opponent} />
           ))}
         </div>
         <div className="md:hidden">
-          <SpeedDivider speed={matchup.speed} />
+          <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
         </div>
       </div>
 
@@ -126,14 +147,14 @@ export function BattleScreen() {
             Their moves → you
           </div>
           {matchup.defenderMoves.map((r, i) => (
-            <MoveRow key={i} result={r} />
+            <MoveRow key={i} result={r} defenderForSturdy={you} />
           ))}
         </div>
       </div>
 
       {/* Speed divider for desktop spans columns 2-3 */}
       <div className="hidden md:block md:col-start-2 md:col-span-2">
-        <SpeedDivider speed={matchup.speed} />
+        <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
       </div>
 
       {editor && (

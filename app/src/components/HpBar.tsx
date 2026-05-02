@@ -2,7 +2,7 @@ interface Props {
   current?: number;        // raw, undefined = full
   max: number;
   showRaw?: boolean;       // false = % only (opponent mode)
-  onChange?: (newCurrent: number) => void;
+  onChange?: (newCurrent: number | undefined) => void;
 }
 
 export function HpBar({ current, max, showRaw = true, onChange }: Props) {
@@ -12,6 +12,13 @@ export function HpBar({ current, max, showRaw = true, onChange }: Props) {
     pct > 50 ? 'bg-ok'
     : pct > 20 ? 'bg-warn'
     : 'bg-danger';
+
+  function handleChange(v: number) {
+    if (!onChange) return;
+    // Stay in the "undefined = full" canonical form when at max so the
+    // model doesn't drift between {currentHp: undefined} and {currentHp: max}.
+    onChange(v >= max ? undefined : v);
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -27,7 +34,7 @@ export function HpBar({ current, max, showRaw = true, onChange }: Props) {
           min={0}
           max={max}
           value={cur}
-          onChange={e => onChange(Number(e.target.value))}
+          onChange={e => handleChange(Number(e.target.value))}
           className="w-20"
           aria-label="HP"
         />

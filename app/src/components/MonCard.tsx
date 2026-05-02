@@ -16,7 +16,7 @@ interface Props {
   maxHp: number;
   side: 'you' | 'opp';
   onEdit: () => void;
-  onChangeHp: (hp: number) => void;
+  onChangeHp: (hp: number | undefined) => void;
   onChangeMega: (mega: MegaState) => void;
   onChangeStatus?: (status: StatusName | undefined) => void;
   onChangeBoosts?: (boosts: Partial<Record<StatIDExceptHP, number>>) => void;
