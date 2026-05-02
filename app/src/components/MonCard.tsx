@@ -20,11 +20,18 @@ interface Props {
   onChangeMega: (mega: MegaState) => void;
   onChangeStatus?: (status: StatusName | undefined) => void;
   onChangeBoosts?: (boosts: Partial<Record<StatIDExceptHP, number>>) => void;
+  /**
+   * When provided, the outer card surface is clickable and triggers a swap
+   * (e.g. opens the species picker for the opponent). Sprite/name still route
+   * to onEdit; chips and other controls stop propagation so they don't bubble
+   * up to the card surface.
+   */
+  onSwap?: () => void;
 }
 
 export function MonCard({
   mon, maxHp, side, onEdit, onChangeHp, onChangeMega,
-  onChangeStatus, onChangeBoosts,
+  onChangeStatus, onChangeBoosts, onSwap,
 }: Props) {
   const sp = GEN.species.get(toID(mon.species) as any);
   const types = sp?.types ?? [];
@@ -36,15 +43,47 @@ export function MonCard({
   const hasBoosts =
     Object.values(mon.boosts).some(v => typeof v === 'number' && v !== 0);
 
+  // The outer card is interactive only when onSwap is wired (opponent-side).
+  // We use role="button" + a div instead of a <button> so we can nest other
+  // buttons (sprite/name/chips) without invalid DOM (button-in-button).
+  const swapProps = onSwap
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': `Swap ${mon.species}`,
+        'data-testid': `swap-${side}`,
+        onClick: onSwap,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSwap();
+          }
+        },
+        className: `bg-surface border ${dashed} rounded-card p-3 mb-2.5 cursor-pointer`,
+      }
+    : { className: `bg-surface border ${dashed} rounded-card p-3 mb-2.5` };
+
+  function stop<E extends React.SyntheticEvent>(e: E, fn?: () => void) {
+    e.stopPropagation();
+    fn?.();
+  }
+
   return (
-    <div className={`bg-surface border ${dashed} rounded-card p-3 mb-2.5`}>
+    <div {...swapProps}>
       <div className="flex gap-2.5 items-center mb-2">
-        <button onClick={onEdit}>
+        <button
+          onClick={e => stop(e, onEdit)}
+          data-testid={`edit-sprite-${side}`}
+        >
           <img src={spriteUrl(mon.species)} alt={mon.species} className="w-13 h-13 rounded-xl" />
         </button>
         <div className="flex-1">
           <div className="flex justify-between items-center">
-            <button onClick={onEdit} className="font-bold text-base text-left">{mon.species}</button>
+            <button
+              onClick={e => stop(e, onEdit)}
+              data-testid={`edit-name-${side}`}
+              className="font-bold text-base text-left"
+            >{mon.species}</button>
             <span className="text-[10px] opacity-50">L50</span>
           </div>
           <div className="flex gap-1 mt-1">
@@ -53,51 +92,58 @@ export function MonCard({
         </div>
       </div>
 
-      <HpBar
-        current={mon.currentHp}
-        max={maxHp}
-        showRaw={side === 'you'}
-        onChange={onChangeHp}
-      />
+      {/*
+        Stop click/keydown bubbling for inner controls when the card surface is
+        a swap target — chips, HpBar, and MegaToggle each route to their own
+        handlers, not the swap.
+      */}
+      <div onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+        <HpBar
+          current={mon.currentHp}
+          max={maxHp}
+          showRaw={side === 'you'}
+          onChange={onChangeHp}
+        />
 
-      <div className="flex gap-1.5 mt-2 flex-wrap">
-        {mon.ability && (
-          <StatChip icon="🩸" label={mon.ability} editable={side === 'opp'} onClick={onEdit} />
-        )}
-        {mon.item && (
-          <StatChip icon="🎒" label={mon.item} editable={side === 'opp'} onClick={onEdit} />
-        )}
-        <StatChip icon="🌿" label={mon.nature} editable={side === 'opp'} onClick={onEdit} />
+        <div className="flex gap-1.5 mt-2 flex-wrap">
+          {mon.ability && (
+            <StatChip icon="🩸" label={mon.ability} editable={side === 'opp'} onClick={onEdit} />
+          )}
+          {mon.item && (
+            <StatChip icon="🎒" label={mon.item} editable={side === 'opp'} onClick={onEdit} />
+          )}
+          <StatChip icon="🌿" label={mon.nature} editable={side === 'opp'} onClick={onEdit} />
 
-        {/* Status: chip when set, "Status" pill when not. */}
-        {hasStatus ? (
-          <StatChip
-            label={mon.status!}
-            tone="warn"
-            editable={!!onChangeStatus}
-            onClick={onChangeStatus ? () => setPicker('status') : undefined}
-          />
-        ) : onChangeStatus ? (
-          <StatChip label="+ Status" onClick={() => setPicker('status')} />
-        ) : null}
-
-        {/* Boosts: one chip per non-zero boost, plus a "+ Boost" pill. */}
-        {(Object.entries(mon.boosts) as [StatIDExceptHP, number][]).map(([k, v]) =>
-          v !== 0 ? (
+          {/* Status: chip when set, "Status" pill when not. */}
+          {hasStatus ? (
             <StatChip
-              key={k}
-              label={`${v > 0 ? '+' : ''}${v} ${k}`}
-              tone="boost"
-              editable={!!onChangeBoosts}
-              onClick={onChangeBoosts ? () => setPicker('boosts') : undefined}
+              label={mon.status!}
+              tone="warn"
+              editable={!!onChangeStatus}
+              onClick={onChangeStatus ? () => setPicker('status') : undefined}
             />
-          ) : null,
-        )}
-        {!hasBoosts && onChangeBoosts && (
-          <StatChip label="+ Boost" onClick={() => setPicker('boosts')} />
-        )}
+          ) : onChangeStatus ? (
+            <StatChip label="+ Status" onClick={() => setPicker('status')} />
+          ) : null}
 
-        <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
+          {/* Boosts: one chip per non-zero boost, plus a "+ Boost" pill. */}
+          {(Object.entries(mon.boosts) as [StatIDExceptHP, number][]).map(([k, v]) =>
+            v !== 0 ? (
+              <StatChip
+                key={k}
+                label={`${v > 0 ? '+' : ''}${v} ${k}`}
+                tone="boost"
+                editable={!!onChangeBoosts}
+                onClick={onChangeBoosts ? () => setPicker('boosts') : undefined}
+              />
+            ) : null,
+          )}
+          {!hasBoosts && onChangeBoosts && (
+            <StatChip label="+ Boost" onClick={() => setPicker('boosts')} />
+          )}
+
+          <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
+        </div>
       </div>
 
       {onChangeStatus && (

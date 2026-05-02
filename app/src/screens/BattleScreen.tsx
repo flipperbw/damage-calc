@@ -72,12 +72,18 @@ export function BattleScreen() {
             <VerticalTeamCarousel />
           </div>
         </div>
-        <div className="md:col-span-2 text-center mt-6">
+        <div className="md:col-span-2">
+          {/*
+            Empty-opponent placeholder: the card itself is the swap surface,
+            matching the populated state. Single tap-target rather than a
+            separate button because that's what the populated card does too.
+          */}
           <button
             onClick={() => setOppPicker(true)}
-            className="px-4 py-2 rounded-lg bg-accent-gradient text-white font-semibold"
+            data-testid="pick-opponent"
+            className="w-full bg-surface border border-dashed border-danger/25 rounded-card p-6 text-center text-sm opacity-70 hover:opacity-100"
           >
-            Pick opponent
+            Tap to pick an opponent
           </button>
         </div>
         <SpeciesPicker
@@ -137,6 +143,7 @@ export function BattleScreen() {
           maxHp={matchup.defenderMaxHp}
           side="opp"
           onEdit={() => setEditor({ side: 'opp', mon: opponent })}
+          onSwap={() => setOppPicker(true)}
           onChangeHp={hp => updateOpponent({ currentHp: hp })}
           onChangeMega={mega => updateOpponent({ mega })}
           onChangeStatus={status => updateOpponent({ status })}

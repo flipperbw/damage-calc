@@ -39,8 +39,10 @@ test('create team, add Garchomp, set up Skarmory opponent, see damage', async ({
   // Activate the team by clicking its name in the team list.
   await page.getByText('New team').click();
 
-  // We're on the Battle screen — pick an opponent.
-  await page.getByRole('button', { name: 'Pick opponent' }).click();
+  // We're on the Battle screen — pick an opponent. The empty-opponent state
+  // renders a placeholder card with testid="pick-opponent" that opens the
+  // species picker on tap.
+  await page.getByTestId('pick-opponent').click();
   await page.getByPlaceholder('Search Pokémon').fill('Skarmory');
   await page.getByRole('button', { name: /^Skarmory$/ }).click();
 
