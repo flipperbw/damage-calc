@@ -726,11 +726,11 @@ Notes carried forward into the adapter:
   };
 
   // Skarmory (Steel/Flying) — used only for the Sun-weather test where Charizard
-  // hits with Flamethrower (4× SE).
+  // hits with Flamethrower (4× SE). Item omitted (Rocky Helmet isn't in the
+  // Champions item list).
   const skarmory: SavedMon = {
     id: 'c',
     species: 'Skarmory',
-    item: 'Rocky Helmet',
     ability: 'Sturdy',
     nature: 'Impish',
     sps: { hp: 32, def: 32 },
@@ -771,7 +771,7 @@ Notes carried forward into the adapter:
     it('respects field weather (Sun boosts Fire moves)', () => {
       const charizard: SavedMon = {
         ...garchomp, species: 'Charizard', moves: ['Flamethrower', '', '', ''],
-        ability: 'Blaze', item: '',
+        ability: 'Blaze',
       };
       const noSun = calculateMatchup(charizard, skarmory, blankField())
         .attackerMoves[0].percentRange[1];
