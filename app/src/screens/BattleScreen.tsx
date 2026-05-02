@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../store';
 import { calculateMatchup } from '../calc/adapter';
 import { MonCard } from '../components/MonCard';
-import { TeamCarousel } from '../components/TeamCarousel';
+import { TeamCarousel, VerticalTeamCarousel } from '../components/TeamCarousel';
 import { FieldBar } from '../components/FieldBar';
 import { MoveRow } from '../components/MoveRow';
 import { SpeedDivider } from '../components/SpeedDivider';
@@ -47,10 +47,19 @@ export function BattleScreen() {
 
   if (!opponent) {
     return (
-      <>
-        <FieldBar />
-        <TeamCarousel />
-        <div className="text-center mt-6">
+      <div className="md:grid md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
+        <div className="md:col-span-3">
+          <FieldBar />
+        </div>
+        <div className="md:flex md:flex-col">
+          <div className="md:hidden">
+            <TeamCarousel />
+          </div>
+          <div className="hidden md:block">
+            <VerticalTeamCarousel />
+          </div>
+        </div>
+        <div className="md:col-span-2 text-center mt-6">
           <button
             onClick={() => setOppPicker(true)}
             className="px-4 py-2 rounded-lg bg-accent-gradient text-white font-semibold"
@@ -63,53 +72,74 @@ export function BattleScreen() {
           onClose={() => setOppPicker(false)}
           onPick={s => setOpponent(emptyMon(s))}
         />
-      </>
+      </div>
     );
   }
 
   const matchup = calculateMatchup(you, opponent, field);
 
   return (
-    <>
-      <FieldBar />
-      <TeamCarousel />
-
-      <MonCard
-        mon={you}
-        maxHp={matchup.attackerMaxHp}
-        side="you"
-        onEdit={() => setEditor({ side: 'you', mon: you })}
-        onChangeHp={hp => upsertMon(team.id, { ...you, currentHp: hp })}
-        onChangeMega={isMega => upsertMon(team.id, { ...you, isMega })}
-      />
-
-      <div>
-        <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
-          Your moves → opponent
-        </div>
-        {matchup.attackerMoves.map((r, i) => (
-          <MoveRow key={i} result={r} />
-        ))}
+    <div className="md:grid md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
+      <div className="md:col-span-3">
+        <FieldBar />
       </div>
 
-      <SpeedDivider speed={matchup.speed} />
-
-      <MonCard
-        mon={opponent}
-        maxHp={matchup.defenderMaxHp}
-        side="opp"
-        onEdit={() => setEditor({ side: 'opp', mon: opponent })}
-        onChangeHp={hp => setOpponent({ ...opponent, currentHp: hp })}
-        onChangeMega={isMega => setOpponent({ ...opponent, isMega })}
-      />
-
-      <div>
-        <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
-          Their moves → you
+      {/* Team rail */}
+      <div className="md:flex md:flex-col">
+        <div className="md:hidden">
+          <TeamCarousel />
         </div>
-        {matchup.defenderMoves.map((r, i) => (
-          <MoveRow key={i} result={r} />
-        ))}
+        <div className="hidden md:block">
+          <VerticalTeamCarousel />
+        </div>
+      </div>
+
+      {/* Center: you + your moves */}
+      <div>
+        <MonCard
+          mon={you}
+          maxHp={matchup.attackerMaxHp}
+          side="you"
+          onEdit={() => setEditor({ side: 'you', mon: you })}
+          onChangeHp={hp => upsertMon(team.id, { ...you, currentHp: hp })}
+          onChangeMega={isMega => upsertMon(team.id, { ...you, isMega })}
+        />
+        <div>
+          <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
+            Your moves → opponent
+          </div>
+          {matchup.attackerMoves.map((r, i) => (
+            <MoveRow key={i} result={r} />
+          ))}
+        </div>
+        <div className="md:hidden">
+          <SpeedDivider speed={matchup.speed} />
+        </div>
+      </div>
+
+      {/* Right: opponent + their moves */}
+      <div>
+        <MonCard
+          mon={opponent}
+          maxHp={matchup.defenderMaxHp}
+          side="opp"
+          onEdit={() => setEditor({ side: 'opp', mon: opponent })}
+          onChangeHp={hp => setOpponent({ ...opponent, currentHp: hp })}
+          onChangeMega={isMega => setOpponent({ ...opponent, isMega })}
+        />
+        <div>
+          <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
+            Their moves → you
+          </div>
+          {matchup.defenderMoves.map((r, i) => (
+            <MoveRow key={i} result={r} />
+          ))}
+        </div>
+      </div>
+
+      {/* Speed divider for desktop spans columns 2-3 */}
+      <div className="hidden md:block md:col-start-2 md:col-span-2">
+        <SpeedDivider speed={matchup.speed} />
       </div>
 
       {editor && (
@@ -130,6 +160,6 @@ export function BattleScreen() {
         onClose={() => setOppPicker(false)}
         onPick={s => setOpponent(emptyMon(s))}
       />
-    </>
+    </div>
   );
 }
