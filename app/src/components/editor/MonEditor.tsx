@@ -20,9 +20,16 @@ interface Props {
   initial: SavedMon;
   onClose: () => void;
   onSave: (mon: SavedMon) => void;
+  /**
+   * Optional delete handler. When provided, a trash button is rendered in
+   * the editor's top bar and tapping it (after confirm) calls onDelete and
+   * closes the sheet. Only TeamsScreen wires this — the battle screen and
+   * brand-new-mon flows shouldn't expose delete here.
+   */
+  onDelete?: () => void;
 }
 
-export function MonEditor({ open, initial, onClose, onSave }: Props) {
+export function MonEditor({ open, initial, onClose, onSave, onDelete }: Props) {
   const [draft, setDraft] = useState<SavedMon>(initial);
   useEffect(() => setDraft(initial), [initial]);
 
@@ -51,7 +58,17 @@ export function MonEditor({ open, initial, onClose, onSave }: Props) {
         <div className="flex justify-between items-center mb-4">
           <button onClick={onClose} className="opacity-60">←</button>
           <span className="font-bold">Edit Pokémon</span>
-          <span className="w-4" />
+          {onDelete ? (
+            <button
+              aria-label="Remove from team"
+              onClick={onDelete}
+              className="opacity-60 hover:opacity-100 text-base"
+            >
+              🗑
+            </button>
+          ) : (
+            <span className="w-4" />
+          )}
         </div>
 
         {/* Hero */}

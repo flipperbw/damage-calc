@@ -14,6 +14,7 @@ export function TeamsScreen() {
   const createTeam = useStore(s => s.createTeam);
   const setActiveTeam = useStore(s => s.setActiveTeam);
   const upsertMon = useStore(s => s.upsertMon);
+  const removeMon = useStore(s => s.removeMon);
   const renameTeam = useStore(s => s.renameTeam);
   const duplicateTeam = useStore(s => s.duplicateTeam);
   const deleteTeam = useStore(s => s.deleteTeam);
@@ -110,6 +111,14 @@ export function TeamsScreen() {
         open initial={editor.mon}
         onClose={() => setEditor(null)}
         onSave={mon => { upsertMon(editor.teamId, mon); setEditor(null); }}
+        onDelete={() => {
+          const team = teams.find(t => t.id === editor.teamId);
+          const teamName = team?.name ?? 'this team';
+          if (window.confirm(`Remove ${editor.mon.species} from ${teamName}?`)) {
+            removeMon(editor.teamId, editor.mon.id);
+            setEditor(null);
+          }
+        }}
       />}
 
       <PickerShell
