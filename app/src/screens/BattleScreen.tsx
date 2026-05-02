@@ -8,7 +8,7 @@ import { MoveRow } from '../components/MoveRow';
 import { SpeedDivider } from '../components/SpeedDivider';
 import { MonEditor } from '../components/editor/MonEditor';
 import { SpeciesPicker } from '../components/pickers/SpeciesPicker';
-import { emptyMon } from '../store/factories';
+import { defaultOpponentMon } from '../store/factories';
 import type { SavedMon } from '../types';
 
 export function BattleScreen() {
@@ -83,7 +83,7 @@ export function BattleScreen() {
         <SpeciesPicker
           open={oppPicker}
           onClose={() => setOppPicker(false)}
-          onPick={s => setOpponent(emptyMon(s))}
+          onPick={s => setOpponent(defaultOpponentMon(s))}
         />
       </div>
     );
@@ -173,7 +173,7 @@ export function BattleScreen() {
       <SpeciesPicker
         open={oppPicker}
         onClose={() => setOppPicker(false)}
-        onPick={s => setOpponent(emptyMon(s))}
+        onPick={s => setOpponent(defaultOpponentMon(s))}
       />
     </div>
   );

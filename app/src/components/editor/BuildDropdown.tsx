@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { getBuildsForSpecies, getBuild } from '../../data/setdex-champions';
+import { getBuildsForSpecies } from '../../data/setdex-champions';
+import { monFromBuild } from '../../store/factories';
 import type { SavedMon } from '../../types';
 
 interface Props {
@@ -13,15 +14,15 @@ export function BuildDropdown({ species, selectedName, onApply }: Props) {
   const [open, setOpen] = useState(false);
 
   function pick(name: string) {
-    const b = getBuild(species, name);
-    if (!b) return;
+    const built = monFromBuild(species, name);
+    if (!built) return;
     onApply({
       buildName: name,
-      item: b.item,
-      ability: b.ability,
-      nature: b.nature,
-      sps: b.sps,
-      moves: [b.moves[0] ?? '', b.moves[1] ?? '', b.moves[2] ?? '', b.moves[3] ?? ''] as any,
+      item: built.item,
+      ability: built.ability,
+      nature: built.nature,
+      sps: built.sps,
+      moves: built.moves,
     }, name);
     setOpen(false);
   }
