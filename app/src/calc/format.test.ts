@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { koTagFromText, priorityFlag, sturdyWarning } from './format';
+import { koTagFromText, priorityFlag, sturdyWarning, effectivenessBadge } from './format';
 import type { SavedMon } from '../types';
 
 void vi;
@@ -51,5 +51,30 @@ describe('sturdyWarning', () => {
   });
   it('does not flag without Sturdy', () => {
     expect(sturdyWarning(mon())).toBe(false);
+  });
+});
+
+describe('effectivenessBadge', () => {
+  it('returns null for status moves', () => {
+    expect(effectivenessBadge(2, true)).toBeNull();
+    expect(effectivenessBadge(0, true)).toBeNull();
+  });
+  it('returns null for neutral 1x', () => {
+    expect(effectivenessBadge(1, false)).toBeNull();
+  });
+  it('flags Immune for 0', () => {
+    expect(effectivenessBadge(0, false)?.label).toBe('Immune');
+  });
+  it('flags 4x', () => {
+    expect(effectivenessBadge(4, false)?.label).toBe('4×');
+  });
+  it('flags 2x', () => {
+    expect(effectivenessBadge(2, false)?.label).toBe('2×');
+  });
+  it('flags 1/2x', () => {
+    expect(effectivenessBadge(0.5, false)?.label).toBe('½×');
+  });
+  it('flags 1/4x', () => {
+    expect(effectivenessBadge(0.25, false)?.label).toBe('¼×');
   });
 });

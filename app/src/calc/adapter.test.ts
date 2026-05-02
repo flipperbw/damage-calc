@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateMatchup } from './adapter';
+import { calculateMatchup, typeEffectiveness } from './adapter';
 import type { SavedMon, FieldState } from '../types';
 
 const blankField = (): FieldState => ({ yourSide: {}, oppSide: {} });
@@ -88,5 +88,46 @@ describe('calculateMatchup', () => {
     const m = calculateMatchup(garchomp, tyranitar, blankField());
     expect(m.speed.attackerSpe).toBeGreaterThan(m.speed.defenderSpe);
     expect(m.speed.attackerOutspeeds).toBe(true);
+  });
+
+  it('reports type effectiveness on each move', () => {
+    // Garchomp's Earthquake (Ground) vs Tyranitar (Rock/Dark): 2 * 1 = 2x.
+    const m = calculateMatchup(garchomp, tyranitar, blankField());
+    const eq = m.attackerMoves.find(r => r.moveName === 'Earthquake')!;
+    expect(eq.effectiveness).toBe(2);
+    const outrage = m.attackerMoves.find(r => r.moveName === 'Outrage')!;
+    // Dragon vs Rock = 1, vs Dark = 1: neutral.
+    expect(outrage.effectiveness).toBe(1);
+  });
+
+  it('status moves report neutral effectiveness', () => {
+    const m = calculateMatchup(garchomp, tyranitar, blankField());
+    const sr = m.defenderMoves.find(r => r.moveName === 'Stealth Rock')!;
+    expect(sr.effectiveness).toBe(1);
+  });
+});
+
+describe('typeEffectiveness', () => {
+  it('Fire vs Steel/Bug = 4x', () => {
+    expect(typeEffectiveness('Fire', ['Steel', 'Bug'])).toBe(4);
+  });
+  it('Fire vs Steel/Flying = 2x (Steel weak, Flying neutral)', () => {
+    expect(typeEffectiveness('Fire', ['Steel', 'Flying'])).toBe(2);
+  });
+  it('Electric vs Ground = 0', () => {
+    expect(typeEffectiveness('Electric', ['Ground'])).toBe(0);
+  });
+  it('Water vs Fire = 2x (single type)', () => {
+    expect(typeEffectiveness('Water', ['Fire'])).toBe(2);
+  });
+  it('Normal vs Ghost = 0', () => {
+    expect(typeEffectiveness('Normal', ['Ghost'])).toBe(0);
+  });
+  it('Dragon vs Rock/Dark = 1', () => {
+    expect(typeEffectiveness('Dragon', ['Rock', 'Dark'])).toBe(1);
+  });
+  it('returns 1 for unknown type', () => {
+    expect(typeEffectiveness('???', ['Fire'])).toBe(1);
+    expect(typeEffectiveness('', ['Fire'])).toBe(1);
   });
 });

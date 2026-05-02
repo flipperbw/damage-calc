@@ -5,6 +5,7 @@ import {
   Field,
   calculate,
   toID,
+  TYPE_CHART,
 } from '@smogon/calc';
 import type { SavedMon, FieldState, SideState, StatusName } from '../types';
 
@@ -28,6 +29,12 @@ export interface MoveResult {
   percentRange: [number, number];    // % of defender max HP, integer
   koChanceText: string;              // e.g. "guaranteed OHKO", "44.5% chance to 2HKO"
   isStatus: boolean;
+  /**
+   * Type-effectiveness multiplier of this move's type vs the defender's
+   * types. 0/0.25/0.5/1/2/4. Defaults to 1 for status moves or when the
+   * type isn't found in the chart.
+   */
+  effectiveness: number;
 }
 
 export interface MatchupResult {
@@ -112,6 +119,26 @@ function buildSide(s: SideState) {
   };
 }
 
+// Champions uses gen 0 of TYPE_CHART; chart is keyed [atkType][defType] = mult.
+const CHAMPIONS_TYPE_CHART = TYPE_CHART[0];
+
+/**
+ * Compute the type-effectiveness multiplier for moveType vs defender types.
+ * Returns 0/0.25/0.5/1/2/4. Falls back to 1 for unknown types.
+ */
+export function typeEffectiveness(moveType: string, defenderTypes: readonly string[]): number {
+  if (!moveType || moveType === '???') return 1;
+  const row = (CHAMPIONS_TYPE_CHART as any)[moveType];
+  if (!row) return 1;
+  let mult = 1;
+  for (const def of defenderTypes) {
+    if (!def) continue;
+    const v = row[def];
+    if (typeof v === 'number') mult *= v;
+  }
+  return mult;
+}
+
 function buildMoveResult(
   moveName: string,
   attacker: Pokemon,
@@ -135,6 +162,9 @@ function buildMoveResult(
   } catch {
     koText = '';
   }
+  const effectiveness = move.category === 'Status'
+    ? 1
+    : typeEffectiveness(move.type as string, defender.species.types as readonly string[]);
   return {
     moveName: move.name,
     type: move.type,
@@ -144,6 +174,7 @@ function buildMoveResult(
     percentRange: percent,
     koChanceText: koText,
     isStatus,
+    effectiveness,
   };
 }
 
@@ -157,6 +188,7 @@ function emptyMoveResult(): MoveResult {
     percentRange: [0, 0],
     koChanceText: '',
     isStatus: true,
+    effectiveness: 1,
   };
 }
 

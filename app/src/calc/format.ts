@@ -33,3 +33,27 @@ export function sturdyWarning(defender: SavedMon): boolean {
   if (defender.ability !== 'Sturdy') return false;
   return defender.currentHp === undefined;
 }
+
+export interface EffectivenessBadge {
+  label: string;
+  /** Tailwind utility classes used to colour the badge. */
+  cls: string;
+}
+
+/**
+ * Map a type-effectiveness multiplier to a renderable badge. Status moves
+ * and neutral (1x) hits return null so the row doesn't accumulate noise.
+ */
+export function effectivenessBadge(
+  multiplier: number,
+  isStatus: boolean,
+): EffectivenessBadge | null {
+  if (isStatus) return null;
+  if (multiplier === 1) return null;
+  if (multiplier === 0) return { label: 'Immune', cls: 'bg-black/40 text-white/40 italic' };
+  if (multiplier >= 4) return { label: '4×', cls: 'bg-danger text-white' };
+  if (multiplier >= 2) return { label: '2×', cls: 'bg-priority text-black' };
+  if (multiplier <= 0.25) return { label: '¼×', cls: 'bg-black/40 text-white/40' };
+  if (multiplier <= 0.5) return { label: '½×', cls: 'bg-black/40 text-white/60' };
+  return null;
+}

@@ -1,7 +1,7 @@
 import { TypeBadge } from './TypeBadge';
 import type { MoveResult } from '../calc/adapter';
 import type { SavedMon } from '../types';
-import { koTagFromText, priorityFlag, sturdyWarning } from '../calc/format';
+import { koTagFromText, priorityFlag, sturdyWarning, effectivenessBadge } from '../calc/format';
 
 interface Props {
   result: MoveResult;
@@ -53,6 +53,14 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
               Sturdy
             </span>
           )}
+          {(() => {
+            const eff = effectivenessBadge(result.effectiveness, result.isStatus);
+            return eff ? (
+              <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${eff.cls}`}>
+                {eff.label}
+              </span>
+            ) : null;
+          })()}
         </div>
         {!result.isStatus && (
           <div className="text-[10px] opacity-50 mt-0.5">
