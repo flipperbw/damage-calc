@@ -33,11 +33,21 @@ export function SpGrid({ sps, onChange }: Props) {
     onChange(out);
   }
 
+  // Three rendering tiers for the total readout:
+  //   ok && < cap : neutral/muted (still room to allocate)
+  //   ok && === cap : green (success — fully spent without overflow)
+  //   !ok         : red (over cap or per-stat exceedance — Save disabled)
+  // The non-ok branch already includes the `error` string; we only style.
+  const totalCls =
+    !v.ok ? 'text-danger'
+    : v.total === SP_TOTAL_MAX ? 'text-ok'
+    : 'opacity-50';
+
   return (
     <div>
       <div className="flex justify-between items-baseline mb-2">
         <div className="text-xxs uppercase tracking-wider opacity-55">Stat Points</div>
-        <div className={`text-xxs ${v.ok ? 'opacity-50' : 'text-danger'}`}>
+        <div data-testid="sp-total" className={`text-xxs ${totalCls}`}>
           {v.total} / {SP_TOTAL_MAX}{v.error ? ` · ${v.error}` : ''}
         </div>
       </div>

@@ -48,4 +48,35 @@ describe('SpGrid', () => {
     fireEvent.click(screen.getByLabelText(/atk 0/i));
     expect(onChange).toHaveBeenCalledWith({});
   });
+
+  describe('SP total readout colour tiers', () => {
+    // The grid renders a small "{total} / 66 [· error]" readout. Three tiers
+    // help the eye scan allocation state at a glance without reading numbers.
+    it('shows neutral/muted styling below the cap (50 / 66)', () => {
+      // 32 + 18 = 50 — well under the cap.
+      render(<SpGrid sps={{ atk: 32, spe: 18 }} onChange={() => {}} />);
+      const total = screen.getByTestId('sp-total');
+      expect(total).toHaveClass('opacity-50');
+      expect(total).not.toHaveClass('text-ok');
+      expect(total).not.toHaveClass('text-danger');
+    });
+
+    it('shows green (text-ok) at the exact cap (66 / 66)', () => {
+      // 32 + 32 + 2 = 66 — fully spent without overflow.
+      render(<SpGrid sps={{ atk: 32, spe: 32, hp: 2 }} onChange={() => {}} />);
+      const total = screen.getByTestId('sp-total');
+      expect(total).toHaveClass('text-ok');
+      expect(total).not.toHaveClass('text-danger');
+      expect(total).not.toHaveClass('opacity-50');
+    });
+
+    it('shows red (text-danger) when over the cap (67 / 66)', () => {
+      // 32 + 32 + 3 = 67 — over cap, save disabled.
+      render(<SpGrid sps={{ atk: 32, spe: 32, hp: 3 }} onChange={() => {}} />);
+      const total = screen.getByTestId('sp-total');
+      expect(total).toHaveClass('text-danger');
+      expect(total).not.toHaveClass('text-ok');
+      expect(total).not.toHaveClass('opacity-50');
+    });
+  });
 });
