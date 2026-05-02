@@ -34,6 +34,26 @@ describe('store: teams', () => {
     expect(useStore.getState().teams).toEqual([]);
     expect(useStore.getState().activeTeamId).toBeNull();
   });
+
+  it('duplicateTeam clones the team with new ids', () => {
+    const id = useStore.getState().createTeam({ name: 'Orig', format: 'singles' });
+    useStore.getState().upsertMon(id, mon('Skarmory'));
+    const newId = useStore.getState().duplicateTeam(id);
+    expect(newId).toBeTruthy();
+    const s = useStore.getState();
+    expect(s.teams).toHaveLength(2);
+    const copy = s.teams.find(t => t.id === newId)!;
+    expect(copy.name).toBe('Orig (copy)');
+    expect(copy.mons).toHaveLength(1);
+    expect(copy.mons[0].species).toBe('Skarmory');
+    // Different mon id from the original.
+    const orig = s.teams.find(t => t.id === id)!;
+    expect(copy.mons[0].id).not.toBe(orig.mons[0].id);
+  });
+
+  it('duplicateTeam returns null for unknown id', () => {
+    expect(useStore.getState().duplicateTeam('does-not-exist')).toBeNull();
+  });
 });
 
 describe('store: opponent + recents', () => {

@@ -24,6 +24,7 @@ interface Actions {
   // Teams
   createTeam: (init: { name: string; format: Format }) => string;
   renameTeam: (id: string, name: string) => void;
+  duplicateTeam: (id: string) => string | null;
   deleteTeam: (id: string) => void;
   setActiveTeam: (id: string) => void;
   setActiveMonIndex: (i: number) => void;
@@ -71,6 +72,22 @@ export const useStore = create<AppState & Actions>()(
       renameTeam: (id, name) => set(s => ({
         teams: s.teams.map(t => t.id === id ? { ...t, name, updatedAt: Date.now() } : t),
       })),
+      duplicateTeam: (id) => {
+        const original = _get().teams.find(t => t.id === id);
+        if (!original) return null;
+        const newId = uuid();
+        const now = Date.now();
+        const copy: Team = {
+          id: newId,
+          name: `${original.name} (copy)`,
+          format: original.format,
+          mons: original.mons.map(m => ({ ...m, id: uuid() })),
+          createdAt: now,
+          updatedAt: now,
+        };
+        set(s => ({ teams: [...s.teams, copy] }));
+        return newId;
+      },
       deleteTeam: (id) => set(s => ({
         teams: s.teams.filter(t => t.id !== id),
         activeTeamId: s.activeTeamId === id ? null : s.activeTeamId,
