@@ -142,7 +142,11 @@ function Field({ label, value, onClick }: { label: string; value: string; onClic
   return (
     <div className="mb-2">
       <div className="text-xxs uppercase tracking-wider opacity-55 mb-1">{label}</div>
-      <button onClick={onClick} className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-sm flex justify-between items-center">
+      <button
+        onClick={onClick}
+        data-testid={`field-${label.toLowerCase()}`}
+        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-sm flex justify-between items-center"
+      >
         <span>{value}</span><span className="opacity-40">▾</span>
       </button>
     </div>

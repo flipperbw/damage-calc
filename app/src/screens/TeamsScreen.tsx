@@ -60,6 +60,8 @@ export function TeamsScreen() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Teams</h2>
         <button onClick={() => createTeam({ name: 'New team', format: 'singles' })}
+                aria-label="Create team"
+                data-testid="create-team"
                 className="w-8 h-8 rounded-full bg-surface border border-surface-hi">⊕</button>
       </div>
 
@@ -86,13 +88,22 @@ export function TeamsScreen() {
         <div className="mt-6">
           <div className="text-xxs uppercase tracking-wider opacity-50 px-1 mb-2">Recent opponents</div>
           {recents.map(r => (
-            <div key={r.id} className="flex items-center gap-2.5 px-2.5 py-2 bg-surface/60 border border-surface-hi rounded-lg mb-1.5">
+            <div
+              key={r.id}
+              data-testid={`recent-${r.mon.species}`}
+              data-use-count={r.useCount}
+              className="flex items-center gap-2.5 px-2.5 py-2 bg-surface/60 border border-surface-hi rounded-lg mb-1.5"
+            >
               <img src={spriteUrl(r.mon.species)} className="w-8 h-8 rounded" />
               <div className="flex-1">
                 <div className="font-semibold">{r.mon.species}</div>
                 <div className="text-[10px] opacity-50">{r.mon.buildName ?? 'Custom'} · {r.useCount} battles</div>
               </div>
-              <button onClick={() => clearRecent(r.id)} className="opacity-50">×</button>
+              <button
+                onClick={() => clearRecent(r.id)}
+                aria-label={`Remove ${r.mon.species} from recents`}
+                className="opacity-50"
+              >×</button>
             </div>
           ))}
         </div>

@@ -12,8 +12,11 @@ export function PickerShell({ open, onClose, title, children }: Props) {
   return (
     <div className="fixed inset-0 z-30 bg-black/60 flex items-end md:items-center justify-center p-3.5"
          onClick={onClose}>
-      <div className="w-full max-w-md bg-bg-base bg-panel-gradient border border-surface-hi rounded-card p-3.5 max-h-[80vh] flex flex-col"
-           onClick={e => e.stopPropagation()}>
+      <div
+        data-testid="picker-shell"
+        className="w-full max-w-md bg-bg-base bg-panel-gradient border border-surface-hi rounded-card p-3.5 max-h-[80vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
         {title && <h3 className="text-base font-bold mb-2">{title}</h3>}
         {children}
       </div>
