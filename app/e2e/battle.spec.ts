@@ -64,7 +64,7 @@ test('tap opponent name/sprite to open editor — distinct from swap', async ({ 
   await expect(page.getByText('Edit Pokémon')).toBeVisible();
 
   // Close, then verify the sprite also opens the editor.
-  await page.getByRole('button', { name: '←' }).click();
+  await page.getByRole('button', { name: 'Close editor' }).click();
   await page.getByTestId('edit-sprite-opp').click();
   await expect(page.getByText('Edit Pokémon')).toBeVisible();
 });

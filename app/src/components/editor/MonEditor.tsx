@@ -79,29 +79,40 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete }: Props) {
     <div className="fixed inset-0 z-30 bg-black/60 flex items-end md:items-center md:justify-end" onClick={onClose}>
       <div className="w-full md:w-[420px] md:h-screen bg-bg-base bg-panel-gradient border border-surface-hi rounded-t-card md:rounded-none p-4 max-h-[90vh] md:max-h-screen overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <button onClick={onClose} className="opacity-60">←</button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close editor"
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer"
+          >←</button>
           <span className="font-bold">Edit Pokémon</span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {copied && (
               <span
                 data-testid="copy-confirmation"
-                className="text-ok text-xs"
+                className="text-ok text-sm font-semibold mr-1"
                 aria-live="polite"
-              >Copied</span>
+              >✓ Copied</span>
             )}
             <button
               type="button"
               aria-label="Copy Pokémon to clipboard"
               onClick={handleCopy}
-              className="opacity-60 hover:opacity-100 text-base"
+              data-testid="copy-mon"
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.25)' }}
+              className={`min-w-[44px] min-h-[44px] flex items-center justify-center text-lg rounded-lg select-none cursor-pointer ${copied ? 'bg-ok/20' : 'bg-surface border border-surface-hi'}`}
             >
               📋
             </button>
             {onDelete ? (
               <button
+                type="button"
                 aria-label="Remove from team"
                 onClick={onDelete}
-                className="opacity-60 hover:opacity-100 text-base"
+                data-testid="delete-mon"
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,107,107,0.3)' }}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg rounded-lg bg-danger/10 border border-danger/30 text-danger select-none cursor-pointer"
               >
                 🗑
               </button>
