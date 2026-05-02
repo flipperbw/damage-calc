@@ -62,7 +62,7 @@ export function TeamsScreen() {
         <button onClick={() => createTeam({ name: 'New team', format: 'singles' })}
                 aria-label="Create team"
                 data-testid="create-team"
-                className="w-8 h-8 rounded-full bg-surface border border-surface-hi">⊕</button>
+                className="w-11 h-11 rounded-full bg-accent-gradient text-white text-lg font-bold flex items-center justify-center shadow-[0_4px_12px_rgba(124,92,255,0.4)] active:scale-95 transition-transform">＋</button>
       </div>
 
       {teams.map(t => (

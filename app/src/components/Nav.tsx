@@ -12,11 +12,13 @@ export function Nav() {
   const setTab = useStore(s => s.setTab);
   return (
     <>
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-3 left-3.5 right-3.5 bg-black/80 backdrop-blur border border-surface-hi rounded-2xl p-2 flex justify-around text-xxs z-20">
+      {/* Mobile bottom nav. `mobile-nav` adds safe-area-inset-bottom padding
+          via globals.css so the bar doesn't sit under the iOS home indicator. */}
+      <nav className="mobile-nav md:hidden fixed left-3.5 right-3.5 bg-black/80 backdrop-blur border border-surface-hi rounded-2xl p-2 flex justify-around text-xxs z-20">
         {ITEMS.map(it => (
           <button key={it.id} onClick={() => setTab(it.id)}
-                  className={`flex flex-col items-center gap-0.5 ${tab === it.id ? 'text-accent' : 'opacity-55'}`}>
+                  aria-label={it.label}
+                  className={`flex flex-col items-center gap-0.5 min-h-[44px] flex-1 ${tab === it.id ? 'text-accent' : 'opacity-55'}`}>
             <span className="text-base">{it.icon}</span>
             <span>{it.label}</span>
           </button>
