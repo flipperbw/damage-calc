@@ -1,9 +1,10 @@
 import type { SavedMon, FieldState } from '../types';
 import { getBuildsForSpecies, getBuild } from '../data/setdex-champions';
+import { uuid } from '../util/uuid';
 
 export function emptyMon(species: string): SavedMon {
   return {
-    id: crypto.randomUUID(),
+    id: uuid(),
     species,
     nature: 'Hardy',
     sps: {},
@@ -26,7 +27,7 @@ export function monFromBuild(species: string, buildName: string): SavedMon | nul
   const b = getBuild(species, buildName);
   if (!b) return null;
   return {
-    id: crypto.randomUUID(),
+    id: uuid(),
     species,
     buildName,
     item: b.item,

@@ -4,8 +4,7 @@ import type { AppState, Team, SavedMon, FieldState, Notation, Tab, Format } from
 import { addRecent } from './validators';
 import { migrate, CURRENT_VERSION } from './migrations';
 import { emptyField } from './factories';
-
-const uuid = () => crypto.randomUUID();
+import { uuid } from '../util/uuid';
 
 const PERSIST_NAME = 'champions-calc-v1';
 

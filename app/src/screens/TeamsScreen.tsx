@@ -68,9 +68,14 @@ export function TeamsScreen() {
           onClick={handleCreateTeam}
           aria-label="Create team"
           data-testid="create-team"
-          className="w-full min-h-[48px] py-3 px-4 rounded-card bg-accent-gradient text-white text-base font-bold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(124,92,255,0.45)] active:scale-[0.98] transition-transform"
+          // Bare-bones styling — no gradient, no active-scale transform, no
+          // backdrop blur. Some iOS browsers (Brave especially) have flaky
+          // hit-testing on transformed/blurred elements. touch-action +
+          // tap-highlight-color make taps deterministic on WebKit.
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
+          className="w-full min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer"
         >
-          <span className="text-xl leading-none">＋</span>
+          <span className="text-xl leading-none">+</span>
           <span>Create Team</span>
         </button>
       </div>
@@ -95,7 +100,8 @@ export function TeamsScreen() {
           type="button"
           onClick={handleCreateTeam}
           data-testid="create-team-empty"
-          className="w-full text-center mt-6 py-6 rounded-card border border-dashed border-accent/30 text-text-mute active:scale-[0.99] transition-transform"
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.15)' }}
+          className="w-full text-center mt-6 py-6 rounded-card border border-dashed border-accent/30 text-text-mute select-none cursor-pointer"
         >
           No teams yet. <span className="text-accent font-semibold">Tap to create your first team.</span>
         </button>
