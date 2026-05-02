@@ -592,11 +592,13 @@ This task resolves the spec's Open Questions before building the adapter.
   describe('calc spike — Champions conventions', () => {
     const gen = Generations.get(0); // Champions
 
-    it('Champions Pokemon defaults to level 50, evs 0, ivs 0', () => {
+    it('Champions Pokemon defaults to level 50, evs 0, ivs forced to 31', () => {
+      // Champions has no IV system — calc forces all IVs to max (31) when gen.num === 0.
+      // The app never sets ivs; we just verify the default behavior here.
       const p = new Pokemon(gen, 'Garchomp');
       expect(p.level).toBe(50);
       expect(p.evs.atk).toBe(0);
-      expect(p.ivs.atk).toBe(0);
+      expect(p.ivs.atk).toBe(31);
     });
 
     it('SP allocations map onto evs slot', () => {
@@ -618,11 +620,11 @@ This task resolves the spec's Open Questions before building the adapter.
         nature: 'Jolly',
         evs: { atk: 32, spe: 32 },
       });
-      const defender = new Pokemon(gen, 'Skarmory', {
-        item: 'Rocky Helmet',
-        ability: 'Sturdy',
-        nature: 'Impish',
-        evs: { hp: 32, def: 32 },
+      const defender = new Pokemon(gen, 'Tyranitar', {
+        item: 'Leftovers',
+        ability: 'Sand Stream',
+        nature: 'Careful',
+        evs: { hp: 32, spd: 32 },
       });
       const move = new Move(gen, 'Earthquake');
       const result = calculate(gen, attacker, defender, move, new Field());
@@ -681,8 +683,24 @@ This task resolves the spec's Open Questions before building the adapter.
     boosts: {},
   };
 
-  const skarmory: SavedMon = {
+  // Tyranitar (Rock/Dark) — Earthquake is 2× super effective; Outrage neutral.
+  // Used as the primary defender so the standard moveset all produces non-zero damage.
+  const tyranitar: SavedMon = {
     id: 'b',
+    species: 'Tyranitar',
+    item: 'Leftovers',
+    ability: 'Sand Stream',
+    nature: 'Careful',
+    sps: { hp: 32, spd: 32 },
+    moves: ['Stone Edge', 'Crunch', 'Stealth Rock', 'Earthquake'],
+    isMega: false,
+    boosts: {},
+  };
+
+  // Skarmory (Steel/Flying) — used only for the Sun-weather test where Charizard
+  // hits with Flamethrower (4× SE).
+  const skarmory: SavedMon = {
+    id: 'c',
     species: 'Skarmory',
     item: 'Rocky Helmet',
     ability: 'Sturdy',
@@ -695,29 +713,29 @@ This task resolves the spec's Open Questions before building the adapter.
 
   describe('calculateMatchup', () => {
     it('returns a result per attacker move', () => {
-      const m = calculateMatchup(garchomp, skarmory, blankField());
+      const m = calculateMatchup(garchomp, tyranitar, blankField());
       expect(m.attackerMoves).toHaveLength(4);
       expect(m.defenderMoves).toHaveLength(4);
     });
 
-    it('Earthquake hits Skarmory for damage', () => {
-      const m = calculateMatchup(garchomp, skarmory, blankField());
+    it('Earthquake hits Tyranitar for damage', () => {
+      const m = calculateMatchup(garchomp, tyranitar, blankField());
       const eq = m.attackerMoves.find(r => r.moveName === 'Earthquake')!;
       expect(eq.damageRange[0]).toBeGreaterThan(0);
       expect(eq.percentRange[1]).toBeGreaterThan(eq.percentRange[0]);
     });
 
     it('status moves report no damage', () => {
-      const m = calculateMatchup(garchomp, skarmory, blankField());
+      const m = calculateMatchup(garchomp, tyranitar, blankField());
       const sr = m.defenderMoves.find(r => r.moveName === 'Stealth Rock')!;
       expect(sr.damageRange).toEqual([0, 0]);
     });
 
     it('mega toggle changes attacker base stats', () => {
-      const baseDmg = calculateMatchup(garchomp, skarmory, blankField())
+      const baseDmg = calculateMatchup(garchomp, tyranitar, blankField())
         .attackerMoves[0].damageRange[1];
       const mega: SavedMon = { ...garchomp, species: 'Garchomp-Mega', isMega: true };
-      const megaDmg = calculateMatchup(mega, skarmory, blankField())
+      const megaDmg = calculateMatchup(mega, tyranitar, blankField())
         .attackerMoves[0].damageRange[1];
       expect(megaDmg).toBeGreaterThan(baseDmg);
     });
@@ -735,7 +753,7 @@ This task resolves the spec's Open Questions before building the adapter.
     });
 
     it('reports speed comparison', () => {
-      const m = calculateMatchup(garchomp, skarmory, blankField());
+      const m = calculateMatchup(garchomp, tyranitar, blankField());
       expect(m.speed.attackerSpe).toBeGreaterThan(m.speed.defenderSpe);
       expect(m.speed.attackerOutspeeds).toBe(true);
     });
