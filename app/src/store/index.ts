@@ -7,6 +7,8 @@ import { emptyField } from './factories';
 
 const uuid = () => crypto.randomUUID();
 
+const PERSIST_NAME = 'champions-calc-v1';
+
 // Keys persisted in the imported/exported data slice. Action functions and
 // transient UI state are excluded.
 export const PERSISTED_KEYS = [
@@ -140,12 +142,32 @@ export const useStore = create<AppState & Actions>()(
       resetAll: () => set(initialAppState),
     }),
     {
-      name: 'champions-calc-v1',
+      name: PERSIST_NAME,
       version: CURRENT_VERSION,
       migrate: (persistedState: unknown, version: number) => {
-        const wrapped = { version, state: persistedState };
-        const migrated = migrate(wrapped);
-        return (migrated?.state ?? initialAppState) as AppState;
+        try {
+          const wrapped = { version, state: persistedState };
+          const migrated = migrate(wrapped);
+          if (migrated) return migrated.state as AppState;
+          throw new Error('migrate() returned null for malformed persisted state');
+        } catch (err) {
+          // Preserve the bad data under a quarantine key so the user can
+          // recover via DevTools instead of silently losing everything.
+          try {
+            const quarantineKey = `${PERSIST_NAME}.quarantine.${Date.now()}`;
+            const raw = JSON.stringify({ version, state: persistedState });
+            localStorage.setItem(quarantineKey, raw);
+            // eslint-disable-next-line no-console
+            console.error(
+              `Persist migration failed; quarantined previous state to "${quarantineKey}". Starting fresh.`,
+              err,
+            );
+          } catch (storageErr) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to quarantine persisted state', storageErr);
+          }
+          return initialAppState as AppState;
+        }
       },
     },
   ),
