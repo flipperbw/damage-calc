@@ -13,6 +13,7 @@ import { MegaToggle } from '../MegaToggle';
 import { TypeBadge } from '../TypeBadge';
 import { Generations, toID } from '@smogon/calc';
 import { validateSps } from '../../store/validators';
+import { monToShowdownText } from '../../store/exporters';
 
 const GEN = Generations.get(0);
 
@@ -35,12 +36,33 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete }: Props) {
   useEffect(() => setDraft(initial), [initial]);
 
   const [picker, setPicker] = useState<'species' | 'item' | 'ability' | 'nature' | null>(null);
+  // Brief inline confirmation after a successful clipboard copy. Cleared on a
+  // timer (no alert() — we want the editor to stay open after Copy).
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const id = window.setTimeout(() => setCopied(false), 1500);
+    return () => window.clearTimeout(id);
+  }, [copied]);
 
   if (!open) return null;
 
   const speciesData = GEN.species.get(toID(draft.species) as any);
   const types = speciesData?.types ?? [];
   const valid = validateSps(draft.sps).ok;
+
+  async function handleCopy() {
+    const text = monToShowdownText(draft);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      // Some iOS Safari/Brave configurations reject writeText outside a
+      // strict user-gesture chain. Fall back to a prompt so the text is
+      // still recoverable.
+      window.prompt('Copy this:', text);
+    }
+  }
 
   function patch(p: Partial<SavedMon>) {
     setDraft(prev => {
@@ -59,17 +81,32 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete }: Props) {
         <div className="flex justify-between items-center mb-4">
           <button onClick={onClose} className="opacity-60">←</button>
           <span className="font-bold">Edit Pokémon</span>
-          {onDelete ? (
+          <div className="flex items-center gap-2">
+            {copied && (
+              <span
+                data-testid="copy-confirmation"
+                className="text-ok text-xs"
+                aria-live="polite"
+              >Copied</span>
+            )}
             <button
-              aria-label="Remove from team"
-              onClick={onDelete}
+              type="button"
+              aria-label="Copy Pokémon to clipboard"
+              onClick={handleCopy}
               className="opacity-60 hover:opacity-100 text-base"
             >
-              🗑
+              📋
             </button>
-          ) : (
-            <span className="w-4" />
-          )}
+            {onDelete ? (
+              <button
+                aria-label="Remove from team"
+                onClick={onDelete}
+                className="opacity-60 hover:opacity-100 text-base"
+              >
+                🗑
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {/* Hero */}
