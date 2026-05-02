@@ -10,11 +10,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* iOS safe-area variables for notch/home-indicator. Used by the app shell
- * (top padding) and the fixed bottom nav (bottom padding). Without these
- * the create-team button at top-of-page falls under the status bar/notch
- * and the bottom nav floats over the home indicator on real iPhones —
- * Playwright's mobile viewport doesn't simulate this. */
+/* iOS safe-area variables for notch / home-indicator. App shell respects
+ * the top inset so the nav clears the status bar; the bottom inset is
+ * still honored for safety even though the nav no longer lives there. */
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -25,9 +23,6 @@ body {
 @media (max-width: 899px) {
   .app-shell {
     padding-top: calc(0.875rem + var(--safe-top));
-    padding-bottom: calc(6rem + var(--safe-bottom));
-  }
-  .mobile-nav {
-    bottom: calc(0.75rem + var(--safe-bottom));
+    padding-bottom: calc(1.25rem + var(--safe-bottom));
   }
 }

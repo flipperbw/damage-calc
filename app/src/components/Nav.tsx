@@ -12,15 +12,25 @@ export function Nav() {
   const setTab = useStore(s => s.setTab);
   return (
     <>
-      {/* Mobile bottom nav. `mobile-nav` adds safe-area-inset-bottom padding
-          via globals.css so the bar doesn't sit under the iOS home indicator. */}
-      <nav className="mobile-nav md:hidden fixed left-3.5 right-3.5 bg-black/80 backdrop-blur border border-surface-hi rounded-2xl p-2 flex justify-around text-xxs z-20">
+      {/* Mobile top nav — matches the desktop placement now to recover the
+          ~100px the bottom nav used to consume. Uses class `mobile-nav` for
+          legacy selectors but the CSS rule no longer applies a fixed-bottom
+          offset (see globals.css). */}
+      <nav
+        aria-label="Primary"
+        className="mobile-nav md:hidden flex gap-1 mb-3"
+      >
         {ITEMS.map(it => (
-          <button key={it.id} onClick={() => setTab(it.id)}
-                  aria-label={it.label}
-                  className={`flex flex-col items-center gap-0.5 min-h-[44px] flex-1 ${tab === it.id ? 'text-accent' : 'opacity-55'}`}>
-            <span className="text-base">{it.icon}</span>
-            <span>{it.label}</span>
+          <button
+            key={it.id}
+            type="button"
+            onClick={() => setTab(it.id)}
+            aria-label={it.label}
+            style={{ touchAction: 'manipulation' }}
+            className={`flex-1 min-h-[44px] flex items-center justify-center gap-1 rounded-lg text-sm select-none ${tab === it.id ? 'bg-accent text-white font-semibold' : 'bg-surface border border-surface-hi opacity-75'}`}
+          >
+            <span aria-hidden style={{ pointerEvents: 'none' }}>{it.icon}</span>
+            <span style={{ pointerEvents: 'none' }}>{it.label}</span>
           </button>
         ))}
       </nav>

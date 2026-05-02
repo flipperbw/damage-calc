@@ -45,8 +45,8 @@ test('Create-team button is reachable above iOS safe-area inset and is ≥44px',
   await expect(page.getByText('New team').first()).toBeVisible();
 });
 
-test('Mobile bottom nav sits above the home-indicator inset', async ({ page, isMobile }) => {
-  test.skip(!isMobile, 'Mobile bottom nav only renders on the mobile viewport');
+test('Mobile top nav sits below the status-bar inset (not under the notch)', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Mobile top nav only renders on the mobile viewport');
 
   await freshStart(page);
   await injectFakeSafeArea(page);
@@ -54,14 +54,13 @@ test('Mobile bottom nav sits above the home-indicator inset', async ({ page, isM
   const nav = page.locator('nav.mobile-nav');
   await expect(nav).toBeVisible();
   const box = await nav.boundingBox();
-  const viewport = page.viewportSize()!;
   expect(box).not.toBeNull();
-  // Bottom edge of nav sits above the home-indicator inset.
-  expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height - FAKE_BOTTOM_INSET + 1);
+  // Top edge of nav clears the simulated status bar.
+  expect(box!.y).toBeGreaterThanOrEqual(FAKE_TOP_INSET);
 });
 
-test('Each bottom-nav tab button is ≥44×44 hit target', async ({ page, isMobile }) => {
-  test.skip(!isMobile, 'Mobile bottom nav only renders on the mobile viewport');
+test('Each mobile-nav tab button is ≥44×44 hit target', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Mobile top nav only renders on the mobile viewport');
 
   await freshStart(page);
   for (const label of ['Battle', 'Teams', 'Settings']) {
