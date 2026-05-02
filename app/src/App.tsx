@@ -1,6 +1,8 @@
 import { useStore } from './store';
 import { Nav } from './components/Nav';
 import { BattleScreen } from './screens/BattleScreen';
+import { TeamsScreen } from './screens/TeamsScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
 
 export function App() {
   const tab = useStore(s => s.tab);
@@ -9,8 +11,8 @@ export function App() {
       <main className="max-w-[1200px] mx-auto px-3.5 pt-3.5 pb-24 md:pb-6">
         <Nav />
         {tab === 'battle' && <BattleScreen />}
-        {tab === 'teams' && <div>Teams (TBD)</div>}
-        {tab === 'settings' && <div>Settings (TBD)</div>}
+        {tab === 'teams' && <TeamsScreen />}
+        {tab === 'settings' && <SettingsScreen />}
       </main>
     </div>
   );
