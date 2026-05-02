@@ -39,12 +39,34 @@ export function SpGrid({ sps, onChange }: Props) {
         {STATS.map(s => {
           const value = sps[s.id] ?? 0;
           const pct = (value / SP_PER_STAT_MAX) * 100;
+          // Three tiers so the eye can scan allocation density:
+          //   max  (32)    : bright green border + glow, bold value
+          //   some (1..31) : soft teal border, gradient bar
+          //   none (0)     : muted gray
+          const tier =
+            value === 0 ? 'none'
+            : value === SP_PER_STAT_MAX ? 'max'
+            : 'some';
+          const cell =
+            tier === 'max'
+              ? 'border-ok bg-ok/15 shadow-[0_0_12px_rgba(74,222,128,0.25)]'
+            : tier === 'some'
+              ? 'border-ok/40 bg-ok/10'
+              : 'border-surface-hi bg-surface';
+          const valueCls =
+            tier === 'max' ? 'font-extrabold text-lg leading-none mt-1 text-ok'
+          : tier === 'some' ? 'font-extrabold text-lg leading-none mt-1'
+          : 'font-extrabold text-lg leading-none mt-1 opacity-50';
+          const barFill =
+            tier === 'max' ? 'bg-ok'
+          : tier === 'some' ? 'bg-gradient-to-r from-ok/60 to-ok'
+          : 'bg-white/10';
           return (
-            <div key={s.id} className={`bg-surface border border-surface-hi rounded-lg p-2 text-center ${value > 0 ? 'border-ok/30 bg-ok/5' : ''}`}>
+            <div key={s.id} className={`border rounded-lg p-2 text-center transition-colors ${cell}`}>
               <div className="text-[9px] uppercase opacity-55 tracking-wider">{s.label}</div>
-              <div className="font-extrabold text-lg leading-none mt-1">{value}</div>
+              <div className={valueCls}>{value}</div>
               <div className="h-0.5 bg-white/10 rounded mt-1.5 overflow-hidden">
-                <div className="h-full bg-accent-gradient" style={{ width: `${pct}%` }} />
+                <div className={`h-full ${barFill}`} style={{ width: `${pct}%` }} />
               </div>
               <div className="flex gap-1 mt-1.5 justify-center">
                 <button aria-label={`${s.id} -`} onClick={() => bump(s.id, -1)}
