@@ -27,6 +27,23 @@ describe('groupNatures', () => {
     expect(neutral.entries.map(n => n.name)).toEqual(['Docile', 'Hardy']);
   });
 
+  it('treats plus===minus as neutral (calc reports Hardy etc. this way)', () => {
+    const out = groupNatures([
+      N('Hardy', 'atk', 'atk'),
+      N('Docile', 'def', 'def'),
+      N('Bashful', 'spa', 'spa'),
+      N('Quirky', 'spd', 'spd'),
+      N('Serious', 'spe', 'spe'),
+      N('Adamant', 'atk', 'spa'),
+    ]);
+    const neutral = out.find(g => g.label === 'Neutral')!;
+    expect(neutral.entries.map(n => n.name).sort()).toEqual(
+      ['Bashful', 'Docile', 'Hardy', 'Quirky', 'Serious'],
+    );
+    const plusAtk = out.find(g => g.label === '+Atk')!;
+    expect(plusAtk.entries.map(n => n.name)).toEqual(['Adamant']);
+  });
+
   it('within a +stat bucket, sorts by hindered stat (Atk/Def/SpA/SpD/Spe)', () => {
     // All +Atk: sort by minus (def/spa/spd/spe).
     const out = groupNatures([

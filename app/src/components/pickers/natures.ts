@@ -36,7 +36,9 @@ export function groupNatures(all: NatureEntry[]): NatureGroup[] {
   const neutral: NatureEntry[] = [];
 
   for (const n of all) {
-    if (!n.plus || !n.minus) {
+    // Neutral natures: calc reports them with plus === minus (e.g. Hardy is
+    // +atk/-atk). Treat those, and entries with no plus/minus at all, as neutral.
+    if (!n.plus || !n.minus || n.plus === n.minus) {
       neutral.push(n);
       continue;
     }

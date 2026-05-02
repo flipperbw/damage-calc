@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Generations } from '@smogon/calc';
 import { useStore } from '../../store';
 import { spriteUrl } from '../../data/sprites';
@@ -29,6 +29,11 @@ function allSpeciesNames(): string[] {
 
 export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Props) {
   const [query, setQuery] = useState('');
+  // Reset the search box every time the picker (re)opens — stale queries
+  // confuse the user when they reopen expecting a fresh list.
+  useEffect(() => {
+    if (open) setQuery('');
+  }, [open]);
   const recents = useStore(s => s.recentOpponents);
   const all = useMemo(() => allSpeciesNames(), []);
   const filtered = useMemo(() => {
