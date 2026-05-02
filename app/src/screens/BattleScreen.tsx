@@ -93,6 +93,8 @@ export function BattleScreen() {
           onEdit={() => setEditor({ side: 'you', mon: you })}
           onChangeHp={hp => upsertMon(team.id, { ...you, currentHp: hp })}
           onChangeMega={mega => upsertMon(team.id, { ...you, mega })}
+          onChangeStatus={status => upsertMon(team.id, { ...you, status })}
+          onChangeBoosts={boosts => upsertMon(team.id, { ...you, boosts })}
         />
         <div>
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
@@ -116,6 +118,8 @@ export function BattleScreen() {
           onEdit={() => setEditor({ side: 'opp', mon: opponent })}
           onChangeHp={hp => updateOpponent({ currentHp: hp })}
           onChangeMega={mega => updateOpponent({ mega })}
+          onChangeStatus={status => updateOpponent({ status })}
+          onChangeBoosts={boosts => updateOpponent({ boosts })}
         />
         <div>
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
