@@ -1,25 +1,78 @@
-import { Generations } from '@smogon/calc';
+import { Generations, toID } from '@smogon/calc';
+import type { MegaState } from '../types';
 
 const GEN = Generations.get(0);
 
-export function hasMegaForme(species: string): boolean {
+interface MegaOptions {
+  hasPlain: boolean;
+  hasX: boolean;
+  hasY: boolean;
+}
+
+function has(species: string): boolean {
+  return !!GEN.species.get(toID(species) as any);
+}
+
+function megaOptions(species: string): MegaOptions {
   const baseName = species.replace(/-Mega(-X|-Y)?$/, '');
-  const megaCandidates = [`${baseName}-Mega`, `${baseName}-Mega-X`, `${baseName}-Mega-Y`];
-  return megaCandidates.some(c => !!GEN.species.get(c as any));
+  return {
+    hasPlain: has(`${baseName}-Mega`),
+    hasX: has(`${baseName}-Mega-X`),
+    hasY: has(`${baseName}-Mega-Y`),
+  };
+}
+
+export function hasMegaForme(species: string): boolean {
+  const o = megaOptions(species);
+  return o.hasPlain || o.hasX || o.hasY;
 }
 
 interface Props {
-  isMega: boolean;
-  onChange: (next: boolean) => void;
+  mega: MegaState;
+  onChange: (next: MegaState) => void;
   species: string;
 }
 
-export function MegaToggle({ isMega, onChange, species }: Props) {
-  if (!hasMegaForme(species)) return null;
+export function MegaToggle({ mega, onChange, species }: Props) {
+  const opts = megaOptions(species);
+  // X/Y forms (Charizard, Mewtwo): show 3-state segmented [Off | X | Y]
+  if (opts.hasX && opts.hasY) {
+    return (
+      <div className="inline-flex rounded-lg border border-surface-hi overflow-hidden text-xs font-bold uppercase tracking-wider">
+        <SegBtn active={mega === ''} onClick={() => onChange('')}>Off</SegBtn>
+        <SegBtn active={mega === 'mega-x'} onClick={() => onChange('mega-x')}>Mega X</SegBtn>
+        <SegBtn active={mega === 'mega-y'} onClick={() => onChange('mega-y')}>Mega Y</SegBtn>
+      </div>
+    );
+  }
+  // Plain mega only: 2-state toggle
+  if (opts.hasPlain) {
+    const isMega = mega === 'mega';
+    return (
+      <button
+        onClick={() => onChange(isMega ? '' : 'mega')}
+        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${
+          isMega ? 'bg-accent-gradient text-white border-accent' : 'bg-surface border-surface-hi opacity-70'
+        }`}
+      >
+        {isMega ? '✦ Mega Active' : 'Mega Evolve'}
+      </button>
+    );
+  }
+  return null;
+}
+
+function SegBtn({ active, onClick, children }: {
+  active: boolean; onClick: () => void; children: React.ReactNode;
+}) {
   return (
-    <button onClick={() => onChange(!isMega)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${isMega ? 'bg-accent-gradient text-white border-accent' : 'bg-surface border-surface-hi opacity-70'}`}>
-      {isMega ? '✦ Mega Active' : 'Mega Evolve'}
+    <button
+      onClick={onClick}
+      className={`px-2.5 py-1.5 ${
+        active ? 'bg-accent-gradient text-white' : 'bg-surface opacity-70'
+      }`}
+    >
+      {children}
     </button>
   );
 }

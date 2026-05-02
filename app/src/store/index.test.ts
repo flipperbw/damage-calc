@@ -33,7 +33,7 @@ describe('store: opponent + recents', () => {
   it('setOpponent records in recents', () => {
     useStore.getState().setOpponent({
       id: 'o', species: 'Skarmory', nature: 'Impish',
-      sps: {}, moves: ['','','',''], isMega: false, boosts: {},
+      sps: {}, moves: ['','','',''], mega: '', boosts: {},
     });
     expect(useStore.getState().recentOpponents).toHaveLength(1);
   });

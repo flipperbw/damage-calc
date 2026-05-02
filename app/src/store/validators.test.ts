@@ -25,7 +25,7 @@ describe('validateSps', () => {
 describe('addRecent', () => {
   const mon = (species: string): SavedMon => ({
     id: species, species, nature: 'Hardy', sps: {},
-    moves: ['','','',''], isMega: false, boosts: {},
+    moves: ['','','',''], mega: '', boosts: {},
   });
 
   it('adds new recent at the head', () => {

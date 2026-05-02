@@ -10,6 +10,8 @@ export type StatusName =
   | 'Asleep'
   | 'Frozen';
 
+export type MegaState = '' | 'mega' | 'mega-x' | 'mega-y';
+
 export interface SavedMon {
   id: string;             // uuid v4
   species: string;        // canonical species name (e.g. "Garchomp")
@@ -19,7 +21,7 @@ export interface SavedMon {
   nature: string;         // default 'Hardy'
   sps: Partial<Record<StatID, number>>;     // each 0..32, sum ≤ 66
   moves: [string, string, string, string];  // '' for empty
-  isMega: boolean;
+  mega: MegaState;        // '' = no mega; 'mega', 'mega-x', or 'mega-y'
   currentHp?: number;     // raw HP; undefined = full
   status?: StatusName;
   boosts: Partial<Record<StatIDExceptHP, number>>; // -6..+6

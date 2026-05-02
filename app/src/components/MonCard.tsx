@@ -1,5 +1,5 @@
-import { Generations } from '@smogon/calc';
-import type { SavedMon, StatIDExceptHP } from '../types';
+import { Generations, toID } from '@smogon/calc';
+import type { SavedMon, StatIDExceptHP, MegaState } from '../types';
 import { spriteUrl } from '../data/sprites';
 import { TypeBadge } from './TypeBadge';
 import { StatChip } from './StatChip';
@@ -14,11 +14,11 @@ interface Props {
   side: 'you' | 'opp';
   onEdit: () => void;
   onChangeHp: (hp: number) => void;
-  onChangeMega: (isMega: boolean) => void;
+  onChangeMega: (mega: MegaState) => void;
 }
 
 export function MonCard({ mon, maxHp, side, onEdit, onChangeHp, onChangeMega }: Props) {
-  const sp = GEN.species.get(mon.species as any);
+  const sp = GEN.species.get(toID(mon.species) as any);
   const types = sp?.types ?? [];
   const dashed = side === 'opp' ? 'border-dashed border-danger/25' : 'border-surface-hi';
 
@@ -62,7 +62,7 @@ export function MonCard({ mon, maxHp, side, onEdit, onChangeHp, onChangeMega }: 
             <StatChip key={k} label={`${v > 0 ? '+' : ''}${v} ${k}`} tone="boost" />
           ) : null,
         )}
-        <MegaToggle isMega={mon.isMega} species={mon.species} onChange={onChangeMega} />
+        <MegaToggle mega={mon.mega} species={mon.species} onChange={onChangeMega} />
       </div>
     </div>
   );

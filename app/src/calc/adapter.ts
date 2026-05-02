@@ -4,6 +4,7 @@ import {
   Move,
   Field,
   calculate,
+  toID,
 } from '@smogon/calc';
 import type { SavedMon, FieldState, SideState, StatusName } from '../types';
 
@@ -44,13 +45,25 @@ export interface MatchupResult {
 
 function speciesForCalc(mon: SavedMon): string {
   // The mega flag is a UI affordance; calc identifies mega by species suffix.
-  // Saved species is the canonical (non-mega) form unless edited. When isMega,
-  // we resolve to the "{species}-Mega" forme if available.
-  if (!mon.isMega) return mon.species;
+  // Saved species is the canonical (non-mega) form unless edited. We resolve
+  // to a mega forme based on mon.mega and validate the species exists in the
+  // calc's species DB; if not, fall back to the base species.
+  if (!mon.mega) return mon.species;
+  // If species is already a mega forme, trust it.
   if (mon.species.endsWith('-Mega') || mon.species.includes('-Mega-')) {
     return mon.species;
   }
-  return `${mon.species}-Mega`;
+  const suffix =
+    mon.mega === 'mega' ? '-Mega'
+    : mon.mega === 'mega-x' ? '-Mega-X'
+    : mon.mega === 'mega-y' ? '-Mega-Y'
+    : '';
+  if (!suffix) return mon.species;
+  const candidate = `${mon.species}${suffix}`;
+  if (GEN.species.get(toID(candidate) as any)) return candidate;
+  // eslint-disable-next-line no-console
+  console.warn(`Mega forme "${candidate}" not found; falling back to "${mon.species}".`);
+  return mon.species;
 }
 
 function buildPokemon(mon: SavedMon) {

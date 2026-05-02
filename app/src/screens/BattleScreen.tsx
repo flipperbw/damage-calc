@@ -8,19 +8,8 @@ import { MoveRow } from '../components/MoveRow';
 import { SpeedDivider } from '../components/SpeedDivider';
 import { MonEditor } from '../components/editor/MonEditor';
 import { SpeciesPicker } from '../components/pickers/SpeciesPicker';
+import { emptyMon } from '../store/factories';
 import type { SavedMon } from '../types';
-
-function emptyMon(species: string): SavedMon {
-  return {
-    id: crypto.randomUUID(),
-    species,
-    nature: 'Hardy',
-    sps: {},
-    moves: ['', '', '', ''],
-    isMega: false,
-    boosts: {},
-  };
-}
 
 export function BattleScreen() {
   const team = useStore(s => s.teams.find(t => t.id === s.activeTeamId));
@@ -102,7 +91,7 @@ export function BattleScreen() {
           side="you"
           onEdit={() => setEditor({ side: 'you', mon: you })}
           onChangeHp={hp => upsertMon(team.id, { ...you, currentHp: hp })}
-          onChangeMega={isMega => upsertMon(team.id, { ...you, isMega })}
+          onChangeMega={mega => upsertMon(team.id, { ...you, mega })}
         />
         <div>
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
@@ -125,7 +114,7 @@ export function BattleScreen() {
           side="opp"
           onEdit={() => setEditor({ side: 'opp', mon: opponent })}
           onChangeHp={hp => setOpponent({ ...opponent, currentHp: hp })}
-          onChangeMega={isMega => setOpponent({ ...opponent, isMega })}
+          onChangeMega={mega => setOpponent({ ...opponent, mega })}
         />
         <div>
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">

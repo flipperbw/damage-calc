@@ -11,7 +11,7 @@ const garchomp: SavedMon = {
   nature: 'Jolly',
   sps: { atk: 32, spe: 32 },
   moves: ['Earthquake', 'Outrage', 'Stone Edge', 'Fire Fang'],
-  isMega: false,
+  mega: '',
   boosts: {},
 };
 
@@ -25,7 +25,7 @@ const tyranitar: SavedMon = {
   nature: 'Careful',
   sps: { hp: 32, spd: 32 },
   moves: ['Stone Edge', 'Crunch', 'Stealth Rock', 'Earthquake'],
-  isMega: false,
+  mega: '',
   boosts: {},
 };
 
@@ -39,7 +39,7 @@ const skarmory: SavedMon = {
   nature: 'Impish',
   sps: { hp: 32, def: 32 },
   moves: ['Brave Bird', 'Stealth Rock', 'Roost', 'Whirlwind'],
-  isMega: false,
+  mega: '',
   boosts: {},
 };
 
@@ -66,7 +66,7 @@ describe('calculateMatchup', () => {
   it('mega toggle changes attacker base stats', () => {
     const baseDmg = calculateMatchup(garchomp, tyranitar, blankField())
       .attackerMoves[0].damageRange[1];
-    const mega: SavedMon = { ...garchomp, species: 'Garchomp-Mega', isMega: true };
+    const mega: SavedMon = { ...garchomp, mega: 'mega' };
     const megaDmg = calculateMatchup(mega, tyranitar, blankField())
       .attackerMoves[0].damageRange[1];
     expect(megaDmg).toBeGreaterThan(baseDmg);

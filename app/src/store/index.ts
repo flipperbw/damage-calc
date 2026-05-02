@@ -3,10 +3,9 @@ import { persist } from 'zustand/middleware';
 import type { AppState, Team, SavedMon, FieldState, Notation, Tab, Format } from '../types';
 import { addRecent } from './validators';
 import { migrate, CURRENT_VERSION } from './migrations';
+import { emptyField } from './factories';
 
 const uuid = () => crypto.randomUUID();
-
-const emptyField = (): FieldState => ({ yourSide: {}, oppSide: {} });
 
 interface Actions {
   // Teams

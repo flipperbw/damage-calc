@@ -39,7 +39,7 @@ describe('sturdyWarning', () => {
     nature: 'Hardy',
     sps: {},
     moves: ['', '', '', ''],
-    isMega: false,
+    mega: '',
     boosts: {},
     ...over,
   });

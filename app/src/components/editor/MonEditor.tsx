@@ -10,7 +10,7 @@ import { SpGrid } from './SpGrid';
 import { MoveSlots } from './MoveSlots';
 import { MegaToggle } from '../MegaToggle';
 import { TypeBadge } from '../TypeBadge';
-import { Generations } from '@smogon/calc';
+import { Generations, toID } from '@smogon/calc';
 import { validateSps } from '../../store/validators';
 
 const GEN = Generations.get(0);
@@ -30,7 +30,7 @@ export function MonEditor({ open, initial, onClose, onSave }: Props) {
 
   if (!open) return null;
 
-  const speciesData = GEN.species.get(draft.species as any);
+  const speciesData = GEN.species.get(toID(draft.species) as any);
   const types = speciesData?.types ?? [];
   const valid = validateSps(draft.sps).ok;
 
@@ -62,8 +62,8 @@ export function MonEditor({ open, initial, onClose, onSave }: Props) {
           <div className="flex-1">
             <div className="font-extrabold text-lg cursor-pointer" onClick={() => setPicker('species')}>{draft.species}</div>
             <div className="flex gap-1 mt-1">{types.map(t => <TypeBadge key={t} type={t as string} />)}</div>
-            <div className="mt-2"><MegaToggle isMega={draft.isMega} species={draft.species}
-                                              onChange={isMega => patch({ isMega })} /></div>
+            <div className="mt-2"><MegaToggle mega={draft.mega} species={draft.species}
+                                              onChange={mega => patch({ mega })} /></div>
           </div>
         </div>
 

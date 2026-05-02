@@ -3,14 +3,8 @@ import { useStore } from '../store';
 import { spriteUrl } from '../data/sprites';
 import { MonEditor } from '../components/editor/MonEditor';
 import { SpeciesPicker } from '../components/pickers/SpeciesPicker';
+import { emptyMon } from '../store/factories';
 import type { SavedMon, Team } from '../types';
-
-function emptyMon(species: string): SavedMon {
-  return {
-    id: crypto.randomUUID(), species, nature: 'Hardy',
-    sps: {}, moves: ['', '', '', ''], isMega: false, boosts: {},
-  };
-}
 
 export function TeamsScreen() {
   const teams = useStore(s => s.teams);
