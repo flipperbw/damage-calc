@@ -655,6 +655,34 @@ This task resolves the spec's Open Questions before building the adapter.
   Stage: this plan file (with findings appended).
   **Stop. Ask owner.**
 
+#### Spike Findings
+
+All 4 spike tests passed on the first run after the plan fixes were applied
+(commit `9fcbb52`). Confirmed assumptions for the adapter:
+
+- `Generations.get(0)` returns the Champions generation (`gen.num === 0`).
+- Default `Pokemon` level for Champions is `50`.
+- `evs` is the slot used for SP allocations (Champions). The legacy
+  `sps` field on `SavedMon` maps directly onto `Pokemon.evs` with no
+  translation (assuming the long-form stat IDs `hp/atk/def/spa/spd/spe`).
+- IVs are auto-forced to 31 by the calc when the gen is Champions — the app
+  never sets `ivs` and the spike confirmed `p.ivs.atk === 31` even when no
+  IVs were passed in.
+- Mega formes are reachable by species suffix: `new Pokemon(gen,
+  'Garchomp-Mega')` resolves to the mega base stats (atk > 150, vs 130
+  for the non-mega forme).
+- `calculate()` runs end-to-end with `new Field()` and produces a non-zero
+  damage range for `Garchomp` Earthquake into `Tyranitar`.
+
+Notes carried forward into the adapter:
+
+- `result.kochance()` (and `result.desc()`) can throw when damage is
+  `[0, 0]` (status moves, immunities). The adapter wraps `kochance()` in a
+  `try/catch` and treats status / zero-damage moves as "no KO text".
+- The `currentHp` / `status` fields on `SavedMon` map onto the calc's
+  `curHP` and `status` Pokemon options. An empty / `'Healthy'` status maps
+  to `''`.
+
 ### Task 8: Calc adapter — TDD
 
 **Files:**
