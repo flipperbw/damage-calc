@@ -16,6 +16,7 @@ export function BattleScreen() {
   const activeIndex = useStore(s => s.activeMonIndex);
   const opponent = useStore(s => s.opponent);
   const setOpponent = useStore(s => s.setOpponent);
+  const updateOpponent = useStore(s => s.updateOpponent);
   const upsertMon = useStore(s => s.upsertMon);
   const field = useStore(s => s.field);
 
@@ -113,8 +114,8 @@ export function BattleScreen() {
           maxHp={matchup.defenderMaxHp}
           side="opp"
           onEdit={() => setEditor({ side: 'opp', mon: opponent })}
-          onChangeHp={hp => setOpponent({ ...opponent, currentHp: hp })}
-          onChangeMega={mega => setOpponent({ ...opponent, mega })}
+          onChangeHp={hp => updateOpponent({ currentHp: hp })}
+          onChangeMega={mega => updateOpponent({ mega })}
         />
         <div>
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">

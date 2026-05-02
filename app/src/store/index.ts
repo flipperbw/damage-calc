@@ -18,6 +18,7 @@ interface Actions {
   removeMon: (teamId: string, monId: string) => void;
   // Opponent
   setOpponent: (mon: SavedMon | null) => void;
+  updateOpponent: (patch: Partial<SavedMon>) => void;
   clearRecent: (id: string) => void;
   clearAllRecents: () => void;
   // Field
@@ -80,10 +81,22 @@ export const useStore = create<AppState & Actions>()(
         ),
       })),
 
-      setOpponent: (mon) => set(s => ({
-        opponent: mon,
-        recentOpponents: mon ? addRecent(s.recentOpponents, mon, Date.now()) : s.recentOpponents,
-      })),
+      setOpponent: (mon) => set(s => {
+        // Replace opponent entirely. Bump recents only when this represents a
+        // new species selection (not a no-op or HP/Mega tweak).
+        const prev = s.opponent;
+        const isSpeciesChange =
+          mon !== null && (prev === null || mon.species !== prev.species);
+        return {
+          opponent: mon,
+          recentOpponents: isSpeciesChange
+            ? addRecent(s.recentOpponents, mon, Date.now())
+            : s.recentOpponents,
+        };
+      }),
+      updateOpponent: (patch) => set(s => (
+        s.opponent ? { opponent: { ...s.opponent, ...patch } } : {}
+      )),
       clearRecent: (id) => set(s => ({
         recentOpponents: s.recentOpponents.filter(r => r.id !== id),
       })),
