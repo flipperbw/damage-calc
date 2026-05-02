@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 
 interface Props {
   open: boolean;
@@ -7,11 +7,41 @@ interface Props {
   children: ReactNode;
 }
 
+/**
+ * Blur whatever input is currently focused inside the picker before it
+ * unmounts. iOS Safari/Brave occasionally fail to release the auto-zoom
+ * that was triggered by focusing a sub-16px input — and even when the
+ * input itself is 16px+, removing a focused input from the DOM without
+ * an explicit blur can leave the visual viewport zoomed in. This is a
+ * belt-and-suspenders fix on top of the text-base sizing already applied
+ * to every search input.
+ *
+ * We blur in two places:
+ *   1. When the user dismisses by tapping the backdrop (close path here).
+ *   2. When `open` flips to false from any path (item picked, parent
+ *      reset, etc.), via the open-tracking effect below — the picker's
+ *      <input autoFocus> is still document.activeElement at that moment.
+ */
+function blurActive() {
+  const a = document.activeElement;
+  if (a instanceof HTMLElement) a.blur();
+}
+
 export function PickerShell({ open, onClose, title, children }: Props) {
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) blurActive();
+    wasOpen.current = open;
+  }, [open]);
+
   if (!open) return null;
+  function close() {
+    blurActive();
+    onClose();
+  }
   return (
     <div className="fixed inset-0 z-30 bg-black/60 flex items-end md:items-center justify-center p-3.5"
-         onClick={onClose}>
+         onClick={close}>
       <div
         data-testid="picker-shell"
         className="w-full max-w-md bg-bg-base bg-panel-gradient border border-surface-hi rounded-card p-3.5 max-h-[80vh] flex flex-col"
