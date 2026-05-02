@@ -17,7 +17,7 @@ describe('migrate', () => {
     expect(migrate({} as any)).toBeNull();
   });
 
-  it('v1 -> v2 maps isMega:true to mega:"mega"', () => {
+  it('v1 -> latest maps isMega:true to mega:"mega" and adds editor:null', () => {
     const v1 = {
       version: 1,
       state: {
@@ -42,5 +42,24 @@ describe('migrate', () => {
     expect(team.mons[1].mega).toBe('');
     expect(out.state.opponent!.mega).toBe('');
     expect(out.state.recentOpponents[0].mon.mega).toBe('mega');
+    // v3 step initialises editor to null on old states.
+    expect(out.state.editor).toBeNull();
+  });
+
+  it('v2 -> v3 initialises editor:null on a state that already has v2 mega field', () => {
+    const v2 = {
+      version: 2,
+      state: {
+        teams: [],
+        activeTeamId: null,
+        activeMonIndex: 0,
+        opponent: null,
+        recentOpponents: [],
+        notation: 'percent',
+      },
+    };
+    const out = migrate(v2)!;
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.state.editor).toBeNull();
   });
 });

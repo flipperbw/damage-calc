@@ -105,3 +105,61 @@ describe('store: opponent + recents', () => {
     expect(useStore.getState().opponent).toBeNull();
   });
 });
+
+describe('store: editor target', () => {
+  it('starts with editor null', () => {
+    expect(useStore.getState().editor).toBeNull();
+  });
+
+  it('setEditor stores a team-mon target', () => {
+    useStore.getState().setEditor({ kind: 'team-mon', teamId: 't1', monId: 'm1' });
+    expect(useStore.getState().editor).toEqual({ kind: 'team-mon', teamId: 't1', monId: 'm1' });
+  });
+
+  it('setEditor stores an opponent target', () => {
+    useStore.getState().setEditor({ kind: 'opponent' });
+    expect(useStore.getState().editor).toEqual({ kind: 'opponent' });
+  });
+
+  it('setEditor(null) clears the target', () => {
+    useStore.getState().setEditor({ kind: 'opponent' });
+    useStore.getState().setEditor(null);
+    expect(useStore.getState().editor).toBeNull();
+  });
+
+  it('removeMon clears editor when it points at the removed mon', () => {
+    const id = useStore.getState().createTeam({ name: 'T', format: 'singles' });
+    const m = mon('Garchomp');
+    useStore.getState().upsertMon(id, m);
+    useStore.getState().setEditor({ kind: 'team-mon', teamId: id, monId: m.id });
+    useStore.getState().removeMon(id, m.id);
+    expect(useStore.getState().editor).toBeNull();
+  });
+
+  it('removeMon leaves editor alone when pointing at a different mon', () => {
+    const id = useStore.getState().createTeam({ name: 'T', format: 'singles' });
+    const m1 = mon('Garchomp');
+    const m2 = mon('Skarmory');
+    useStore.getState().upsertMon(id, m1);
+    useStore.getState().upsertMon(id, m2);
+    useStore.getState().setEditor({ kind: 'team-mon', teamId: id, monId: m1.id });
+    useStore.getState().removeMon(id, m2.id);
+    expect(useStore.getState().editor).toEqual({ kind: 'team-mon', teamId: id, monId: m1.id });
+  });
+
+  it('deleteTeam clears editor when it points at a mon in the deleted team', () => {
+    const id = useStore.getState().createTeam({ name: 'T', format: 'singles' });
+    const m = mon('Garchomp');
+    useStore.getState().upsertMon(id, m);
+    useStore.getState().setEditor({ kind: 'team-mon', teamId: id, monId: m.id });
+    useStore.getState().deleteTeam(id);
+    expect(useStore.getState().editor).toBeNull();
+  });
+
+  it('deleteTeam leaves editor alone when it points at the opponent', () => {
+    const id = useStore.getState().createTeam({ name: 'T', format: 'singles' });
+    useStore.getState().setEditor({ kind: 'opponent' });
+    useStore.getState().deleteTeam(id);
+    expect(useStore.getState().editor).toEqual({ kind: 'opponent' });
+  });
+});

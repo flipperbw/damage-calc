@@ -9,7 +9,6 @@ import { SpeedDivider } from '../components/SpeedDivider';
 import { MonEditor } from '../components/editor/MonEditor';
 import { SpeciesPicker } from '../components/pickers/SpeciesPicker';
 import { defaultOpponentMon } from '../store/factories';
-import type { SavedMon } from '../types';
 
 export function BattleScreen() {
   const team = useStore(s => s.teams.find(t => t.id === s.activeTeamId));
@@ -19,9 +18,26 @@ export function BattleScreen() {
   const updateOpponent = useStore(s => s.updateOpponent);
   const upsertMon = useStore(s => s.upsertMon);
   const field = useStore(s => s.field);
+  // Editor target lives in the store so it survives iOS unloading the tab.
+  // The editor is rendered for the *current* `you` or `opponent` mon based
+  // on the persisted target — losing the WIP draft on reload is the agreed
+  // tradeoff (keystroke writes would be too noisy).
+  const editor = useStore(s => s.editor);
+  const setEditor = useStore(s => s.setEditor);
 
-  const [editor, setEditor] = useState<{ side: 'you' | 'opp'; mon: SavedMon } | null>(null);
   const [oppPicker, setOppPicker] = useState(false);
+
+  // Resolve the persisted editor target into the live mon to edit. If the
+  // target has gone stale (team deleted, opponent cleared), the resolution
+  // returns null and the editor stays closed.
+  const editorMon = (() => {
+    if (!editor) return null;
+    if (editor.kind === 'opponent') return opponent;
+    if (editor.kind === 'team-mon' && team && editor.teamId === team.id) {
+      return team.mons.find(m => m.id === editor.monId) ?? null;
+    }
+    return null;
+  })();
 
   const you = team?.mons[activeIndex];
 
@@ -117,7 +133,7 @@ export function BattleScreen() {
           mon={you}
           maxHp={matchup.attackerMaxHp}
           side="you"
-          onEdit={() => setEditor({ side: 'you', mon: you })}
+          onEdit={() => setEditor({ kind: 'team-mon', teamId: team.id, monId: you.id })}
           onChangeHp={hp => upsertMon(team.id, { ...you, currentHp: hp })}
           onChangeMega={mega => upsertMon(team.id, { ...you, mega })}
           onChangeStatus={status => upsertMon(team.id, { ...you, status })}
@@ -142,7 +158,7 @@ export function BattleScreen() {
           mon={opponent}
           maxHp={matchup.defenderMaxHp}
           side="opp"
-          onEdit={() => setEditor({ side: 'opp', mon: opponent })}
+          onEdit={() => setEditor({ kind: 'opponent' })}
           onSwap={() => setOppPicker(true)}
           onChangeHp={hp => updateOpponent({ currentHp: hp })}
           onChangeMega={mega => updateOpponent({ mega })}
@@ -164,13 +180,13 @@ export function BattleScreen() {
         <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
       </div>
 
-      {editor && (
+      {editor && editorMon && (
         <MonEditor
           open
-          initial={editor.mon}
+          initial={editorMon}
           onClose={() => setEditor(null)}
           onSave={mon => {
-            if (editor.side === 'you') upsertMon(team.id, mon);
+            if (editor.kind === 'team-mon') upsertMon(editor.teamId, mon);
             else setOpponent(mon);
             setEditor(null);
           }}

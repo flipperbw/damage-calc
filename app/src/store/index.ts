@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Team, SavedMon, FieldState, Notation, Tab, Format } from '../types';
+import type { AppState, Team, SavedMon, FieldState, Notation, Tab, Format, EditorTarget } from '../types';
 import { addRecent } from './validators';
 import { migrate, CURRENT_VERSION } from './migrations';
 import { emptyField } from './factories';
@@ -10,6 +10,10 @@ const PERSIST_NAME = 'champions-calc-v1';
 
 // Keys persisted in the imported/exported data slice. Action functions and
 // transient UI state are excluded.
+//
+// `editor` is persisted so the MonEditor reopens on the same target after
+// iOS unloads the tab under memory pressure and reloads the page. The
+// in-progress draft is not persisted — only the target.
 export const PERSISTED_KEYS = [
   'teams',
   'activeTeamId',
@@ -18,6 +22,7 @@ export const PERSISTED_KEYS = [
   'recentOpponents',
   'field',
   'notation',
+  'editor',
 ] as const;
 export type PersistedKey = typeof PERSISTED_KEYS[number];
 
@@ -41,6 +46,7 @@ interface Actions {
   // UI
   setTab: (t: Tab) => void;
   setNotation: (n: Notation) => void;
+  setEditor: (target: EditorTarget) => void;
   // Reset
   resetAll: () => void;
 }
@@ -54,6 +60,7 @@ const initialAppState: AppState = {
   field: emptyField(),
   notation: 'percent',
   tab: 'battle',
+  editor: null,
 };
 
 export const useStore = create<AppState & Actions>()(
@@ -92,6 +99,11 @@ export const useStore = create<AppState & Actions>()(
       deleteTeam: (id) => set(s => ({
         teams: s.teams.filter(t => t.id !== id),
         activeTeamId: s.activeTeamId === id ? null : s.activeTeamId,
+        // Avoid leaving the editor pointed at a team we just deleted.
+        editor:
+          s.editor && s.editor.kind === 'team-mon' && s.editor.teamId === id
+            ? null
+            : s.editor,
       })),
       setActiveTeam: (id) => set({ activeTeamId: id, activeMonIndex: 0 }),
       setActiveMonIndex: (i) => set({ activeMonIndex: i }),
@@ -110,6 +122,14 @@ export const useStore = create<AppState & Actions>()(
           ? { ...t, mons: t.mons.filter(m => m.id !== monId), updatedAt: Date.now() }
           : t,
         ),
+        // Clear an editor that was pointing at the mon we just removed —
+        // otherwise the editor reopens on a vapor target after reload.
+        editor:
+          s.editor && s.editor.kind === 'team-mon'
+            && s.editor.teamId === teamId
+            && s.editor.monId === monId
+            ? null
+            : s.editor,
       })),
 
       setOpponent: (mon) => set(s => {
@@ -137,6 +157,7 @@ export const useStore = create<AppState & Actions>()(
 
       setTab: (tab) => set({ tab }),
       setNotation: (notation) => set({ notation }),
+      setEditor: (editor) => set({ editor }),
 
       resetAll: () => set(initialAppState),
     }),

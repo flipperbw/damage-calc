@@ -75,6 +75,21 @@ export interface RecentOpponent {
 export type Notation = 'percent' | 'pixels';
 export type Tab = 'battle' | 'teams' | 'settings';
 
+/**
+ * Which mon (if any) the MonEditor sheet is currently open on. Persisted so
+ * that when iOS unloads the tab under memory pressure and reloads, the user
+ * lands back on the same edit they were doing.
+ *
+ * Only the *target* is persisted — the editor's draft fields (the WIP form)
+ * still live in MonEditor's local useState and are deliberately transient.
+ * Losing in-progress unsaved edits across an unload is the expected tradeoff:
+ * the alternative is constantly writing keystrokes into the store.
+ */
+export type EditorTarget =
+  | { kind: 'team-mon'; teamId: string; monId: string }
+  | { kind: 'opponent' }
+  | null;
+
 export interface AppState {
   teams: Team[];
   activeTeamId: string | null;
@@ -84,6 +99,7 @@ export interface AppState {
   field: FieldState;
   notation: Notation;
   tab: Tab;
+  editor: EditorTarget;         // persisted: survives iOS reload-on-unload
 }
 
 export const SP_PER_STAT_MAX = 32;

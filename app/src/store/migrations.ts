@@ -1,6 +1,6 @@
 import type { AppState } from '../types';
 
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
 
 export interface PersistedShape {
   version: number;
@@ -38,6 +38,13 @@ const MIGRATORS: Record<number, Migrator> = {
         )
       : s.recentOpponents;
     return { ...s, teams, opponent, recentOpponents };
+  },
+  // v2 -> v3: introduce persisted MonEditor target so the open editor
+  // survives iOS unloading the tab under memory pressure. Old persisted
+  // states won't have an `editor` key — initialise to null.
+  3: (s: any) => {
+    if (!s || typeof s !== 'object') return s;
+    return { ...s, editor: null };
   },
 };
 

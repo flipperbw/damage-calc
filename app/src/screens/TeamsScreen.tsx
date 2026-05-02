@@ -22,8 +22,21 @@ export function TeamsScreen() {
   const clearRecent = useStore(s => s.clearRecent);
 
   const [picker, setPicker] = useState<{ teamId: string; slotIndex: number } | null>(null);
-  const [editor, setEditor] = useState<{ teamId: string; mon: SavedMon } | null>(null);
+  // Editor target lives in the store so it survives iOS unloading the tab.
+  // We resolve teamId/monId back to a live SavedMon below; if the target
+  // has gone stale (team or mon removed) the editor stays closed.
+  const editor = useStore(s => s.editor);
+  const setEditor = useStore(s => s.setEditor);
   const [menuTeamId, setMenuTeamId] = useState<string | null>(null);
+
+  const editorTeamMon = (() => {
+    if (!editor || editor.kind !== 'team-mon') return null;
+    const t = teams.find(x => x.id === editor.teamId);
+    if (!t) return null;
+    const m = t.mons.find(x => x.id === editor.monId);
+    if (!m) return null;
+    return { team: t, mon: m };
+  })();
 
   function handleRename(team: Team) {
     const next = window.prompt('Rename team', team.name);
@@ -89,7 +102,7 @@ export function TeamsScreen() {
           onMenu={() => setMenuTeamId(t.id)}
           onSlot={(i) => {
             const mon = t.mons[i];
-            if (mon) setEditor({ teamId: t.id, mon });
+            if (mon) setEditor({ kind: 'team-mon', teamId: t.id, monId: mon.id });
             else setPicker({ teamId: t.id, slotIndex: i });
           }}
         />
@@ -138,19 +151,17 @@ export function TeamsScreen() {
           const mon = emptyMon(species);
           upsertMon(picker.teamId, mon);
           setPicker(null);
-          setEditor({ teamId: picker.teamId, mon });
+          setEditor({ kind: 'team-mon', teamId: picker.teamId, monId: mon.id });
         }} />}
 
-      {editor && <MonEditor
-        open initial={editor.mon}
+      {editorTeamMon && <MonEditor
+        open initial={editorTeamMon.mon}
         onClose={() => setEditor(null)}
-        onSave={mon => { upsertMon(editor.teamId, mon); setEditor(null); }}
+        onSave={mon => { upsertMon(editorTeamMon.team.id, mon); setEditor(null); }}
         onDelete={() => {
-          const team = teams.find(t => t.id === editor.teamId);
-          const teamName = team?.name ?? 'this team';
-          if (window.confirm(`Remove ${editor.mon.species} from ${teamName}?`)) {
-            removeMon(editor.teamId, editor.mon.id);
-            setEditor(null);
+          if (window.confirm(`Remove ${editorTeamMon.mon.species} from ${editorTeamMon.team.name}?`)) {
+            // removeMon also clears the editor pointer for us — see store impl.
+            removeMon(editorTeamMon.team.id, editorTeamMon.mon.id);
           }
         }}
       />}
