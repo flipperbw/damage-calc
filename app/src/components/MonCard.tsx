@@ -97,7 +97,7 @@ export function MonCard({
           <StatChip label="+ Boost" onClick={() => setPicker('boosts')} />
         )}
 
-        <MegaToggle mega={mon.mega} species={mon.species} onChange={onChangeMega} />
+        <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
       </div>
 
       {onChangeStatus && (

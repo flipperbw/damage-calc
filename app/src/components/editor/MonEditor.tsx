@@ -8,6 +8,7 @@ import { NaturePicker } from '../pickers/NaturePicker';
 import { BuildDropdown } from './BuildDropdown';
 import { SpGrid } from './SpGrid';
 import { MoveSlots } from './MoveSlots';
+import { EffectiveStats } from './EffectiveStats';
 import { MegaToggle } from '../MegaToggle';
 import { TypeBadge } from '../TypeBadge';
 import { Generations, toID } from '@smogon/calc';
@@ -80,6 +81,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete }: Props) {
             <div className="font-extrabold text-lg cursor-pointer" onClick={() => setPicker('species')}>{draft.species}</div>
             <div className="flex gap-1 mt-1">{types.map(t => <TypeBadge key={t} type={t as string} />)}</div>
             <div className="mt-2"><MegaToggle mega={draft.mega} species={draft.species}
+                                              item={draft.item}
                                               onChange={mega => patch({ mega })} /></div>
           </div>
         </div>
@@ -99,6 +101,16 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete }: Props) {
         {/* SP grid */}
         <div className="my-4">
           <SpGrid sps={draft.sps} onChange={sps => patch({ sps })} />
+        </div>
+
+        {/* Effective stats — also shows the post-mega column when item is a mega stone */}
+        <div className="mb-4">
+          <EffectiveStats
+            species={draft.species}
+            nature={draft.nature}
+            sps={draft.sps}
+            item={draft.item}
+          />
         </div>
 
         {/* Moves */}

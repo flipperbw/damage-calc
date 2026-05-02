@@ -1,4 +1,4 @@
-import { Generations, toID } from '@smogon/calc';
+import { Generations, MEGA_STONES, toID } from '@smogon/calc';
 import type { MegaState } from '../types';
 
 const GEN = Generations.get(0);
@@ -27,13 +27,28 @@ export function hasMegaForme(species: string): boolean {
   return o.hasPlain || o.hasX || o.hasY;
 }
 
+/** True iff the item is a mega stone in the calc's MEGA_STONES table. */
+export function isMegaStone(item: string | undefined): boolean {
+  if (!item) return false;
+  return Object.prototype.hasOwnProperty.call(MEGA_STONES, item);
+}
+
 interface Props {
   mega: MegaState;
   onChange: (next: MegaState) => void;
   species: string;
+  /**
+   * Held item. The toggle is only rendered when this is a mega stone, so a
+   * mon without the right stone can't accidentally enter mega state. When
+   * undefined, the toggle is hidden entirely.
+   */
+  item?: string;
 }
 
-export function MegaToggle({ mega, onChange, species }: Props) {
+export function MegaToggle({ mega, onChange, species, item }: Props) {
+  // Mega is an in-battle event tied to the held mega stone. Without a stone,
+  // there's nothing to toggle and we render nothing.
+  if (!isMegaStone(item)) return null;
   const opts = megaOptions(species);
   // X/Y forms (Charizard, Mewtwo): show 3-state segmented [Off | X | Y]
   if (opts.hasX && opts.hasY) {
