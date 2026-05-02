@@ -3,7 +3,7 @@
   "homepage": "https://calc.pokemonshowdown.com/",
   "repository": "github:smogon/damage-calc",
   "license": "MIT",
-  "workspaces": ["calc", "app", "import"],
+  "workspaces": ["calc", "app"],
   "scripts": {
     "dev": "npm --workspace app run dev",
     "build": "npm --workspace calc run compile && npm --workspace app run build",
