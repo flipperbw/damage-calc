@@ -61,5 +61,5 @@ test('reset everything wipes teams (with confirm)', async ({ page }) => {
   await page.getByRole('button', { name: 'Reset everything' }).click();
 
   await nav(page, 'Teams');
-  await expect(page.getByText('No teams yet — tap ⊕ to create one.')).toBeVisible();
+  await expect(page.getByText('No teams yet')).toBeVisible();
 });

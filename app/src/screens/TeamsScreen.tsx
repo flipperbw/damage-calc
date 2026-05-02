@@ -55,14 +55,24 @@ export function TeamsScreen() {
 
   const menuTeam = menuTeamId ? teams.find(t => t.id === menuTeamId) : null;
 
+  function handleCreateTeam() {
+    createTeam({ name: 'New team', format: 'singles' });
+  }
+
   return (
     <>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Teams</h2>
-        <button onClick={() => createTeam({ name: 'New team', format: 'singles' })}
-                aria-label="Create team"
-                data-testid="create-team"
-                className="w-11 h-11 rounded-full bg-accent-gradient text-white text-lg font-bold flex items-center justify-center shadow-[0_4px_12px_rgba(124,92,255,0.4)] active:scale-95 transition-transform">＋</button>
+      <div className="mb-4">
+        <h2 className="text-xl font-bold mb-3">Teams</h2>
+        <button
+          type="button"
+          onClick={handleCreateTeam}
+          aria-label="Create team"
+          data-testid="create-team"
+          className="w-full min-h-[48px] py-3 px-4 rounded-card bg-accent-gradient text-white text-base font-bold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(124,92,255,0.45)] active:scale-[0.98] transition-transform"
+        >
+          <span className="text-xl leading-none">＋</span>
+          <span>Create Team</span>
+        </button>
       </div>
 
       {teams.map(t => (
@@ -81,7 +91,14 @@ export function TeamsScreen() {
       ))}
 
       {teams.length === 0 && (
-        <div className="text-center mt-10 opacity-70">No teams yet — tap ⊕ to create one.</div>
+        <button
+          type="button"
+          onClick={handleCreateTeam}
+          data-testid="create-team-empty"
+          className="w-full text-center mt-6 py-6 rounded-card border border-dashed border-accent/30 text-text-mute active:scale-[0.99] transition-transform"
+        >
+          No teams yet. <span className="text-accent font-semibold">Tap to create your first team.</span>
+        </button>
       )}
 
       {recents.length > 0 && (
@@ -192,6 +209,8 @@ function TeamCard({ team, active, onActivate, onSlot, onMenu }: {
       <div className="flex gap-1.5 mt-2.5">
         {slots.map((mon, i) => (
           <button key={i} onClick={() => onSlot(i)}
+                  data-testid={mon ? `team-slot-filled-${i}` : `team-slot-empty-${i}`}
+                  aria-label={mon ? `Edit ${mon.species}` : `Add Pokémon to slot ${i + 1}`}
                   className="flex-1 aspect-square bg-surface border border-surface-hi rounded-lg flex items-center justify-center">
             {mon ? <img src={spriteUrl(mon.species)} className="w-3/4 h-3/4 object-contain" />
                  : <span className="opacity-30 text-xs">＋</span>}

@@ -46,10 +46,11 @@ export async function addMonToFirstSlot(
   species: string,
   buildName?: RegExp,
 ) {
-  // The slots render an empty + placeholder. Click the first one.
-  await page.locator('button:has(span:has-text("＋"))').first().click();
-  await page.getByPlaceholder('Search Pokémon').fill(species);
-  await page.getByRole('button', { name: new RegExp(`^${species}$`) }).click();
+  // Click the first empty slot on the active team card.
+  await page.getByTestId('team-slot-empty-0').first().click();
+  const shell = page.getByTestId('picker-shell');
+  await shell.getByPlaceholder('Search Pokémon').fill(species);
+  await shell.getByRole('button', { name: new RegExp(`^${species}$`) }).first().click();
   if (buildName) {
     // Build dropdown shows "Custom" until a build is applied. Open and pick.
     await page.getByRole('button', { name: /^Custom/ }).click();

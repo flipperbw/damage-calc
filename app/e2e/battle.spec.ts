@@ -13,10 +13,11 @@ async function setUpBattle(page: Page) {
   await nav(page, 'Teams');
   await createTeam(page);
   await addMonToFirstSlot(page, 'Garchomp', /Swords Dance/);
-  // Add Skarmory in slot 2 (the next + placeholder).
-  await page.locator('button:has(span:has-text("＋"))').first().click();
-  await page.getByPlaceholder('Search Pokémon').fill('Skarmory');
-  await page.getByRole('button', { name: /^Skarmory$/ }).click();
+  // Add Skarmory in slot 1 (the next empty slot).
+  await page.getByTestId('team-slot-empty-1').first().click();
+  const shell = page.getByTestId('picker-shell');
+  await shell.getByPlaceholder('Search Pokémon').fill('Skarmory');
+  await shell.getByRole('button', { name: /^Skarmory$/ }).first().click();
   await page.getByRole('button', { name: /^Custom/ }).click();
   await page.getByRole('button', { name: /Defensive/ }).first().click();
   await page.getByRole('button', { name: 'Save' }).click();

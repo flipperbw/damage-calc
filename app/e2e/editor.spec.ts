@@ -9,9 +9,10 @@ async function openGarchompEditor(page: import('@playwright/test').Page) {
   await freshStart(page);
   await nav(page, 'Teams');
   await createTeam(page);
-  await page.locator('button:has(span:has-text("＋"))').first().click();
-  await page.getByPlaceholder('Search Pokémon').fill('Garchomp');
-  await page.getByRole('button', { name: /^Garchomp$/ }).click();
+  await page.getByTestId('team-slot-empty-0').first().click();
+  const shell = page.getByTestId('picker-shell');
+  await shell.getByPlaceholder('Search Pokémon').fill('Garchomp');
+  await shell.getByRole('button', { name: /^Garchomp$/ }).first().click();
 }
 
 test('curated build auto-fills item / ability / nature / moves', async ({ page }) => {

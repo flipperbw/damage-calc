@@ -45,7 +45,7 @@ test('delete a team after confirm', async ({ page }) => {
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Team menu' }).click();
   await page.getByRole('button', { name: 'Delete' }).click();
-  await expect(page.getByText('No teams yet — tap ⊕ to create one.')).toBeVisible();
+  await expect(page.getByText('No teams yet')).toBeVisible();
 });
 
 test('add a mon to a slot via species picker + build', async ({ page }) => {
