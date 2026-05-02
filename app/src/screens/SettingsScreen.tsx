@@ -1,4 +1,34 @@
-import { useStore } from '../store';
+import { useStore, PERSISTED_KEYS } from '../store';
+import type { AppState } from '../types';
+
+const APP_VERSION = '0.1.0';
+const REPO_URL = 'https://github.com/smogon/damage-calc';
+
+function pickPersisted(state: any): Partial<AppState> {
+  const out: any = {};
+  for (const k of PERSISTED_KEYS) {
+    if (k in state) out[k] = state[k];
+  }
+  return out;
+}
+
+export function isImportShape(value: unknown): value is Partial<AppState> {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as any;
+  // Accept partial imports (any subset of persisted keys), but reject obviously
+  // wrong shapes.
+  if ('teams' in v && !Array.isArray(v.teams)) return false;
+  if ('recentOpponents' in v && !Array.isArray(v.recentOpponents)) return false;
+  if ('field' in v && (typeof v.field !== 'object' || v.field === null)) return false;
+  if ('notation' in v && v.notation !== 'percent' && v.notation !== 'pixels') return false;
+  if ('activeMonIndex' in v && typeof v.activeMonIndex !== 'number') return false;
+  if ('activeTeamId' in v && v.activeTeamId !== null && typeof v.activeTeamId !== 'string') return false;
+  // Action functions disqualify (means raw store state was dumped).
+  for (const k of Object.keys(v)) {
+    if (typeof v[k] === 'function') return false;
+  }
+  return true;
+}
 
 export function SettingsScreen() {
   const notation = useStore(s => s.notation);
@@ -7,7 +37,9 @@ export function SettingsScreen() {
   const resetAll = useStore(s => s.resetAll);
 
   function exportJson() {
-    const blob = new Blob([JSON.stringify(useStore.getState(), null, 2)], { type: 'application/json' });
+    const state = useStore.getState();
+    const persisted = pickPersisted(state);
+    const blob = new Blob([JSON.stringify(persisted, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -20,12 +52,21 @@ export function SettingsScreen() {
     const file = await pickFile();
     if (!file) return;
     const text = await file.text();
+    let parsed: unknown;
     try {
-      const parsed = JSON.parse(text);
-      useStore.setState(parsed);
-    } catch (e) {
-      alert('Invalid file');
+      parsed = JSON.parse(text);
+    } catch {
+      alert('Invalid JSON file.');
+      return;
     }
+    if (!isImportShape(parsed)) {
+      alert('That file doesn\'t look like a Champions Calc export.');
+      return;
+    }
+    const slice = pickPersisted(parsed);
+    // Merge into existing state, preserving action functions and transient UI.
+    useStore.setState(s => ({ ...s, ...slice }));
+    alert('Import complete.');
   }
 
   return (
@@ -45,6 +86,13 @@ export function SettingsScreen() {
           if (confirm('Wipe all teams, recents, and settings?')) resetAll();
         }} />
       </Section>
+
+      <div className="mt-8 pt-4 border-t border-surface-hi text-[11px] opacity-50">
+        <div>Champions Calc v{APP_VERSION}</div>
+        <a href={REPO_URL} target="_blank" rel="noreferrer" className="text-accent">
+          {REPO_URL.replace(/^https?:\/\//, '')}
+        </a>
+      </div>
     </div>
   );
 }

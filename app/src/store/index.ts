@@ -7,6 +7,19 @@ import { emptyField } from './factories';
 
 const uuid = () => crypto.randomUUID();
 
+// Keys persisted in the imported/exported data slice. Action functions and
+// transient UI state are excluded.
+export const PERSISTED_KEYS = [
+  'teams',
+  'activeTeamId',
+  'activeMonIndex',
+  'opponent',
+  'recentOpponents',
+  'field',
+  'notation',
+] as const;
+export type PersistedKey = typeof PERSISTED_KEYS[number];
+
 interface Actions {
   // Teams
   createTeam: (init: { name: string; format: Format }) => string;
