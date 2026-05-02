@@ -13,9 +13,17 @@ interface Props {
 
 const GEN = Generations.get(0);
 
+// Mega formes are an in-battle event tied to the held mega stone, not a base
+// team member, so we hide them from the picker. Matches "-Mega", "-Mega-X",
+// "-Mega-Y", and ZA's "-Mega-Z" suffixes.
+const MEGA_SUFFIX = /-Mega(-[XYZ])?$/;
+
 function allSpeciesNames(): string[] {
   const names: string[] = [];
-  for (const sp of GEN.species) names.push(sp.name);
+  for (const sp of GEN.species) {
+    if (MEGA_SUFFIX.test(sp.name)) continue;
+    names.push(sp.name);
+  }
   return names.sort();
 }
 

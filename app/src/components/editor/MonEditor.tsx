@@ -87,7 +87,7 @@ export function MonEditor({ open, initial, onClose, onSave }: Props) {
         {/* Moves */}
         <div className="mb-4">
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1">Moves</div>
-          <MoveSlots moves={draft.moves} onChange={moves => patch({ moves })} />
+          <MoveSlots species={draft.species} moves={draft.moves} onChange={moves => patch({ moves })} />
         </div>
 
         {/* Save */}

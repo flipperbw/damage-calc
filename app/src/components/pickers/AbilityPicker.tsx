@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Generations } from '@smogon/calc';
+import { Generations, toID } from '@smogon/calc';
 import { PickerShell } from './PickerShell';
 
 interface Props {
@@ -14,9 +14,10 @@ const GEN = Generations.get(0);
 export function AbilityPicker({ open, onClose, onPick, species }: Props) {
   const [query, setQuery] = useState('');
   const all = useMemo(() => {
-    // Prefer species-scoped abilities; fall back to all.
+    // Prefer species-scoped abilities; fall back to all. calc looks up by id,
+    // not display name, so toID() is required.
     if (species) {
-      const sp = GEN.species.get(species as any);
+      const sp = GEN.species.get(toID(species) as any);
       const arr = sp?.abilities ? Object.values(sp.abilities).filter(Boolean) as string[] : [];
       if (arr.length) return arr;
     }

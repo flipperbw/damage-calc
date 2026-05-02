@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Generations } from '@smogon/calc';
+import { Generations, toID } from '@smogon/calc';
 import { TypeBadge } from '../TypeBadge';
 import { MovePicker } from '../pickers/MovePicker';
 
@@ -7,16 +7,19 @@ const GEN = Generations.get(0);
 
 function moveTypeOf(name: string): string {
   if (!name) return '???';
-  const m = GEN.moves.get(name as any);
+  // calc's data is keyed by id ("earthquake"), not display name. Without
+  // toID() the lookup silently fails and we render '???'.
+  const m = GEN.moves.get(toID(name) as any);
   return (m?.type as string) ?? '???';
 }
 
 interface Props {
   moves: [string, string, string, string];
   onChange: (moves: [string, string, string, string]) => void;
+  species?: string;
 }
 
-export function MoveSlots({ moves, onChange }: Props) {
+export function MoveSlots({ moves, onChange, species }: Props) {
   const [editing, setEditing] = useState<number | null>(null);
   return (
     <div>
@@ -32,6 +35,7 @@ export function MoveSlots({ moves, onChange }: Props) {
       <MovePicker
         open={editing !== null}
         onClose={() => setEditing(null)}
+        species={species}
         onPick={(name) => {
           if (editing === null) return;
           const next = [...moves] as [string, string, string, string];

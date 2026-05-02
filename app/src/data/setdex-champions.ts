@@ -1020,3 +1020,20 @@ export function getBuildsForSpecies(species: string): string[] {
 export function getBuild(species: string, buildName: string): ChampionsBuild | undefined {
   return SETDEX_CHAMPIONS[species]?.[buildName];
 }
+
+/**
+ * Union of move names appearing across all curated builds for a species.
+ * Used as an approximate "Champions-known moveset" for filtering pickers,
+ * since calc doesn't ship learnsets. Order is alphabetical.
+ */
+export function getKnownMovesForSpecies(species: string): string[] {
+  const builds = SETDEX_CHAMPIONS[species];
+  if (!builds) return [];
+  const set = new Set<string>();
+  for (const b of Object.values(builds)) {
+    for (const m of b.moves) {
+      if (m) set.add(m);
+    }
+  }
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
