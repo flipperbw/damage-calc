@@ -211,11 +211,15 @@ function ThreatListCard({
     >
       <div className="flex items-center justify-between gap-2">
         <button onClick={onSelect} className="text-left flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-sm truncate">{list.name}</span>
-            <FormatPill format={list.format} />
+            {/* Format pill is meaningful only for seed lists where it reflects
+                a hand-curated meta context (singles vs doubles). User-created
+                lists default to 'any' and have no editable format selector,
+                so showing the pill there is just noise. */}
+            {list.isSeed && <FormatPill format={list.format} />}
             {list.isSeed && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/15 text-accent uppercase tracking-wider">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/15 text-accent border border-accent/30 uppercase tracking-wider font-semibold">
                 seed
               </span>
             )}
@@ -271,11 +275,18 @@ function ThreatListCard({
 }
 
 function FormatPill({ format }: { format: ThreatList['format'] }) {
+  // Color-coded so the format reads at a glance instead of looking like a
+  // dead gray badge. Singles → accent violet; Doubles → priority orange;
+  // Any → ok green (these match how the rest of the app uses these tones).
+  const cls =
+    format === 'singles' ? 'bg-accent/15 text-accent border-accent/30'
+    : format === 'doubles' ? 'bg-priority/15 text-priority border-priority/30'
+    : 'bg-ok/15 text-ok border-ok/30';
   const label = format === 'singles' ? 'Singles'
     : format === 'doubles' ? 'Doubles'
     : 'Any';
   return (
-    <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-hi/40 text-text-mute uppercase tracking-wider">
+    <span className={`text-[10px] px-1.5 py-0.5 rounded border uppercase tracking-wider font-semibold ${cls}`}>
       {label}
     </span>
   );

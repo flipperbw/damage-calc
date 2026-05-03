@@ -109,6 +109,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         open={!!confirmState}
         onClose={() => closeConfirm(false)}
         title={confirmState?.title}
+        align="centered"
       >
         {confirmState && (
           <div data-testid="confirm-dialog" className="flex flex-col gap-3">
@@ -145,6 +146,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         open={!!promptState}
         onClose={() => closePrompt(null)}
         title={promptState?.title}
+        align="centered"
       >
         {promptState && (
           <form

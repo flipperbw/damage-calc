@@ -129,13 +129,13 @@ function SuggestionCard({ suggestion, onOpen, onAdd }: {
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); }
       }}
-      className="relative bg-surface border border-surface-hi rounded-card p-2.5 text-left cursor-pointer flex flex-col gap-1.5 transition-colors hover:bg-accent/[0.06] hover:border-accent/40"
+      className="bg-surface border border-surface-hi rounded-card p-2.5 text-left cursor-pointer flex flex-col gap-1.5 transition-colors hover:bg-accent/[0.06] hover:border-accent/40"
     >
       <div className="flex items-center gap-2">
         <img
           src={spriteUrl(suggestion.species)}
           alt={suggestion.species}
-          className="w-10 h-10 object-contain"
+          className="w-10 h-10 object-contain shrink-0"
         />
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-sm truncate">{suggestion.species}</div>
@@ -145,27 +145,34 @@ function SuggestionCard({ suggestion, onOpen, onAdd }: {
             ))}
           </div>
         </div>
-        <span className="text-xs font-bold bg-accent/20 text-accent rounded px-1.5 py-0.5">
+        {/* Right cluster: small match-strength score then the add button.
+            Inline (no absolute positioning) so they don't collide on narrow
+            mobile cards. Score is title-attributed so a hover/long-press
+            reveals what the number means. */}
+        <span
+          className="text-[10px] font-bold bg-accent/20 text-accent rounded px-1 py-0.5 leading-none shrink-0"
+          title="Match strength: +3 per coverage gap closed, +2 per shared weakness, +1 per favorable matchup vs Most-Used"
+        >
           +{suggestion.score}
         </span>
+        {onAdd && (
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onAdd(); }}
+            aria-label={`Add ${suggestion.species} to team`}
+            data-testid={`suggestion-add-${suggestion.species}`}
+            className="w-7 h-7 shrink-0 rounded-full bg-accent text-white text-base font-bold flex items-center justify-center shadow-[0_2px_8px_rgba(124,92,255,0.3)] hover:scale-105 transition-transform"
+            style={{ touchAction: 'manipulation' }}
+          >
+            +
+          </button>
+        )}
       </div>
       <div className="flex flex-wrap gap-1">
         {suggestion.reasons.slice(0, 3).map((r, i) => (
           <ReasonChip key={`${r.kind}-${r.text}-${i}`} reason={r} />
         ))}
       </div>
-      {onAdd && (
-        <button
-          type="button"
-          onClick={e => { e.stopPropagation(); onAdd(); }}
-          aria-label={`Add ${suggestion.species} to team`}
-          data-testid={`suggestion-add-${suggestion.species}`}
-          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-accent text-white text-base font-bold flex items-center justify-center shadow-[0_2px_8px_rgba(124,92,255,0.3)] opacity-90 hover:opacity-100 hover:scale-105 transition-transform"
-          style={{ touchAction: 'manipulation' }}
-        >
-          +
-        </button>
-      )}
     </div>
   );
 }

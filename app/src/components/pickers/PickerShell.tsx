@@ -4,6 +4,13 @@ interface Props {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /**
+   * Vertical alignment on mobile. Default `'sheet'` (items-end → bottom
+   * sheet) is right for tall picker lists; `'centered'` keeps the modal
+   * vertically centered which reads better for short prompt/confirm
+   * dialogs that don't justify a full-height sheet.
+   */
+  align?: 'sheet' | 'centered';
   children: ReactNode;
 }
 
@@ -27,7 +34,7 @@ function blurActive() {
   if (a instanceof HTMLElement) a.blur();
 }
 
-export function PickerShell({ open, onClose, title, children }: Props) {
+export function PickerShell({ open, onClose, title, children, align = 'sheet' }: Props) {
   const wasOpen = useRef(false);
   useEffect(() => {
     if (wasOpen.current && !open) blurActive();
@@ -47,8 +54,9 @@ export function PickerShell({ open, onClose, title, children }: Props) {
     blurActive();
     onClose();
   }
+  const verticalAlign = align === 'centered' ? 'items-center' : 'items-end md:items-center';
   return (
-    <div className="fixed inset-0 z-30 bg-black/60 flex items-end md:items-center justify-center p-3.5"
+    <div className={`fixed inset-0 z-30 bg-black/60 flex ${verticalAlign} justify-center p-3.5`}
          onClick={close}>
       <div
         data-testid="picker-shell"
