@@ -6,6 +6,7 @@ import { BattleScreen } from './screens/BattleScreen';
 import { TeamsScreen } from './screens/TeamsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { ConfirmProvider } from './components/ConfirmDialog';
+import { preloadPkmn } from './data/pkmn';
 
 /**
  * The 900px breakpoint matches the existing mobile CSS media query in
@@ -31,6 +32,12 @@ function useIsMobile() {
 export function App() {
   const tab = useStore(s => s.tab);
   const isMobile = useIsMobile();
+  // Fire-and-forget preload of @pkmn/data so the move picker's learnset
+  // filter and the move detail sheet's prose are warm by the time the
+  // user opens them. The dynamic import + learnset chunk together weigh
+  // ~3.5 MB raw / ~600 KB gzipped, so we don't await — initial render
+  // proceeds immediately and the data trickles in.
+  useEffect(() => { void preloadPkmn(); }, []);
   return (
     <ConfirmProvider>
       <div className="min-h-screen bg-bg-base bg-panel-gradient text-text">

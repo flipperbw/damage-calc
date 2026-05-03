@@ -49,11 +49,13 @@ test('change ability via picker — list is species-filtered', async ({ page }) 
   // In the Champions species data Garchomp's only canonical ability is
   // Sand Veil (Rough Skin is a setdex artifact, not a champions ability).
   // The picker filters by species, so unrelated abilities like Adaptability
-  // shouldn't appear.
-  await expect(page.getByRole('button', { name: /^Sand Veil$/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Adaptability$/ })).toHaveCount(0);
+  // shouldn't appear. The ability rows can include a shortDesc subline once
+  // @pkmn/data resolves, so we match the name as a substring.
+  const shell = page.getByTestId('picker-shell');
+  await expect(shell.getByRole('button', { name: /Sand Veil/ })).toBeVisible();
+  await expect(shell.getByRole('button', { name: /Adaptability/ })).toHaveCount(0);
 
-  await page.getByRole('button', { name: /^Sand Veil$/ }).click();
+  await shell.getByRole('button', { name: /Sand Veil/ }).click();
   await expect(page.getByTestId('field-ability')).toContainText('Sand Veil');
 });
 

@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Generations, toID } from '@smogon/calc';
 import { PickerShell } from './pickers/PickerShell';
 import { TypeBadge } from './TypeBadge';
 import { effectivenessBadge, koTagFromText, priorityFlag } from '../calc/format';
+import { moveDescription, type DescPair } from '../data/pkmn';
 import type { MoveResult } from '../calc/adapter';
 
 const GEN = Generations.get(0);
@@ -21,11 +22,36 @@ interface Props {
  * relevant facts (BP, priority, multihit, recoil, drain, secondaries, flags)
  * from the Move record, plus the live matchup numbers when provided.
  */
+/** Loading state for the @pkmn/data prose fetch. */
+type ProseState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'ready'; pair: DescPair }
+  | { kind: 'error' };
+
 export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
   const move = useMemo(() => {
     if (!moveName) return null;
     return GEN.moves.get(toID(moveName) as any) ?? null;
   }, [moveName]);
+
+  const [prose, setProse] = useState<ProseState>({ kind: 'idle' });
+
+  // Fetch prose on each open. We don't memoise across move names because the
+  // pkmn module already caches the gen object — the lookup itself is sync
+  // after the first call, so a fresh effect per move is cheap.
+  useEffect(() => {
+    if (!open || !moveName) {
+      setProse({ kind: 'idle' });
+      return;
+    }
+    let cancelled = false;
+    setProse({ kind: 'loading' });
+    moveDescription(moveName)
+      .then(pair => { if (!cancelled) setProse({ kind: 'ready', pair }); })
+      .catch(() => { if (!cancelled) setProse({ kind: 'error' }); });
+    return () => { cancelled = true; };
+  }, [open, moveName]);
 
   if (!open || !moveName || !move) return null;
 
@@ -82,6 +108,12 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
             {category}
           </span>
         </div>
+
+        {/* Prose description from @pkmn/data. Some newer (SV-era) moves
+            aren't in our gen-7 dataset and will silently render nothing —
+            the structured info below still tells the user what the move
+            does in mechanical terms. */}
+        <ProseSection state={prose} />
 
         {/* Live matchup info, when available */}
         {result && !result.isStatus && (
@@ -154,6 +186,36 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
         )}
       </div>
     </PickerShell>
+  );
+}
+
+/**
+ * Renders the @pkmn/data prose for a move. While loading, shows a thin
+ * skeleton (two grey lines) so the layout doesn't jump when prose arrives.
+ * On error or when both fields are empty, renders nothing — the structured
+ * info elsewhere on the sheet remains useful.
+ */
+function ProseSection({ state }: { state: ProseState }) {
+  if (state.kind === 'idle' || state.kind === 'error') return null;
+  if (state.kind === 'loading') {
+    return (
+      <div className="mb-3 space-y-1.5" data-testid="move-prose-loading">
+        <div className="h-3 rounded bg-surface-hi/40 animate-pulse w-3/4" />
+        <div className="h-3 rounded bg-surface-hi/40 animate-pulse w-5/6" />
+      </div>
+    );
+  }
+  const { short, full } = state.pair;
+  if (!short && !full) return null;
+  return (
+    <div className="mb-3" data-testid="move-prose">
+      {short && (
+        <div className="text-sm font-medium opacity-90 mb-1">{short}</div>
+      )}
+      {full && (
+        <p className="text-sm opacity-75 leading-snug">{full}</p>
+      )}
+    </div>
   );
 }
 
