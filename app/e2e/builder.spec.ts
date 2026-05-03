@@ -173,19 +173,23 @@ test('Matchup matrix renders cells with percentages and never shows NaN', async 
   // pins to a known threat list that maps to a fixed cell count (3 mons).
   await page.getByText('Most-Used', { exact: true }).click();
 
+  // Below md (mobile) the matrix renders as a vertical per-mon list; above
+  // it as a table. Use whichever is visible.
   const table = page.getByTestId('matrix-table');
-  await expect(table).toBeVisible();
+  const list = page.getByTestId('matchup-list');
+  const visible = (await table.isVisible()) ? table : list;
+  await expect(visible).toBeVisible();
 
   // At least one cell contains a "%" sign. Some cells render "-" (immune /
   // status-only build) - Garchomp w/ Swords Dance has 3 attacking moves so
   // the row is mostly numeric. Cells are tappable buttons that open a
   // detail sheet on click.
-  const cellWithPct = table.locator('td button:has-text("%")').first();
+  const cellWithPct = visible.locator('button:has-text("%")').first();
   await expect(cellWithPct).toBeVisible();
 
   // No cell ever renders the literal string "NaN". This catches a calc
   // adapter regression (e.g. dividing by 0 in percent computation).
-  await expect(table.locator('text=NaN')).toHaveCount(0);
+  await expect(visible.locator('text=NaN')).toHaveCount(0);
 });
 
 test('Threat list edit: changing a mon item persists across reload', async ({ page }) => {

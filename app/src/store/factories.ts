@@ -52,3 +52,17 @@ export function defaultOpponentMon(species: string): SavedMon {
   const built = monFromBuild(species, builds[0]);
   return built ?? emptyMon(species);
 }
+
+/**
+ * Default team-mon factory: when adding a brand-new mon to a team via the
+ * empty-slot → species-picker flow, seed it with the first curated build so
+ * the editor opens with stats/moves/item/ability/nature already populated
+ * (rather than the "Custom"/0-stat blank). Falls back to emptyMon when there
+ * are no curated builds.
+ */
+export function defaultTeamMon(species: string): SavedMon {
+  const builds = getBuildsForSpecies(species);
+  if (builds.length === 0) return emptyMon(species);
+  const built = monFromBuild(species, builds[0]);
+  return built ?? emptyMon(species);
+}

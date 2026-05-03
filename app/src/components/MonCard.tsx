@@ -190,7 +190,8 @@ export function MonCard({
             <StatChip label="+ Status" onClick={() => setPicker('status')} />
           ) : null}
 
-          {/* Boosts: one chip per non-zero boost, plus a "+ Boost" pill. */}
+          {/* Boosts: one chip per non-zero boost. Tapping the chip opens the
+              BoostPicker - one modal handles all stat boosts at once. */}
           {(Object.entries(mon.boosts) as [StatIDExceptHP, number][]).map(([k, v]) =>
             v !== 0 ? (
               <StatChip
@@ -236,3 +237,4 @@ export function MonCard({
     </div>
   );
 }
+

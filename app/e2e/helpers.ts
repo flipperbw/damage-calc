@@ -91,8 +91,8 @@ export async function addMonToFirstSlot(page: Page, species: string, buildName?:
     .first()
     .click();
   if (buildName) {
-    // Build dropdown shows "Custom" until a build is applied. Open and pick.
-    await page.getByRole('button', { name: /^Custom/ }).click();
+    // Build dropdown is the build trigger; opens to a list of curated builds.
+    await page.getByTestId('build-trigger').click();
     await page.getByRole('button', { name: buildName }).first().click();
   }
   await page.getByRole('button', { name: 'Save' }).click();

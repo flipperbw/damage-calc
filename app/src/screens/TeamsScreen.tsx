@@ -8,7 +8,7 @@ import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
 import { teamToShowdownText } from '@/store/exporters';
-import { emptyMon } from '@/store/factories';
+import { defaultTeamMon } from '@/store/factories';
 import type { SavedMon, Team } from '@/types';
 import { copyToClipboard } from '@/util/clipboard';
 
@@ -180,7 +180,7 @@ export function TeamsScreen() {
           onClose={() => setPicker(null)}
           showRecents={false}
           onPick={(species) => {
-            const mon = emptyMon(species);
+            const mon = defaultTeamMon(species);
             upsertMon(picker.teamId, mon);
             setPicker(null);
             setEditor({ kind: 'team-mon', teamId: picker.teamId, monId: mon.id });
@@ -286,10 +286,10 @@ function TeamCard({
         </button>
         <button
           onClick={onMenu}
-          aria-label="Team menu"
-          className="w-8 h-8 rounded-lg bg-surface border border-surface-hi text-base opacity-70 hover:opacity-100"
+          aria-label="Team actions"
+          className="min-w-[36px] min-h-[36px] px-2.5 rounded-lg bg-surface border border-surface-hi text-base leading-none opacity-70 hover:opacity-100"
         >
-          ⋯
+          ⋮
         </button>
       </div>
       <div className="flex gap-1.5 mt-2.5">

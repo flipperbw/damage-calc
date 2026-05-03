@@ -94,15 +94,12 @@ export function BuilderScreen() {
       <h2 className="text-xl font-bold mb-4">Builder</h2>
 
       <CoverageSection selectedTeamId={selectedTeamId} onSelectTeam={setSelectedTeamId} />
-
       <SuggestionsSection selectedTeamId={selectedTeamId} />
-
       <ThreatListPicker
         selectedListId={selectedListId}
         onSelectList={(id) => setSelectedListId(id || null)}
         onEditThreatMon={(threatListId, monId) => setEditor({ kind: 'threat-mon', threatListId, monId })}
       />
-
       <MatchupMatrix team={team} threatList={threatList} />
 
       {editorThreatMon && (
@@ -143,3 +140,4 @@ export function BuilderScreen() {
     </div>
   );
 }
+

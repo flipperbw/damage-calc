@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { SectionToggle } from '@/components/builder/CoverageSection';
 import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
@@ -37,13 +38,20 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
 
   const [menuListId, setMenuListId] = useState<string | null>(null);
   const [picker, setPicker] = useState<{ threatListId: string } | null>(null);
+  const [open, setOpen] = useState(true);
 
   // Order: seeded lists first (in the order they appear), then user lists
   // by createdAt ascending. Mirrors how Teams orders things (oldest first).
-  const ordered = [...lists].sort((a, b) => {
-    if (a.isSeed !== b.isSeed) return a.isSeed ? -1 : 1;
-    return a.createdAt - b.createdAt;
-  });
+  // Empty lists are hidden so we don't dead-end the user with "0 mons" rows
+  // they can't act on; the active list is exempted so the user can still see
+  // / interact with it via the inline "+ Add" affordance after they emptied
+  // it themselves.
+  const ordered = [...lists]
+    .filter((l) => l.mons.length > 0 || l.id === selectedListId)
+    .sort((a, b) => {
+      if (a.isSeed !== b.isSeed) return a.isSeed ? -1 : 1;
+      return a.createdAt - b.createdAt;
+    });
 
   async function handleCreate() {
     const name = await prompt('Name your threat list', {
@@ -102,18 +110,24 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
 
   return (
     <section className="mb-5" data-testid="threat-list-picker">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-base font-bold">Threat lists</h3>
-        <button
-          type="button"
-          onClick={handleCreate}
-          data-testid="threat-list-new"
-          className="text-xs px-2.5 py-1.5 rounded-lg bg-accent text-white font-semibold"
-        >
-          + New
-        </button>
-      </div>
+      <SectionToggle
+        open={open}
+        onToggle={() => setOpen((o) => !o)}
+        title="Threat lists"
+        testId="threat-list-toggle"
+        rightSlot={
+          <button
+            type="button"
+            onClick={handleCreate}
+            data-testid="threat-list-new"
+            className="text-xs px-2.5 py-1.5 rounded-lg bg-accent text-white font-semibold"
+          >
+            + New
+          </button>
+        }
+      />
 
+      {open && (
       <div className="flex flex-col gap-2">
         {ordered.map((list) => (
           <ThreatListCard
@@ -128,6 +142,7 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
           />
         ))}
       </div>
+      )}
 
       <PickerShell open={!!menuList} onClose={() => setMenuListId(null)} title={menuList?.name}>
         {menuList && (

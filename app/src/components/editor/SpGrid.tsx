@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { validateSps } from '@/store/validators';
 import { SP_PER_STAT_MAX, SP_TOTAL_MAX, type StatID } from '@/types';
 
@@ -17,6 +19,7 @@ interface Props {
 
 export function SpGrid({ sps, onChange }: Props) {
   const v = validateSps(sps);
+  const remaining = Math.max(0, SP_TOTAL_MAX - v.total);
 
   function bump(stat: StatID, delta: number) {
     const cur = sps[stat] ?? 0;
@@ -32,20 +35,43 @@ export function SpGrid({ sps, onChange }: Props) {
     onChange(out);
   }
 
+  // Commit a typed value. Clamped to per-stat [0..32], and further clamped
+  // so the resulting total never exceeds the cap (SP_TOTAL_MAX). The ones
+  // already allocated to OTHER stats fix the remaining headroom for the
+  // edited stat.
+  function commitTyped(stat: StatID, raw: string) {
+    const parsed = Number.parseInt(raw, 10);
+    const value = Number.isFinite(parsed) ? parsed : 0;
+    const clamped = Math.max(0, Math.min(SP_PER_STAT_MAX, value));
+    const otherTotal = Object.entries(sps).reduce(
+      (acc, [k, val]) => (k === stat ? acc : acc + (val ?? 0)),
+      0,
+    );
+    const headroom = Math.max(0, SP_TOTAL_MAX - otherTotal);
+    const next = Math.min(clamped, headroom);
+    setStat(stat, next);
+  }
+
   // Three rendering tiers for the total readout:
   //   ok && < cap : neutral/muted (still room to allocate)
   //   ok && === cap : green (success - fully spent without overflow)
   //   !ok         : red (over cap or per-stat exceedance - Save disabled)
   // The non-ok branch already includes the `error` string; we only style.
   const totalCls = !v.ok ? 'text-danger' : v.total === SP_TOTAL_MAX ? 'text-ok' : 'opacity-50';
+  const remainingCls = remaining === 0 ? 'text-warn' : 'opacity-55';
 
   return (
     <div>
-      <div className="flex justify-between items-baseline mb-2">
+      <div className="flex justify-between items-baseline mb-2 gap-2 flex-wrap">
         <div className="text-xxs uppercase tracking-wider opacity-55">Stat Points</div>
-        <div data-testid="sp-total" className={`text-xxs ${totalCls}`}>
-          {v.total} / {SP_TOTAL_MAX}
-          {v.error ? ` · ${v.error}` : ''}
+        <div className="flex items-baseline gap-2">
+          <span data-testid="sp-remaining" className={`text-xxs ${remainingCls}`}>
+            {remaining} left
+          </span>
+          <span data-testid="sp-total" className={`text-xxs ${totalCls}`}>
+            {v.total} / {SP_TOTAL_MAX}
+            {v.error ? ` · ${v.error}` : ''}
+          </span>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-1.5">
@@ -74,7 +100,7 @@ export function SpGrid({ sps, onChange }: Props) {
           return (
             <div key={s.id} className={`border rounded-lg p-2 text-center transition-colors ${cell}`}>
               <div className="text-[9px] uppercase opacity-55 tracking-wider">{s.label}</div>
-              <div className={valueCls}>{value}</div>
+              <SpValueInput stat={s.id} value={value} valueCls={valueCls} onCommit={(raw) => commitTyped(s.id, raw)} />
               <div className="h-0.5 bg-white/10 rounded mt-1.5 overflow-hidden">
                 <div className={`h-full ${barFill}`} style={{ width: `${pct}%` }} />
               </div>
@@ -123,5 +149,87 @@ export function SpGrid({ sps, onChange }: Props) {
         })}
       </div>
     </div>
+  );
+}
+
+interface SpValueInputProps {
+  stat: StatID;
+  value: number;
+  valueCls: string;
+  onCommit: (raw: string) => void;
+}
+
+/**
+ * Tap-to-edit value cell. Renders the static value display by default; on
+ * tap it swaps to a numeric input that commits on blur or Enter. Using a
+ * separate component lets each stat manage its own draft string state without
+ * the parent re-rendering at every keystroke.
+ */
+function SpValueInput({ stat, value, valueCls, onCommit }: SpValueInputProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync draft to incoming prop whenever we're not actively editing - lets
+  // bump/MAX/0 buttons update the displayed number without fighting the
+  // input's local state.
+  useEffect(() => {
+    if (!editing) setDraft(String(value));
+  }, [value, editing]);
+
+  // Auto-focus + select-all the moment the input mounts so the user can
+  // overwrite the existing value with a single typed digit.
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  function commit() {
+    onCommit(draft);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={SP_PER_STAT_MAX}
+        aria-label={`${stat} value`}
+        data-testid={`sp-input-${stat}`}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setDraft(String(value));
+            setEditing(false);
+          }
+        }}
+        // 16px text size avoids iOS Safari/Brave's auto-zoom on focus.
+        className={`${valueCls} w-full bg-transparent text-center outline-none border border-accent/40 rounded`}
+        style={{ fontSize: 16 }}
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      aria-label={`Edit ${stat} value`}
+      data-testid={`sp-value-${stat}`}
+      className={`${valueCls} w-full bg-transparent`}
+      style={{ touchAction: 'manipulation' }}
+    >
+      {value}
+    </button>
   );
 }

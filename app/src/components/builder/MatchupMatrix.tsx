@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { calculateMatchup, type MoveResult } from '@/calc/adapter';
+import { SectionToggle } from '@/components/builder/CoverageSection';
+import { FieldBar } from '@/components/FieldBar';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { TypeBadge } from '@/components/TypeBadge';
 import { spriteUrl } from '@/data/sprites';
-import { emptyField } from '@/store/factories';
-import type { SavedMon, Team, ThreatList } from '@/types';
+import { useStore } from '@/store';
+import type { FieldState, SavedMon, Team, ThreatList } from '@/types';
 
 interface CellInfo {
   /** Best move's max % (used for the cell label and color tier). */
@@ -25,32 +27,26 @@ interface Props {
 }
 
 /**
- * N×M damage % grid: each row is one of your mons, each column is a threat
- * mon. The cell value is the *best-case max* (`Math.max` over each move's
- * percentRange[1]) - that's the most optimistic OHKO read for the matchup.
+ * N×M damage % grid. Rows = your mons (desktop) / threats (mobile, transposed).
+ * Cell value is the best-case max across all damaging moves — the most
+ * optimistic OHKO read.
  *
- * Memoised on team + threat-list ids/updatedAt so we don't recompute the
- * full grid every time an unrelated store slice (notation toggle, recent
- * opponents …) changes.
+ * Field state is sourced from the user's Battle-tab `field` directly, so
+ * weather/terrain/hazards set anywhere flow through. The same `<FieldBar />`
+ * used on Battle is rendered above the matrix so the user can edit field
+ * state in place.
  */
 export function MatchupMatrix({ team, threatList }: Props) {
-  // We don't take live `field` from the store on purpose - the spec says use
-  // the default empty field state so the matchup matrix is a stable readout
-  // independent of whatever the user has the field set to in BattleScreen.
-  const fallbackField = useMemo(() => emptyField(), []);
+  const battleField = useStore((s) => s.field);
+  const [open, setOpen] = useState(true);
 
   const yourMons = team?.mons ?? [];
   const threats = threatList?.mons ?? [];
 
-  // Memo key encodes:
-  //   - team id + updatedAt (covers any mon edit)
-  //   - threat list id + updatedAt
-  // We deliberately don't depend on individual mon objects - the team's
-  // updatedAt bumps whenever upsertMon/removeMon fires.
   const grid = useMemo<CellInfo[][]>(() => {
     if (yourMons.length === 0 || threats.length === 0) return [];
-    return yourMons.map((you) => threats.map((threat) => bestCellInfo(you, threat, fallbackField)));
-  }, [team?.id, team?.updatedAt, threatList?.id, threatList?.updatedAt, fallbackField]);
+    return yourMons.map((you) => threats.map((threat) => bestCellInfo(you, threat, battleField)));
+  }, [team?.id, team?.updatedAt, threatList?.id, threatList?.updatedAt, battleField]);
 
   // Cell tap → drill-down sheet showing the best move's full range and
   // KO chance text, plus the species names so the user knows which side
@@ -63,16 +59,13 @@ export function MatchupMatrix({ team, threatList }: Props) {
 
   // Sticky-row-label collapse: as the user scrolls horizontally, fade the
   // species name down so only the sprite is left. Frees a chunk of width
-  // when the user is reading the rightmost columns and doesn't need the
-  // name anymore.
+  // when the user is reading the rightmost columns.
   const scrollerRef = useRef<HTMLDivElement>(null);
-  // 0 -> fully expanded, 1 -> fully collapsed. Tied to scrollLeft / 80px.
   const [collapse, setCollapse] = useState(0);
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
     const onScroll = () => {
-      // 0..80px scroll → 0..1 collapse fraction. Clamped at the edges.
       const c = Math.max(0, Math.min(1, el.scrollLeft / 80));
       setCollapse(c);
     };
@@ -82,10 +75,17 @@ export function MatchupMatrix({ team, threatList }: Props) {
 
   return (
     <section className="mb-5" data-testid="matchup-matrix">
-      <div className="flex items-baseline justify-between mb-2 gap-2 flex-wrap">
-        <h3 className="text-base font-bold">Matchup matrix</h3>
-        <span className="text-[10px] opacity-55 italic shrink-0">best move's max-roll % · tap a cell for the full breakdown</span>
-      </div>
+      <SectionToggle
+        open={open}
+        onToggle={() => setOpen((o) => !o)}
+        title="Matchup matrix"
+        testId="matchup-toggle"
+        rightSlot={<span className="text-[10px] opacity-55 italic min-w-0 text-right">best move's max-roll % · tap for full breakdown</span>}
+      />
+
+      {open && (<>
+
+      <FieldBar />
 
       {!team || !threatList ? (
         <div className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
@@ -96,60 +96,105 @@ export function MatchupMatrix({ team, threatList }: Props) {
       ) : threats.length === 0 ? (
         <div className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">The selected threat list has no Pokémon.</div>
       ) : (
-        <div ref={scrollerRef} className="overflow-x-auto border border-surface-hi rounded-card">
-          <table className="border-collapse text-xs" data-testid="matrix-table">
-            <thead>
-              <tr>
-                {/* Sticky-left header cell. Width animates with the row
-                    label below — they share the same min/max width so the
-                    column collapse stays aligned. */}
-                <th
-                  className="sticky left-0 bg-surface-solid z-10 p-1.5 text-left text-text-mute font-medium border-r border-surface-hi"
-                  style={{ width: collapsedWidth(collapse) }}
-                />
-                {threats.map((threat) => (
-                  <th key={threat.id} className="p-1.5 font-medium text-center min-w-[56px]">
-                    <div className="flex flex-col items-center gap-0.5">
-                      <img src={spriteUrl(threat.species)} className="w-7 h-7 object-contain" />
-                      <span className="text-[10px] truncate max-w-[64px]">{threat.species}</span>
-                    </div>
-                  </th>
+        <>
+          {/* Mobile (<md): transposed grid - threats as rows (vertical scroll
+              is natural), your mons as columns. Sized so 6 your-mons + the
+              sticky threat label fit a 390px viewport without horizontal
+              scroll: ~64px sticky + 6×~44px = 328px. */}
+          <div className="md:hidden overflow-x-auto border border-surface-hi rounded-card">
+            <table className="border-collapse text-[10px] w-full table-fixed" data-testid="matchup-list">
+              <colgroup>
+                <col style={{ width: 64 }} />
+                {yourMons.map((you) => (
+                  <col key={you.id} />
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {yourMons.map((you, i) => (
-                <tr key={you.id}>
-                  <td
-                    className="sticky left-0 bg-surface-solid z-10 p-1.5 border-t border-r border-surface-hi"
-                    style={{ width: collapsedWidth(collapse) }}
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <img src={spriteUrl(you.species)} className="w-7 h-7 object-contain shrink-0" />
-                      <span
-                        className="text-[11px] truncate"
-                        style={{
-                          maxWidth: `${(1 - collapse) * 110}px`,
-                          opacity: 1 - collapse,
-                          transition: 'max-width 80ms linear, opacity 80ms linear',
-                        }}
-                      >
-                        {you.species}
-                      </span>
-                    </div>
-                  </td>
-                  {threats.map((threat, j) => {
-                    const cell = grid[i]?.[j] ?? emptyCell();
-                    return <Cell key={threat.id} cell={cell} onTap={() => setDetail({ you, threat, cell })} />;
-                  })}
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className="sticky left-0 bg-surface-solid z-10 p-0.5 border-r border-surface-hi" />
+                  {yourMons.map((you) => (
+                    <th key={you.id} className="p-0.5 font-medium text-center">
+                      <div className="flex flex-col items-center gap-0">
+                        <img src={spriteUrl(you.species)} className="w-6 h-6 object-contain" />
+                        <span className="text-[8px] leading-tight truncate w-full">{you.species}</span>
+                      </div>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {threats.map((threat, j) => (
+                  <tr key={threat.id}>
+                    <td className="sticky left-0 bg-surface-solid z-10 p-1 border-t border-r border-surface-hi">
+                      <div className="flex items-center gap-1">
+                        <img src={spriteUrl(threat.species)} className="w-5 h-5 object-contain shrink-0" />
+                        <span className="text-[9px] leading-tight truncate">{threat.species}</span>
+                      </div>
+                    </td>
+                    {yourMons.map((you, i) => {
+                      const cell = grid[i]?.[j] ?? emptyCell();
+                      return <Cell key={you.id} cell={cell} onTap={() => setDetail({ you, threat, cell })} />;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Desktop (≥md): horizontally-scrollable matrix grid. */}
+          <div ref={scrollerRef} className="hidden md:block overflow-x-auto border border-surface-hi rounded-card">
+            <table className="border-collapse text-xs" data-testid="matrix-table">
+              <thead>
+                <tr>
+                  <th
+                    className="sticky left-0 bg-surface-solid z-10 p-1.5 text-left text-text-mute font-medium border-r border-surface-hi"
+                    style={{ width: collapsedWidth(collapse) }}
+                  />
+                  {threats.map((threat) => (
+                    <th key={threat.id} className="p-1.5 font-medium text-center min-w-[56px]">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <img src={spriteUrl(threat.species)} className="w-7 h-7 object-contain" />
+                        <span className="text-[10px] truncate max-w-[64px]">{threat.species}</span>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {yourMons.map((you, i) => (
+                  <tr key={you.id}>
+                    <td
+                      className="sticky left-0 bg-surface-solid z-10 p-1.5 border-t border-r border-surface-hi"
+                      style={{ width: collapsedWidth(collapse) }}
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <img src={spriteUrl(you.species)} className="w-7 h-7 object-contain shrink-0" />
+                        <span
+                          className="text-[11px] truncate"
+                          style={{
+                            maxWidth: `${(1 - collapse) * 110}px`,
+                            opacity: 1 - collapse,
+                            transition: 'max-width 80ms linear, opacity 80ms linear',
+                          }}
+                        >
+                          {you.species}
+                        </span>
+                      </div>
+                    </td>
+                    {threats.map((threat, j) => {
+                      const cell = grid[i]?.[j] ?? emptyCell();
+                      return <Cell key={threat.id} cell={cell} onTap={() => setDetail({ you, threat, cell })} />;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <DetailSheet info={detail} onClose={() => setDetail(null)} />
+      </>)}
     </section>
   );
 }
@@ -157,12 +202,12 @@ export function MatchupMatrix({ team, threatList }: Props) {
 function Cell({ cell, onTap }: { cell: CellInfo; onTap: () => void }) {
   const { cls, label } = cellStyle(cell.pct);
   return (
-    <td className="p-1.5 border-t border-surface-hi text-center">
+    <td className="p-0.5 md:p-1.5 border-t border-surface-hi text-center">
       <button
         type="button"
         onClick={onTap}
         aria-label="Show matchup details"
-        className={`inline-flex items-center justify-center w-full min-w-[44px] py-1 rounded font-semibold ${cls}`}
+        className={`inline-flex items-center justify-center w-full min-w-[36px] md:min-w-[44px] px-0.5 md:px-1 py-0.5 md:py-1 text-[10px] md:text-xs rounded font-semibold ${cls}`}
         data-pct={cell.pct}
       >
         {label}
@@ -251,7 +296,7 @@ function cellStyle(pct: number): { cls: string; label: string } {
  * detail sheet (range, raw damage, KO text). Returns an empty cell when
  * the attacker has no damaging moves or when the calc throws.
  */
-function bestCellInfo(you: SavedMon, threat: SavedMon, field: ReturnType<typeof emptyField>): CellInfo {
+function bestCellInfo(you: SavedMon, threat: SavedMon, field: FieldState): CellInfo {
   try {
     const res = calculateMatchup(you, threat, field);
     let best: MoveResult | null = null;

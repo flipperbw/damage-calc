@@ -19,7 +19,7 @@ async function setUpBattle(page: Page) {
     .getByRole('button', { name: /^Skarmory$/ })
     .first()
     .click();
-  await page.getByRole('button', { name: /^Custom/ }).click();
+  await page.getByTestId('build-trigger').click();
   await page
     .getByRole('button', { name: /Defensive/ })
     .first()

@@ -3,11 +3,12 @@ import { Generations, toID } from '@smogon/calc';
 import { toast } from 'sonner';
 
 import { suggestAdditions, type Suggestion, type SuggestionReason } from '@/calc/suggestions';
+import { SectionToggle } from '@/components/builder/CoverageSection';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { TypeBadge } from '@/components/TypeBadge';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
-import { emptyMon } from '@/store/factories';
+import { defaultTeamMon } from '@/store/factories';
 
 const GEN = Generations.get(0);
 
@@ -32,7 +33,7 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
 
   function addSpeciesToTeam(species: string) {
     if (!team || teamFull) return;
-    const mon = emptyMon(species);
+    const mon = defaultTeamMon(species);
     upsertMon(team.id, mon);
     toast.success(`Added ${species} to ${team.name}`);
     // Drop the user into the editor on the new mon so they can pick a build /
@@ -54,10 +55,14 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
   }, [team?.id, team?.updatedAt, reference?.id, reference?.updatedAt]);
 
   const [detail, setDetail] = useState<Suggestion | null>(null);
+  const [open, setOpen] = useState(true);
 
   return (
     <section className="mb-5" data-testid="suggestions-section">
-      <h3 className="text-base font-bold mb-2">Suggestions</h3>
+      <SectionToggle open={open} onToggle={() => setOpen((o) => !o)} title="Suggestions" testId="suggestions-toggle" />
+
+      {open && (
+      <>
 
       {!team || team.mons.length === 0 ? (
         <div data-testid="suggestions-empty" className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
@@ -83,6 +88,9 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
             {teamFull ? `${team!.name} is full - remove a mon to add a suggestion.` : 'Tap a Pokémon for details, or + to add it to your team.'}
           </p>
         </>
+      )}
+
+      </>
       )}
 
       <SuggestionDetailSheet

@@ -3,12 +3,20 @@ import { useStore } from '@/store';
 
 interface CarouselProps {
   vertical?: boolean;
+  /**
+   * Called when the user taps an empty slot. Caller is expected to open a
+   * species picker bound to the active team. When omitted, taps on empty
+   * slots fall back to routing to the Teams tab so the user can create or
+   * activate a team.
+   */
+  onAddMon?: (slotIndex: number) => void;
 }
 
-export function TeamCarousel({ vertical = false }: CarouselProps) {
+export function TeamCarousel({ vertical = false, onAddMon }: CarouselProps) {
   const team = useStore((s) => s.teams.find((t) => t.id === s.activeTeamId));
   const activeIndex = useStore((s) => s.activeMonIndex);
   const setActiveMonIndex = useStore((s) => s.setActiveMonIndex);
+  const setTab = useStore((s) => s.setTab);
 
   if (!team) return null;
   const slots: Array<(typeof team.mons)[number] | null> = [...team.mons, ...Array(Math.max(0, 6 - team.mons.length)).fill(null)];
@@ -22,12 +30,16 @@ export function TeamCarousel({ vertical = false }: CarouselProps) {
         const active = !!mon && i === activeIndex;
         if (!mon) {
           return (
-            <div
+            <button
               key={i}
-              className={`${slotBaseCls} bg-surface border border-surface-hi rounded-xl flex items-center justify-center opacity-30 text-xs`}
+              type="button"
+              onClick={() => (onAddMon ? onAddMon(i) : setTab('teams'))}
+              aria-label={`Add Pokémon to slot ${i + 1}`}
+              data-testid={`carousel-slot-empty-${i}`}
+              className={`${slotBaseCls} bg-surface border border-surface-hi rounded-xl flex items-center justify-center opacity-50 text-xs hover:opacity-100`}
             >
               ＋
-            </div>
+            </button>
           );
         }
         const cur = mon.currentHp;
@@ -48,6 +60,6 @@ export function TeamCarousel({ vertical = false }: CarouselProps) {
   );
 }
 
-export function VerticalTeamCarousel() {
-  return <TeamCarousel vertical />;
+export function VerticalTeamCarousel({ onAddMon }: { onAddMon?: (slotIndex: number) => void } = {}) {
+  return <TeamCarousel vertical onAddMon={onAddMon} />;
 }

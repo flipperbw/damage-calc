@@ -54,6 +54,14 @@
   ::after {
     border-color: var(--color-surface-hi);
   }
+
+  /* Tailwind v4's preflight no longer applies cursor: pointer to <button>;
+   * restore it for buttons and role=button divs so clickable surfaces feel
+   * clickable. Disabled state opts out. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
 }
 
 html,

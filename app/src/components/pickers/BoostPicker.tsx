@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { PickerShell } from '@/components/pickers/PickerShell';
 import type { StatIDExceptHP } from '@/types';
@@ -21,6 +21,15 @@ interface Props {
 
 export function BoostPicker({ open, boosts, onClose, onSave }: Props) {
   const [draft, setDraft] = useState<Partial<Record<StatIDExceptHP, number>>>(boosts);
+
+  // Re-seed draft from props every time the picker opens. Without this,
+  // useState only captures `boosts` at first mount; if the parent's boosts
+  // change while the picker is closed (e.g. via the inline ± step buttons
+  // on MonCard), reopening the picker would show the old values.
+  useEffect(() => {
+    if (open) setDraft(boosts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: only sync on open transition, not on every boosts mutation
+  }, [open]);
 
   function set(stat: StatIDExceptHP, v: number) {
     setDraft((d) => {

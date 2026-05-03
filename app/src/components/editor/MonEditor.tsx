@@ -13,8 +13,10 @@ import { ItemPicker } from '@/components/pickers/ItemPicker';
 import { NaturePicker } from '@/components/pickers/NaturePicker';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { TypeBadge } from '@/components/TypeBadge';
+import { getBuildsForSpecies } from '@/data/setdex-champions';
 import { spriteUrl } from '@/data/sprites';
 import { monToShowdownText } from '@/store/exporters';
+import { monFromBuild } from '@/store/factories';
 import { validateSps } from '@/store/validators';
 import type { SavedMon } from '@/types';
 import { copyToClipboard } from '@/util/clipboard';
@@ -138,6 +140,73 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
     });
   }
 
+  // Returns true when the current draft has no user-authored stats/moves -
+  // either it's still bound to a curated build (`buildName` set) or every
+  // editable field is at its default. Used to decide whether picking a new
+  // species can silently auto-apply the recommended build.
+  function isDraftUntouched(d: SavedMon): boolean {
+    if (d.buildName) return true;
+    const noSps = Object.values(d.sps).every((v) => !v);
+    const noMoves = d.moves.every((m) => !m);
+    const noItem = !d.item;
+    const noAbility = !d.ability;
+    const defaultNature = d.nature === 'Hardy';
+    return noSps && noMoves && noItem && noAbility && defaultNature;
+  }
+
+  function applyFirstBuild(species: string, fallback: SavedMon): SavedMon {
+    const buildNames = getBuildsForSpecies(species);
+    if (buildNames.length === 0) return fallback;
+    const built = monFromBuild(species, buildNames[0]);
+    if (!built) return fallback;
+    return {
+      ...fallback,
+      buildName: buildNames[0],
+      item: built.item,
+      ability: built.ability,
+      nature: built.nature,
+      sps: built.sps,
+      moves: built.moves,
+    };
+  }
+
+  function handleSpeciesPick(species: string) {
+    if (draft.species === species) return;
+    const base: SavedMon = { ...draft, species, mega: '' };
+    if (isDraftUntouched(draft)) {
+      setDraft(applyFirstBuild(species, base));
+      return;
+    }
+    // User has manual edits; keep them but offer the suggested build via
+    // a single toast keyed by species so repeated picks don't pile up.
+    const buildNames = getBuildsForSpecies(species);
+    base.buildName = undefined;
+    setDraft(base);
+    if (buildNames.length > 0) {
+      toast(`Switched to ${species}. Apply suggested build?`, {
+        id: `mon-species-suggest-${species}`,
+        action: {
+          label: 'Apply',
+          onClick: () => {
+            const built = monFromBuild(species, buildNames[0]);
+            if (!built) return;
+            setDraft((d) => ({
+              ...d,
+              species,
+              buildName: buildNames[0],
+              item: built.item,
+              ability: built.ability,
+              nature: built.nature,
+              sps: built.sps,
+              moves: built.moves,
+              mega: '',
+            }));
+          },
+        },
+      });
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-30 bg-black/60 flex items-end md:items-center md:justify-end" onClick={onClose}>
       <div
@@ -167,9 +236,10 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
               {...copyHandlers}
               data-testid="copy-mon"
               style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.25)' }}
-              className={`min-w-[44px] min-h-[44px] flex items-center justify-center text-lg rounded-lg select-none cursor-pointer ${copied ? 'bg-ok/20' : 'bg-surface border border-surface-hi'}`}
+              className={`min-h-[44px] px-2.5 flex items-center justify-center gap-1.5 rounded-lg select-none cursor-pointer ${copied ? 'bg-ok/20' : 'bg-surface border border-surface-hi'}`}
             >
-              <span style={{ pointerEvents: 'none' }}>📋</span>
+              <span className="text-base" style={{ pointerEvents: 'none' }}>📋</span>
+              <span className="text-xs font-semibold" style={{ pointerEvents: 'none' }}>Copy</span>
             </button>
             {onDelete ? (
               <button
@@ -178,9 +248,10 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
                 {...deleteHandlers}
                 data-testid="delete-mon"
                 style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,107,107,0.3)' }}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg rounded-lg bg-danger/10 border border-danger/30 text-danger select-none cursor-pointer"
+                className="min-h-[44px] px-2.5 flex items-center justify-center gap-1.5 rounded-lg bg-danger/10 border border-danger/30 text-danger select-none cursor-pointer"
               >
-                <span style={{ pointerEvents: 'none' }}>🗑</span>
+                <span className="text-base" style={{ pointerEvents: 'none' }}>🗑</span>
+                <span className="text-xs font-semibold" style={{ pointerEvents: 'none' }}>Delete</span>
               </button>
             ) : null}
           </div>
@@ -246,7 +317,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
           Save
         </button>
 
-        <SpeciesPicker open={picker === 'species'} onClose={() => setPicker(null)} showRecents={false} onPick={(s) => patch({ species: s })} />
+        <SpeciesPicker open={picker === 'species'} onClose={() => setPicker(null)} showRecents={false} onPick={handleSpeciesPick} />
         <ItemPicker open={picker === 'item'} species={draft.species} onClose={() => setPicker(null)} onPick={(item) => patch({ item })} />
         <AbilityPicker open={picker === 'ability'} species={draft.species} onClose={() => setPicker(null)} onPick={(ability) => patch({ ability })} />
         <NaturePicker open={picker === 'nature'} onClose={() => setPicker(null)} onPick={(nature) => patch({ nature })} />

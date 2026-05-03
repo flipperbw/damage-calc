@@ -5,7 +5,7 @@ import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { TypeBadge } from '@/components/TypeBadge';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
-import { emptyMon } from '@/store/factories';
+import { defaultTeamMon } from '@/store/factories';
 
 interface Props {
   /** Currently-selected team id. Owned by the parent so it stays in sync with the matchup matrix. */
@@ -32,9 +32,11 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
   // editor on it (matches the TeamsScreen flow).
   const [pickingSlot, setPickingSlot] = useState<number | null>(null);
 
+  const [open, setOpen] = useState(true);
+
   function addMon(species: string) {
     if (!team) return;
-    const mon = emptyMon(species);
+    const mon = defaultTeamMon(species);
     upsertMon(team.id, mon);
     setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
     setPickingSlot(null);
@@ -47,10 +49,10 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
 
   return (
     <section className="mb-5" data-testid="coverage-section">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-base font-bold">Coverage</h3>
-      </div>
+      <SectionToggle open={open} onToggle={() => setOpen((o) => !o)} title="Coverage" testId="coverage-toggle" />
 
+      {open && (
+      <>
       <div className="mb-3">
         <label className="text-xxs uppercase tracking-wider opacity-55 mb-1 block">Team</label>
         {teams.length === 0 ? (
@@ -143,8 +145,38 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
         </div>
       )}
 
+      </>
+      )}
+
       <SpeciesPicker open={pickingSlot !== null} onClose={() => setPickingSlot(null)} onPick={addMon} showRecents={false} />
     </section>
+  );
+}
+
+interface SectionToggleProps {
+  open: boolean;
+  onToggle: () => void;
+  title: string;
+  testId?: string;
+  rightSlot?: React.ReactNode;
+}
+export function SectionToggle({ open, onToggle, title, testId, rightSlot }: SectionToggleProps) {
+  return (
+    <div className="flex items-center justify-between mb-2 gap-4">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        data-testid={testId}
+        className="shrink-0 flex items-center gap-2 text-base font-bold py-1 -ml-1 px-1 rounded hover:bg-white/[0.03] whitespace-nowrap"
+      >
+        <span aria-hidden className="text-xs opacity-60 inline-block w-3 text-center">
+          {open ? '▾' : '▸'}
+        </span>
+        <span>{title}</span>
+      </button>
+      {rightSlot}
+    </div>
   );
 }
 

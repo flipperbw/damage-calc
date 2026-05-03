@@ -22,8 +22,9 @@ async function openGarchompEditor(page: import('@playwright/test').Page) {
 test('curated build auto-fills item / ability / nature / moves', async ({ page }) => {
   await openGarchompEditor(page);
 
-  // Build dropdown shows "Custom" until applied.
-  await page.getByRole('button', { name: /^Custom/ }).click();
+  // Build dropdown opens via the build trigger; auto-applied build is shown
+  // in the trigger label so we can't anchor on "Custom" anymore.
+  await page.getByTestId('build-trigger').click();
   await page
     .getByRole('button', { name: /Mixed Mega/ })
     .first()
@@ -147,6 +148,13 @@ test('SP grid: per-stat cap is 32 and total cap is 66', async ({ page }) => {
   test.setTimeout(15000);
   await openGarchompEditor(page);
 
+  // Round 2 auto-applies the first curated build on initial species pick,
+  // so SPs come pre-populated. Reset every stat to 0 first so the test
+  // exercises the same arithmetic as before (start from blank, bump atk).
+  for (const stat of ['hp', 'atk', 'def', 'spa', 'spd', 'spe']) {
+    await page.getByRole('button', { name: `${stat} 0` }).click();
+  }
+
   // Click atk + a few times via UI to confirm rendering, then jump past
   // the cap by injecting state directly through the existing dispatch.
   // Sequential page.click awaits ensure React flushes state between
@@ -210,7 +218,7 @@ test('Copy button copies showdown text and surfaces a toast', async ({ page }) =
   }
 
   await openGarchompEditor(page);
-  await page.getByRole('button', { name: /^Custom/ }).click();
+  await page.getByTestId('build-trigger').click();
   await page
     .getByRole('button', { name: /Mixed Mega/ })
     .first()
@@ -228,20 +236,17 @@ test('Copy button copies showdown text and surfaces a toast', async ({ page }) =
 test('Mega toggle is gated on held mega stone - Garchomp + Garchompite shows it', async ({ page }) => {
   await openGarchompEditor(page);
 
-  // Without an item, no Mega toggle yet.
-  await expect(page.getByRole('button', { name: /Mega Evolve/ })).toHaveCount(0);
-
-  // Apply Garchompite via the curated build.
-  await page.getByRole('button', { name: /^Custom/ }).click();
-  await page
-    .getByRole('button', { name: /Mixed Mega/ })
-    .first()
-    .click();
-
-  // Now the toggle appears.
+  // The first curated Garchomp build (Mixed Mega) holds Garchompite, so the
+  // Mega toggle is already present at editor open after Round 2's auto-apply.
   await expect(page.getByRole('button', { name: /Mega Evolve/ })).toBeVisible();
 
   // Toggle on - label flips to "Mega Active".
   await page.getByRole('button', { name: /Mega Evolve/ }).click();
   await expect(page.getByRole('button', { name: /Mega Active/ })).toBeVisible();
+
+  // Clearing the item via the picker hides the toggle again.
+  await page.getByTestId('field-item').click();
+  // First entry in the item picker is the "(none)" sentinel row.
+  await page.getByRole('button', { name: /^\(none\)$/ }).click();
+  await expect(page.getByRole('button', { name: /Mega (Evolve|Active)/ })).toHaveCount(0);
 });
