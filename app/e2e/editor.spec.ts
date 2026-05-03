@@ -82,13 +82,49 @@ test('change a move via picker — Common section appears for known species', as
 
   // Common section header is rendered when the species has known moves.
   await expect(page.getByText('Common', { exact: true })).toBeVisible();
-  await expect(page.getByText('All', { exact: true })).toBeVisible();
+  // Once @pkmn/data finishes loading the section header flips from "All" to
+  // "Learnable". With Garchomp's learnset cached after the first run this
+  // arrives within a frame, but allow the loader the assertion timeout.
+  await expect(page.getByText('Learnable', { exact: true })).toBeVisible();
 
   await page.getByPlaceholder('Search moves').fill('Earthquake');
   await page.getByRole('button', { name: /Earthquake/ }).first().click();
 
   // The chosen move now renders in the slot row as bold text.
   await expect(page.locator('b', { hasText: 'Earthquake' })).toBeVisible();
+});
+
+test('move picker: Pikachu Learnable list excludes Earthquake until "Show all moves"', async ({ page }) => {
+  // Confirms the @pkmn/data learnset filter actually filters: Pikachu cannot
+  // learn Earthquake (verified by pkmn.test.ts unit test), so typing
+  // "Earthquake" in the picker should produce zero rows under Learnable.
+  // The "Show all moves" toggle bypasses the filter and the row appears.
+  await freshStart(page);
+  await nav(page, 'Teams');
+  await createTeam(page);
+  await page.getByTestId('team-slot-empty-0').first().click();
+  const shell = page.getByTestId('picker-shell');
+  await shell.getByPlaceholder('Search Pokémon').fill('Pikachu');
+  await shell.getByRole('button', { name: /^Pikachu$/ }).first().click();
+
+  // Open the move picker on the first slot.
+  await page.getByText('— empty —').first().click();
+
+  // Wait for the learnset to load (header switches from "All" to "Learnable").
+  await expect(page.getByText('Learnable', { exact: true })).toBeVisible();
+
+  // Search for "Earthquake" — it should NOT appear in the Learnable list.
+  await page.getByPlaceholder('Search moves').fill('Earthquake');
+
+  // Scope the assertion to the picker shell so we don't accidentally match
+  // copy elsewhere on the page. Move row buttons include the TypeBadge label
+  // alongside the move name, so we match the move name as a substring.
+  const pickerShell = page.getByTestId('picker-shell');
+  await expect(pickerShell.getByRole('button', { name: /Earthquake/ })).toHaveCount(0);
+
+  // Toggle on "Show all moves" — Earthquake is now visible in the unfiltered list.
+  await page.getByRole('button', { name: 'Show all moves' }).click();
+  await expect(pickerShell.getByRole('button', { name: /Earthquake/ }).first()).toBeVisible();
 });
 
 test('SP grid: per-stat cap is 32 and total cap is 66', async ({ page }) => {
