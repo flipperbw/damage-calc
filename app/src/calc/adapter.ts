@@ -38,17 +38,31 @@ export interface MoveResult {
   effectiveness: number;
 }
 
+export interface ComputedStats {
+  hp: number;
+  atk: number;
+  def: number;
+  spa: number;
+  spd: number;
+  spe: number;
+}
+
 export interface MatchupResult {
   attackerMoves: MoveResult[];
   defenderMoves: MoveResult[];
   speed: {
     attackerSpe: number;
     defenderSpe: number;
+    /** Effective: when Trick Room is on, this is reversed from the raw stat. */
     attackerOutspeeds: boolean;
     delta: number;
+    /** True when Trick Room is in effect — UI may show a callout. */
+    trickRoom: boolean;
   };
   defenderMaxHp: number;
   attackerMaxHp: number;
+  attackerStats: ComputedStats;
+  defenderStats: ComputedStats;
 }
 
 function speciesForCalc(mon: SavedMon): string {
@@ -222,16 +236,29 @@ export function calculateMatchup(
   const attackerSpe = attacker.stats.spe;
   const defenderSpe = defender.stats.spe;
 
+  // Trick Room reverses speed order — the slower mon moves first. We expose
+  // `attackerOutspeeds` as "you act first this turn" so the UI reads naturally.
+  const trickRoom = !!field.isTrickRoom;
+  const rawOutspeed = attackerSpe > defenderSpe;
+  const attackerOutspeeds = trickRoom ? attackerSpe < defenderSpe : rawOutspeed;
+
   return {
     attackerMoves,
     defenderMoves,
     speed: {
       attackerSpe,
       defenderSpe,
-      attackerOutspeeds: attackerSpe > defenderSpe,
+      attackerOutspeeds,
       delta: attackerSpe - defenderSpe,
+      trickRoom,
     },
     attackerMaxHp: attacker.maxHP(),
     defenderMaxHp: defender.maxHP(),
+    attackerStats: pickStats(attacker.stats),
+    defenderStats: pickStats(defender.stats),
   };
+}
+
+function pickStats(s: { hp: number; atk: number; def: number; spa: number; spd: number; spe: number }): ComputedStats {
+  return { hp: s.hp, atk: s.atk, def: s.def, spa: s.spa, spd: s.spd, spe: s.spe };
 }

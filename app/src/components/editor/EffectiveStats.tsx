@@ -105,17 +105,17 @@ export function EffectiveStats({ species, nature, sps, item }: Props) {
   const showMega = rows.some(r => r.megaValue !== undefined);
 
   return (
-    <div className="bg-surface/50 border border-surface-hi rounded-lg p-2.5">
-      <div className="flex justify-between items-center mb-1.5">
+    <div>
+      <div className="flex justify-between items-center mb-2">
         <div className="text-xxs uppercase tracking-wider opacity-55">Effective Stats</div>
-        <div className="text-[9px] opacity-40">L50</div>
+        <div className="text-[10px] opacity-40">L50</div>
       </div>
-      <div className={`grid ${showMega ? 'grid-cols-[auto_1fr_1fr_1fr]' : 'grid-cols-[auto_1fr_1fr]'} gap-x-2 gap-y-0.5 text-[11px] tabular-nums`}>
+      <div className={`grid ${showMega ? 'grid-cols-[auto_1fr_1fr_1fr]' : 'grid-cols-[auto_1fr_1fr]'} gap-x-3 gap-y-1 text-[14px] tabular-nums`}>
         <div />
-        <div className="text-[9px] uppercase opacity-50 text-right">Base</div>
-        <div className="text-[9px] uppercase opacity-50 text-right">Stat</div>
+        <div className="text-[10px] uppercase opacity-50 text-right">Base</div>
+        <div className="text-[10px] uppercase opacity-50 text-right">Stat</div>
         {showMega && (
-          <div className="text-[9px] uppercase opacity-50 text-right border-l border-accent/30 pl-1.5">
+          <div className="text-[10px] uppercase opacity-50 text-right border-l border-accent/40 pl-2">
             Mega
           </div>
         )}
@@ -172,14 +172,14 @@ function Cells({ row, showMega }: { row: Row; showMega: boolean }) {
   const megaCls = megaTier ? tierClass(megaTier, true) : '';
   return (
     <>
-      <div className="font-bold flex items-center gap-1 opacity-80">
+      <div className="font-semibold flex items-center gap-1 opacity-90 text-[13px]">
         <span>{row.label}</span>
-        <span className={`text-[9px] ${arrowCls}`}>{row.arrow}</span>
+        <span className={`text-[11px] ${arrowCls}`}>{row.arrow}</span>
       </div>
-      <div className="text-right opacity-50">{row.base}</div>
+      <div className="text-right opacity-45">{row.base}</div>
       <div className={`text-right ${valueCls}`}>{row.value}</div>
       {showMega && (
-        <div className={`text-right border-l border-accent/30 pl-1.5 ${megaCls}`}>
+        <div className={`text-right border-l border-accent/40 pl-2 ${megaCls}`}>
           {row.megaValue !== undefined ? row.megaValue : '—'}
         </div>
       )}

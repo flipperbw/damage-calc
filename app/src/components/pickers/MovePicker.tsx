@@ -3,7 +3,7 @@ import { Generations, toID } from '@smogon/calc';
 import { PickerShell } from './PickerShell';
 import { TypeBadge } from '../TypeBadge';
 import { getKnownMovesForSpecies } from '../../data/setdex-champions';
-import { getLearnableMoveIds } from '../../data/pkmn';
+import { getLearnableMoveIds, priorityOverride } from '../../data/pkmn';
 
 interface Props {
   open: boolean;
@@ -24,6 +24,7 @@ const GEN = Generations.get(0);
 interface MoveOption {
   name: string;
   type: string;
+  category: 'Physical' | 'Special' | 'Status';
   bp: number;
   priority: number;
   isStatus: boolean;
@@ -42,13 +43,21 @@ const ALL_TYPES = [
 type TypeName = (typeof ALL_TYPES)[number];
 
 type PriorityFilter = 'any' | 'pos' | 'neg';
-type SortMode = 'az' | 'bp-desc' | 'prio-desc';
+type SortMode = 'az' | 'bp-desc' | 'prio-desc' | 'phys' | 'spec';
+type CategoryFilter = 'any' | 'physical' | 'special' | 'status';
 
 function moveOption(name: string): MoveOption {
   const m = GEN.moves.get(toID(name) as any) as any;
   const bp = (m?.bp ?? m?.basePower ?? 0) as number;
-  const priority = (m?.priority ?? 0) as number;
-  const isStatus = m?.category === 'Status' || bp === 0;
+  // Calc's gen-0 omits priority on several moves (Trick Room, Roar, …); fall
+  // back to @pkmn/data when calc reports 0. Returns null until preloaded.
+  const calcPrio = (m?.priority ?? 0) as number;
+  const pkmnPrio = priorityOverride(name);
+  const priority = calcPrio === 0 && pkmnPrio !== null ? pkmnPrio : calcPrio;
+  const rawCat = m?.category as 'Physical' | 'Special' | 'Status' | undefined;
+  const category: 'Physical' | 'Special' | 'Status' =
+    rawCat ?? (bp === 0 ? 'Status' : 'Physical');
+  const isStatus = category === 'Status' || bp === 0;
   const selfBoosts = m?.self?.boosts;
   const boostsUser = !!selfBoosts && Object.values(selfBoosts).some(v => (v as number) > 0);
   let lowersTarget = false;
@@ -66,6 +75,7 @@ function moveOption(name: string): MoveOption {
   return {
     name,
     type: (m?.type as string) ?? '???',
+    category,
     bp,
     priority,
     isStatus,
@@ -91,6 +101,7 @@ type LearnsetState =
 interface FilterState {
   types: Set<TypeName>;
   priority: PriorityFilter;
+  category: CategoryFilter;
   boostsUser: boolean;
   lowersTarget: boolean;
   sort: SortMode;
@@ -100,6 +111,7 @@ function emptyFilters(isForOpponent: boolean | undefined): FilterState {
   return {
     types: new Set(),
     priority: 'any',
+    category: 'any',
     boostsUser: false,
     lowersTarget: !!isForOpponent,
     sort: 'az',
@@ -110,6 +122,7 @@ function activeFilterCount(f: FilterState): number {
   let n = 0;
   if (f.types.size > 0) n += 1;
   if (f.priority !== 'any') n += 1;
+  if (f.category !== 'any') n += 1;
   if (f.boostsUser) n += 1;
   if (f.lowersTarget) n += 1;
   if (f.sort !== 'az') n += 1;
@@ -124,6 +137,9 @@ function applyFilters(list: MoveOption[], f: FilterState): MoveOption[] {
   }
   if (f.priority === 'pos') out = out.filter(m => m.priority > 0);
   else if (f.priority === 'neg') out = out.filter(m => m.priority < 0);
+  if (f.category === 'physical') out = out.filter(m => m.category === 'Physical');
+  else if (f.category === 'special') out = out.filter(m => m.category === 'Special');
+  else if (f.category === 'status') out = out.filter(m => m.category === 'Status');
   if (f.boostsUser) out = out.filter(m => m.boostsUser);
   if (f.lowersTarget) out = out.filter(m => m.lowersTarget);
   if (f.sort === 'bp-desc') {
@@ -140,8 +156,20 @@ function applyFilters(list: MoveOption[], f: FilterState): MoveOption[] {
       if (a.priority !== b.priority) return b.priority - a.priority;
       return a.name.localeCompare(b.name);
     });
+  } else if (f.sort === 'phys') {
+    // Physical first (Atk-based), then Special, then Status. Ties → BP desc.
+    out = [...out].sort((a, b) => catRank(a, 'phys') - catRank(b, 'phys') || b.bp - a.bp || a.name.localeCompare(b.name));
+  } else if (f.sort === 'spec') {
+    out = [...out].sort((a, b) => catRank(a, 'spec') - catRank(b, 'spec') || b.bp - a.bp || a.name.localeCompare(b.name));
   }
   return out;
+}
+
+function catRank(m: MoveOption, mode: 'phys' | 'spec'): number {
+  const order = mode === 'phys'
+    ? { Physical: 0, Special: 1, Status: 2 }
+    : { Special: 0, Physical: 1, Status: 2 };
+  return order[m.category];
 }
 
 export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Props) {
@@ -295,7 +323,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
         <div
           id="move-filters-panel"
           data-testid="move-filters-panel"
-          className="mb-2 p-2 rounded-lg bg-surface/40 border border-surface-hi space-y-2"
+          className="mb-2 px-1 pb-2 border-t border-surface-hi pt-2 space-y-2.5"
         >
           {/* Type chips */}
           <div>
@@ -318,6 +346,39 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
                     }`}
                   >
                     {t}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Category filter */}
+          <div>
+            <div className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Category</div>
+            <div className="flex gap-1" role="radiogroup" aria-label="Category filter">
+              {([
+                ['any', 'Any'],
+                ['physical', 'Phys'],
+                ['special', 'Spec'],
+                ['status', 'Status'],
+              ] as const).map(([val, lbl]) => {
+                const active = filters.category === val;
+                return (
+                  <button
+                    key={val}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    aria-label={`${lbl} category filter`}
+                    data-testid={`move-filter-cat-${val}`}
+                    onClick={() => setFilters(f => ({ ...f, category: val }))}
+                    className={`flex-1 text-[10px] font-bold uppercase tracking-wider rounded px-2 py-1 border ${
+                      active
+                        ? 'border-accent bg-accent/20 text-accent'
+                        : 'border-surface-hi opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    {lbl}
                   </button>
                 );
               })}
@@ -394,11 +455,13 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
           {/* Sort segmented control */}
           <div>
             <div className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Sort</div>
-            <div className="flex gap-1" role="radiogroup" aria-label="Sort">
+            <div className="grid grid-cols-3 gap-1" role="radiogroup" aria-label="Sort">
               {([
                 ['az', 'A→Z'],
                 ['bp-desc', 'BP ↓'],
                 ['prio-desc', 'Priority ↓'],
+                ['phys', 'Phys (Atk)'],
+                ['spec', 'Spec (SpA)'],
               ] as const).map(([val, lbl]) => {
                 const active = filters.sort === val;
                 return (
@@ -410,7 +473,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
                     aria-label={`Sort: ${lbl}`}
                     data-testid={`move-sort-${val}`}
                     onClick={() => setFilters(f => ({ ...f, sort: val }))}
-                    className={`flex-1 text-[10px] font-bold uppercase tracking-wider rounded px-2 py-1 border ${
+                    className={`text-[10px] font-bold uppercase tracking-wider rounded px-2 py-1 border ${
                       active
                         ? 'border-accent bg-accent/20 text-accent'
                         : 'border-surface-hi opacity-70 hover:opacity-100'
@@ -467,12 +530,37 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
 }
 
 function Row({ option, onPick }: { option: MoveOption; onPick: () => void }) {
+  const prioLabel = option.priority === 0 ? null : (option.priority > 0 ? `+${option.priority}` : `${option.priority}`);
+  const prioCls = option.priority > 0
+    ? 'bg-priority/20 text-priority border-priority/40'
+    : 'bg-warn/15 text-warn border-warn/40';
+  const catCls =
+    option.category === 'Physical' ? 'bg-danger/15 text-danger border-danger/30'
+    : option.category === 'Special' ? 'bg-accent/15 text-accent border-accent/30'
+    : 'bg-white/5 text-text-mute border-surface-hi';
+  const catLabel = option.category === 'Physical' ? 'Phys' : option.category === 'Special' ? 'Spec' : 'Stat';
   return (
-    <button onClick={onPick}
-            data-testid={`move-row-pick-${option.name}`}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-surface">
+    <button
+      onClick={onPick}
+      data-testid={`move-row-pick-${option.name}`}
+      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-surface"
+    >
       <TypeBadge type={option.type} />
-      <span className="font-medium">{option.name}</span>
+      <span className="font-medium flex-1 text-left truncate">{option.name}</span>
+      {prioLabel && (
+        <span
+          data-testid={`move-row-prio-${option.name}`}
+          className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border ${prioCls}`}
+        >
+          {prioLabel}
+        </span>
+      )}
+      {!option.isStatus && option.bp > 0 && (
+        <span className="text-[10px] tabular-nums opacity-60">BP {option.bp}</span>
+      )}
+      <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border ${catCls}`}>
+        {catLabel}
+      </span>
     </button>
   );
 }

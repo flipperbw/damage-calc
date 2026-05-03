@@ -60,6 +60,7 @@ export interface FieldState {
   terrain?: 'Electric' | 'Grassy' | 'Misty' | 'Psychic';
   isMagicRoom?: boolean;
   isWonderRoom?: boolean;
+  isTrickRoom?: boolean;
   isGravity?: boolean;
   yourSide: SideState;
   oppSide: SideState;

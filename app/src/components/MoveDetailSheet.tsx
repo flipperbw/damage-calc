@@ -3,7 +3,7 @@ import { Generations, toID } from '@smogon/calc';
 import { PickerShell } from './pickers/PickerShell';
 import { TypeBadge } from './TypeBadge';
 import { effectivenessBadge, koTagFromText, priorityFlag } from '../calc/format';
-import { moveDescription, type DescPair } from '../data/pkmn';
+import { moveDescription, priorityOverride, type DescPair } from '../data/pkmn';
 import type { MoveResult } from '../calc/adapter';
 
 const GEN = Generations.get(0);
@@ -57,7 +57,11 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
 
   const bp = (move as any).bp ?? move.basePower ?? 0;
   const category = move.category ?? 'Status';
-  const priority = move.priority ?? 0;
+  // Same fallback as adapter.ts: calc's gen-0 omits priority on several moves
+  // (Trick Room, Roar, Whirlwind, …); use @pkmn/data when calc says 0.
+  const calcPriority = move.priority ?? 0;
+  const priorityFromPkmn = priorityOverride(move.name as string);
+  const priority = calcPriority === 0 && priorityFromPkmn !== null ? priorityFromPkmn : calcPriority;
   const flags = move.flags ?? {};
 
   const multihit = move.multihit;

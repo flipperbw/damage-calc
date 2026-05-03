@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../store';
 import { calculateMatchup } from '../calc/adapter';
 import { MonCard } from '../components/MonCard';
-import { TeamCarousel, VerticalTeamCarousel } from '../components/TeamCarousel';
+import { TeamCarousel } from '../components/TeamCarousel';
 import { FieldBar } from '../components/FieldBar';
 import { MoveRow } from '../components/MoveRow';
 import { SpeedDivider } from '../components/SpeedDivider';
@@ -76,32 +76,16 @@ export function BattleScreen() {
 
   if (!opponent || !matchup) {
     return (
-      <div className="md:grid md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
-        <div className="md:col-span-3">
-          <FieldBar />
-        </div>
-        <div className="md:flex md:flex-col">
-          <div className="md:hidden">
-            <TeamCarousel />
-          </div>
-          <div className="hidden md:block">
-            <VerticalTeamCarousel />
-          </div>
-        </div>
-        <div className="md:col-span-2">
-          {/*
-            Empty-opponent placeholder: the card itself is the swap surface,
-            matching the populated state. Single tap-target rather than a
-            separate button because that's what the populated card does too.
-          */}
-          <button
-            onClick={() => setOppPicker(true)}
-            data-testid="pick-opponent"
-            className="w-full bg-surface border border-dashed border-danger/25 rounded-card p-6 text-center text-sm opacity-70 hover:opacity-100"
-          >
-            Tap to pick an opponent
-          </button>
-        </div>
+      <div className="max-w-[1100px] mx-auto">
+        <FieldBar />
+        <TeamCarousel />
+        <button
+          onClick={() => setOppPicker(true)}
+          data-testid="pick-opponent"
+          className="w-full bg-surface border border-dashed border-danger/25 rounded-card p-6 text-center text-sm opacity-70 hover:opacity-100"
+        >
+          Tap to pick an opponent
+        </button>
         <SpeciesPicker
           open={oppPicker}
           onClose={() => setOppPicker(false)}
@@ -111,75 +95,65 @@ export function BattleScreen() {
     );
   }
 
+  /*
+    Layout: single column on mobile, 2-column you/opponent grid on desktop.
+    The team carousel and speed divider sit above the grid full-width so they
+    aren't squished into one column. Capped at 1100px so the cards don't
+    stretch to absurd width on widescreens.
+  */
   return (
-    <div className="md:grid md:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
-      <div className="md:col-span-3">
-        <FieldBar />
-      </div>
+    <div className="max-w-[1100px] mx-auto">
+      <FieldBar />
+      <TeamCarousel />
+      <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
 
-      {/* Team rail */}
-      <div className="md:flex md:flex-col">
-        <div className="md:hidden">
-          <TeamCarousel />
-        </div>
-        <div className="hidden md:block">
-          <VerticalTeamCarousel />
-        </div>
-      </div>
-
-      {/*
-        Speed divider sits directly under the team carousel and above the
-        active mon card — it summarises the matchup before the per-mon
-        detail. On desktop the grid places the carousel to the left of the
-        cards, so the divider spans columns 2-3 (over the two card columns).
-      */}
-      <div className="md:col-start-2 md:col-span-2">
-        <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
-      </div>
-
-      {/* Center: you + your moves */}
-      <div>
-        <MonCard
-          mon={you}
-          maxHp={matchup.attackerMaxHp}
-          side="you"
-          onEdit={() => setEditor({ kind: 'team-mon', teamId: team.id, monId: you.id })}
-          onChangeHp={hp => upsertMon(team.id, { ...you, currentHp: hp })}
-          onChangeMega={mega => upsertMon(team.id, { ...you, mega })}
-          onChangeStatus={status => upsertMon(team.id, { ...you, status })}
-          onChangeBoosts={boosts => upsertMon(team.id, { ...you, boosts })}
-        />
+      <div className="md:grid md:grid-cols-2 md:gap-4">
+        {/* You */}
         <div>
-          <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
-            Your moves → opponent
+          <MonCard
+            mon={you}
+            maxHp={matchup.attackerMaxHp}
+            stats={matchup.attackerStats}
+            side="you"
+            onEdit={() => setEditor({ kind: 'team-mon', teamId: team.id, monId: you.id })}
+            onChangeHp={hp => upsertMon(team.id, { ...you, currentHp: hp })}
+            onChangeMega={mega => upsertMon(team.id, { ...you, mega })}
+            onChangeStatus={status => upsertMon(team.id, { ...you, status })}
+            onChangeBoosts={boosts => upsertMon(team.id, { ...you, boosts })}
+          />
+          <div>
+            <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
+              Your moves → opponent
+            </div>
+            {matchup.attackerMoves.map((r, i) => (
+              <MoveRow key={i} result={r} defenderForSturdy={opponent} />
+            ))}
           </div>
-          {matchup.attackerMoves.map((r, i) => (
-            <MoveRow key={i} result={r} defenderForSturdy={opponent} />
-          ))}
         </div>
-      </div>
 
-      {/* Right: opponent + their moves */}
-      <div>
-        <MonCard
-          mon={opponent}
-          maxHp={matchup.defenderMaxHp}
-          side="opp"
-          onEdit={() => setEditor({ kind: 'opponent' })}
-          onSwap={() => setOppPicker(true)}
-          onChangeHp={hp => updateOpponent({ currentHp: hp })}
-          onChangeMega={mega => updateOpponent({ mega })}
-          onChangeStatus={status => updateOpponent({ status })}
-          onChangeBoosts={boosts => updateOpponent({ boosts })}
-          onChangeAbility={ability => updateOpponent({ ability })}
-        />
+        {/* Opponent */}
         <div>
-          <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
-            Their moves → you
+          <MonCard
+            mon={opponent}
+            maxHp={matchup.defenderMaxHp}
+            stats={matchup.defenderStats}
+            side="opp"
+            onEdit={() => setEditor({ kind: 'opponent' })}
+            onSwap={() => setOppPicker(true)}
+            onChangeHp={hp => updateOpponent({ currentHp: hp })}
+            onChangeMega={mega => updateOpponent({ mega })}
+            onChangeStatus={status => updateOpponent({ status })}
+            onChangeBoosts={boosts => updateOpponent({ boosts })}
+            onChangeAbility={ability => updateOpponent({ ability })}
+          />
+          <div>
+            <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
+              Their moves → you
+            </div>
+            {matchup.defenderMoves.map((r, i) => (
+              <MoveRow key={i} result={r} defenderForSturdy={you} />
+            ))}
           </div>
-          {matchup.defenderMoves.map((r, i) => (
-            <MoveRow key={i} result={r} defenderForSturdy={you} />
-          ))}
         </div>
       </div>
 

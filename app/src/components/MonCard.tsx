@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Generations, toID } from '@smogon/calc';
 import type { SavedMon, StatIDExceptHP, StatusName, MegaState } from '../types';
+import type { ComputedStats } from '../calc/adapter';
 import { spriteUrl } from '../data/sprites';
 import { TypeBadge } from './TypeBadge';
 import { StatChip } from './StatChip';
@@ -16,6 +17,8 @@ const GEN = Generations.get(0);
 interface Props {
   mon: SavedMon;
   maxHp: number;
+  /** Computed stats (post-nature/SPs/mega) for the row across the top of the card. */
+  stats?: ComputedStats;
   side: 'you' | 'opp';
   onEdit: () => void;
   onChangeHp: (hp: number | undefined) => void;
@@ -38,7 +41,7 @@ interface Props {
 }
 
 export function MonCard({
-  mon, maxHp, side, onEdit, onChangeHp, onChangeMega,
+  mon, maxHp, stats, side, onEdit, onChangeHp, onChangeMega,
   onChangeStatus, onChangeBoosts, onChangeAbility, onSwap,
 }: Props) {
   const sp = GEN.species.get(toID(mon.species) as any);
@@ -77,6 +80,11 @@ export function MonCard({
     fn?.();
   }
 
+  function statLabel(k: 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'): string {
+    const map = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' } as const;
+    return map[k];
+  }
+
   return (
     <div {...swapProps}>
       <div className="flex gap-2.5 items-center mb-2">
@@ -86,20 +94,37 @@ export function MonCard({
         >
           <img src={spriteUrl(mon.species)} alt={mon.species} className="w-13 h-13 rounded-xl" />
         </button>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center">
             <button
               onClick={e => stop(e, onEdit)}
               data-testid={`edit-name-${side}`}
-              className="font-bold text-base text-left"
+              className="font-bold text-base text-left truncate"
             >{mon.species}</button>
-            <span className="text-[10px] opacity-50">L50</span>
+            <span className="text-[10px] opacity-50 ml-2 shrink-0">L50</span>
           </div>
           <div className="flex gap-1 mt-1">
             {types.map(t => <TypeBadge key={t} type={t as string} />)}
           </div>
         </div>
       </div>
+
+      {/* Stats row — six cells, hp/atk/def/spa/spd/spe.
+          Tabular numerals so values line up; tight typography to fit on mobile. */}
+      {stats && (
+        <div className="grid grid-cols-6 gap-1 mb-2 text-center">
+          {(['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const).map(k => (
+            <div
+              key={k}
+              className="bg-white/[0.03] rounded-md py-1 px-0.5"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="text-[8px] uppercase tracking-wider opacity-55 leading-none">{statLabel(k)}</div>
+              <div className="text-[12px] font-semibold tabular-nums leading-tight mt-0.5">{stats[k]}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/*
         Stop click/keydown bubbling for inner controls when the card surface is

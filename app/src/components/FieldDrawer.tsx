@@ -66,6 +66,9 @@ export function FieldDrawer({ open, onClose }: Props) {
         </Group>
 
         <Group label="Room / Gravity">
+          <Toggle active={!!field.isTrickRoom} onClick={() => setField({ isTrickRoom: !field.isTrickRoom })}>
+            Trick Room
+          </Toggle>
           <Toggle active={!!field.isMagicRoom} onClick={() => setField({ isMagicRoom: !field.isMagicRoom })}>
             Magic Room
           </Toggle>
