@@ -35,7 +35,15 @@ export function PickerShell({ open, onClose, title, children }: Props) {
   }, [open]);
 
   if (!open) return null;
-  function close() {
+  /**
+   * Closing via backdrop tap must NOT propagate the click up the React
+   * tree. Pickers are nested inside their callers (MonCard, FieldBar,
+   * MonEditor); without stopPropagation, a backdrop tap closes the picker
+   * AND triggers the parent's onClick (e.g. opens the editor or swaps the
+   * opponent), which is never what the user wanted.
+   */
+  function close(e: React.MouseEvent) {
+    e.stopPropagation();
     blurActive();
     onClose();
   }

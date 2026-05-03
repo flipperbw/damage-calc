@@ -2,45 +2,80 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../store';
 import type { FieldState } from '../types';
 import { FieldDrawer } from './FieldDrawer';
+import { emptyField } from '../store/factories';
 
 export function FieldBar() {
   const field = useStore(s => s.field);
+  const setField = useStore(s => s.setField);
   const [open, setOpen] = useState(false);
 
   // Compact summary chips inside the Field button. We list the active flags
   // in a stable order so the row doesn't shuffle as the user toggles things.
   const activeChips = useMemo(() => collectActive(field), [field]);
+  const hasActive = activeChips.length > 0;
+
+  function clearAll(e: React.MouseEvent) {
+    e.stopPropagation();
+    // Reset to a fresh empty FieldState — drops weather, terrain, every room,
+    // both side-state objects.
+    const fresh = emptyField();
+    setField({
+      weather: undefined,
+      terrain: undefined,
+      isMagicRoom: false,
+      isWonderRoom: false,
+      isTrickRoom: false,
+      isGravity: false,
+      yourSide: fresh.yourSide,
+      oppSide: fresh.oppSide,
+    });
+  }
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Edit field state"
-        data-testid="field-toggle"
-        style={{ touchAction: 'manipulation' }}
-        className={`w-full flex items-center gap-2 px-3 py-2 mb-3.5 rounded-lg border ${
-          activeChips.length > 0
-            ? 'bg-warn/10 border-warn/40 text-warn'
-            : 'bg-surface border-surface-hi opacity-80 hover:opacity-100'
-        }`}
-      >
-        <span className="text-base font-semibold">＋ Field</span>
-        {activeChips.length > 0 ? (
-          <div className="flex items-center gap-1 flex-wrap flex-1">
-            {activeChips.map(c => (
-              <span
-                key={c.key}
-                className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warn/20 border border-warn/40 text-warn"
-              >
-                {c.label}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <span className="text-[11px] opacity-70">Weather, terrain, hazards…</span>
+      <div className="flex items-stretch gap-1.5 mb-3.5">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Edit field state"
+          data-testid="field-toggle"
+          style={{ touchAction: 'manipulation' }}
+          className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border ${
+            hasActive
+              ? 'bg-warn/10 border-warn/40 text-warn'
+              : 'bg-surface border-surface-hi opacity-80 hover:opacity-100'
+          }`}
+        >
+          <span className="text-base font-semibold">＋ Field</span>
+          {hasActive ? (
+            <div className="flex items-center gap-1 flex-wrap flex-1">
+              {activeChips.map(c => (
+                <span
+                  key={c.key}
+                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warn/20 border border-warn/40 text-warn"
+                >
+                  {c.label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-[11px] opacity-70">Weather, terrain, hazards…</span>
+          )}
+        </button>
+        {hasActive && (
+          <button
+            type="button"
+            onClick={clearAll}
+            aria-label="Clear all field state"
+            title="Clear field state"
+            data-testid="field-clear"
+            style={{ touchAction: 'manipulation' }}
+            className="px-3 rounded-lg border bg-danger/10 border-danger/30 text-danger hover:bg-danger/20"
+          >
+            ✕
+          </button>
         )}
-      </button>
+      </div>
       <FieldDrawer open={open} onClose={() => setOpen(false)} />
     </>
   );
