@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Team, SavedMon, FieldState, Notation, Tab, Format, EditorTarget } from '../types';
+import type { AppState, Team, SavedMon, FieldState, Notation, Tab, Format, EditorTarget, ThreatList } from '../types';
 import { addRecent } from './validators';
 import { migrate, CURRENT_VERSION } from './migrations';
 import { emptyField } from './factories';
@@ -20,6 +20,7 @@ export const PERSISTED_KEYS = [
   'activeMonIndex',
   'opponent',
   'recentOpponents',
+  'threatLists',
   'field',
   'notation',
   'editor',
@@ -41,6 +42,13 @@ interface Actions {
   updateOpponent: (patch: Partial<SavedMon>) => void;
   clearRecent: (id: string) => void;
   clearAllRecents: () => void;
+  // Threat lists
+  createThreatList: (init: { name: string; format: Format | 'any' }) => string;
+  renameThreatList: (id: string, name: string) => void;
+  duplicateThreatList: (id: string) => string | null;
+  deleteThreatList: (id: string) => void;
+  upsertThreatMon: (threatListId: string, mon: SavedMon) => void;
+  removeThreatMon: (threatListId: string, monId: string) => void;
   // Field
   setField: (patch: Partial<FieldState>) => void;
   // UI
@@ -57,6 +65,7 @@ const initialAppState: AppState = {
   activeMonIndex: 0,
   opponent: null,
   recentOpponents: [],
+  threatLists: [],
   field: emptyField(),
   notation: 'percent',
   tab: 'battle',
@@ -152,6 +161,67 @@ export const useStore = create<AppState & Actions>()(
         recentOpponents: s.recentOpponents.filter(r => r.id !== id),
       })),
       clearAllRecents: () => set({ recentOpponents: [] }),
+
+      createThreatList: ({ name, format }) => {
+        const id = uuid();
+        const now = Date.now();
+        const list: ThreatList = {
+          id, name, format, mons: [], isSeed: false,
+          createdAt: now, updatedAt: now,
+        };
+        set(s => ({ threatLists: [...s.threatLists, list] }));
+        return id;
+      },
+      renameThreatList: (id, name) => set(s => ({
+        threatLists: s.threatLists.map(l =>
+          l.id === id ? { ...l, name, updatedAt: Date.now() } : l,
+        ),
+      })),
+      duplicateThreatList: (id) => {
+        const original = _get().threatLists.find(l => l.id === id);
+        if (!original) return null;
+        const newId = uuid();
+        const now = Date.now();
+        // Copies always come back as non-seed lists; that's the whole point of
+        // duplicating a curated list — to get a freely editable/deletable copy.
+        const copy: ThreatList = {
+          id: newId,
+          name: `${original.name} (copy)`,
+          format: original.format,
+          mons: original.mons.map(m => ({ ...m, id: uuid() })),
+          isSeed: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set(s => ({ threatLists: [...s.threatLists, copy] }));
+        return newId;
+      },
+      deleteThreatList: (id) => {
+        const list = _get().threatLists.find(l => l.id === id);
+        if (!list) return;
+        if (list.isSeed) {
+          // eslint-disable-next-line no-console
+          console.warn(`Refusing to delete seed threat list "${list.name}" (id ${id}).`);
+          return;
+        }
+        set(s => ({ threatLists: s.threatLists.filter(l => l.id !== id) }));
+      },
+      upsertThreatMon: (threatListId, mon) => set(s => ({
+        threatLists: s.threatLists.map(l => {
+          if (l.id !== threatListId) return l;
+          const idx = l.mons.findIndex(m => m.id === mon.id);
+          const mons = idx >= 0
+            ? l.mons.map(m => m.id === mon.id ? mon : m)
+            : [...l.mons, mon];
+          return { ...l, mons, updatedAt: Date.now() };
+        }),
+      })),
+      removeThreatMon: (threatListId, monId) => set(s => ({
+        threatLists: s.threatLists.map(l => l.id === threatListId
+          ? { ...l, mons: l.mons.filter(m => m.id !== monId), updatedAt: Date.now() }
+          : l,
+        ),
+      })),
 
       setField: (patch) => set(s => ({ field: { ...s.field, ...patch } })),
 

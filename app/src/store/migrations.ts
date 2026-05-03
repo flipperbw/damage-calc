@@ -1,6 +1,7 @@
 import type { AppState } from '../types';
+import { buildSeedThreatLists } from '../data/seed-threats';
 
-export const CURRENT_VERSION = 3;
+export const CURRENT_VERSION = 4;
 
 export interface PersistedShape {
   version: number;
@@ -45,6 +46,17 @@ const MIGRATORS: Record<number, Migrator> = {
   3: (s: any) => {
     if (!s || typeof s !== 'object') return s;
     return { ...s, editor: null };
+  },
+  // v3 -> v4: introduce threatLists slice for the Builder feature. Inject
+  // the curated seed lists when the user has none yet (or when the slice is
+  // missing entirely, as on any pre-v4 state). Idempotent: a v3 state that
+  // already carries a non-empty threatLists array (e.g. from a partial
+  // migration somewhere upstream) is left alone — we never double-seed.
+  4: (s: any) => {
+    if (!s || typeof s !== 'object') return s;
+    const existing = Array.isArray(s.threatLists) ? s.threatLists : [];
+    const threatLists = existing.length > 0 ? existing : buildSeedThreatLists();
+    return { ...s, threatLists };
   },
 };
 

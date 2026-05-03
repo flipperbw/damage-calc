@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { migrate, CURRENT_VERSION } from './migrations';
+import type { ThreatList } from '../types';
 
 describe('migrate', () => {
   it('returns input unchanged at current version', () => {
@@ -44,6 +45,9 @@ describe('migrate', () => {
     expect(out.state.recentOpponents[0].mon.mega).toBe('mega');
     // v3 step initialises editor to null on old states.
     expect(out.state.editor).toBeNull();
+    // v4 step injects the curated seed threat lists.
+    expect(out.state.threatLists.length).toBeGreaterThan(0);
+    expect(out.state.threatLists.every(l => l.isSeed)).toBe(true);
   });
 
   it('v2 -> v3 initialises editor:null on a state that already has v2 mega field', () => {
@@ -61,5 +65,96 @@ describe('migrate', () => {
     const out = migrate(v2)!;
     expect(out.version).toBe(CURRENT_VERSION);
     expect(out.state.editor).toBeNull();
+  });
+
+  it('v3 -> v4 injects the four curated seed threat lists', () => {
+    const v3 = {
+      version: 3,
+      state: {
+        teams: [],
+        activeTeamId: null,
+        activeMonIndex: 0,
+        opponent: null,
+        recentOpponents: [],
+        notation: 'percent',
+        editor: null,
+      },
+    };
+    const out = migrate(v3)!;
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.state.threatLists).toHaveLength(4);
+    const names = out.state.threatLists.map(l => l.name);
+    expect(names).toContain('Top Threats — Singles');
+    expect(names).toContain('Top Threats — Doubles / VGC');
+    expect(names).toContain('Top Megas');
+    expect(names).toContain('Most-Used');
+    // All seeds should be flagged isSeed and have mons populated.
+    for (const list of out.state.threatLists) {
+      expect(list.isSeed).toBe(true);
+      expect(list.mons.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('v3 -> v4 is idempotent: an existing non-empty threatLists is not re-seeded', () => {
+    const existing: ThreatList = {
+      id: 'user-1', name: 'My List', format: 'singles',
+      mons: [], isSeed: false, createdAt: 0, updatedAt: 0,
+    };
+    const v3 = {
+      version: 3,
+      state: {
+        teams: [],
+        activeTeamId: null,
+        activeMonIndex: 0,
+        opponent: null,
+        recentOpponents: [],
+        notation: 'percent',
+        editor: null,
+        threatLists: [existing],
+      },
+    };
+    const out = migrate(v3)!;
+    expect(out.state.threatLists).toHaveLength(1);
+    expect(out.state.threatLists[0].id).toBe('user-1');
+  });
+
+  it('migrating an already-v4 state is a no-op', () => {
+    const seeds: ThreatList[] = [
+      { id: 's1', name: 'Seed', format: 'any', mons: [], isSeed: true, createdAt: 0, updatedAt: 0 },
+    ];
+    const v4 = {
+      version: 4,
+      state: {
+        teams: [],
+        activeTeamId: null,
+        activeMonIndex: 0,
+        opponent: null,
+        recentOpponents: [],
+        notation: 'percent',
+        editor: null,
+        threatLists: seeds,
+      },
+    };
+    const out = migrate(v4)!;
+    expect(out.version).toBe(4);
+    expect(out.state.threatLists).toEqual(seeds);
+  });
+
+  it('v3 -> v4 with empty threatLists array still injects seeds', () => {
+    const v3 = {
+      version: 3,
+      state: {
+        teams: [],
+        activeTeamId: null,
+        activeMonIndex: 0,
+        opponent: null,
+        recentOpponents: [],
+        notation: 'percent',
+        editor: null,
+        threatLists: [],
+      },
+    };
+    const out = migrate(v3)!;
+    expect(out.state.threatLists.length).toBeGreaterThan(0);
   });
 });

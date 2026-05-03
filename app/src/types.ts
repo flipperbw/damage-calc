@@ -38,6 +38,23 @@ export interface Team {
   updatedAt: number;
 }
 
+/**
+ * A flat list of Pokémon used to evaluate a team against. Reuses SavedMon so
+ * movesets/items/abilities are editable just like teams. Allows more than 6
+ * mons. Curated lists ship with the app and are flagged isSeed=true; those
+ * cannot be deleted (the user can still edit them or duplicate them to a
+ * non-seed copy if they want to remove entries freely).
+ */
+export interface ThreatList {
+  id: string;
+  name: string;
+  format: Format | 'any';
+  mons: SavedMon[];
+  isSeed: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface SideState {
   stealthRock?: boolean;
   spikes?: 0 | 1 | 2 | 3;
@@ -74,7 +91,7 @@ export interface RecentOpponent {
 }
 
 export type Notation = 'percent' | 'pixels';
-export type Tab = 'battle' | 'teams' | 'settings';
+export type Tab = 'battle' | 'teams' | 'builder' | 'settings';
 
 /**
  * Which mon (if any) the MonEditor sheet is currently open on. Persisted so
@@ -97,6 +114,7 @@ export interface AppState {
   activeMonIndex: number;       // 0..5 in active team
   opponent: SavedMon | null;
   recentOpponents: RecentOpponent[];  // capped 30, LRU
+  threatLists: ThreatList[];    // seeded by v4 migration
   field: FieldState;
   notation: Notation;
   tab: Tab;

@@ -163,3 +163,108 @@ describe('store: editor target', () => {
     expect(useStore.getState().editor).toEqual({ kind: 'opponent' });
   });
 });
+
+describe('store: threat lists', () => {
+  it('starts with no threat lists', () => {
+    expect(useStore.getState().threatLists).toEqual([]);
+  });
+
+  it('createThreatList adds an empty non-seed list and returns its id', () => {
+    const id = useStore.getState().createThreatList({ name: 'Mine', format: 'singles' });
+    const lists = useStore.getState().threatLists;
+    expect(lists).toHaveLength(1);
+    expect(lists[0].id).toBe(id);
+    expect(lists[0].name).toBe('Mine');
+    expect(lists[0].format).toBe('singles');
+    expect(lists[0].mons).toEqual([]);
+    expect(lists[0].isSeed).toBe(false);
+  });
+
+  it('renameThreatList updates the name and bumps updatedAt', async () => {
+    const id = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
+    const before = useStore.getState().threatLists[0].updatedAt;
+    // Force a perceptible time delta so updatedAt actually changes.
+    await new Promise(r => setTimeout(r, 2));
+    useStore.getState().renameThreatList(id, 'Renamed');
+    const after = useStore.getState().threatLists[0];
+    expect(after.name).toBe('Renamed');
+    expect(after.updatedAt).toBeGreaterThanOrEqual(before);
+  });
+
+  it('duplicateThreatList copies mons with new ids and clears isSeed', () => {
+    // Inject a seed list manually.
+    const seed = {
+      id: 'seed-1', name: 'Seed', format: 'any' as const,
+      mons: [{
+        id: 'orig-mon', species: 'Garchomp', nature: 'Hardy',
+        sps: {}, moves: ['', '', '', ''] as [string, string, string, string],
+        mega: '' as const, boosts: {},
+      }],
+      isSeed: true, createdAt: 0, updatedAt: 0,
+    };
+    useStore.setState({ threatLists: [seed] });
+    const newId = useStore.getState().duplicateThreatList('seed-1');
+    expect(newId).toBeTruthy();
+    const lists = useStore.getState().threatLists;
+    expect(lists).toHaveLength(2);
+    const copy = lists.find(l => l.id === newId)!;
+    expect(copy.name).toBe('Seed (copy)');
+    expect(copy.isSeed).toBe(false);
+    expect(copy.mons).toHaveLength(1);
+    expect(copy.mons[0].species).toBe('Garchomp');
+    expect(copy.mons[0].id).not.toBe('orig-mon');
+  });
+
+  it('duplicateThreatList returns null for unknown id', () => {
+    expect(useStore.getState().duplicateThreatList('nope')).toBeNull();
+  });
+
+  it('deleteThreatList removes a non-seed list', () => {
+    const id = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
+    useStore.getState().deleteThreatList(id);
+    expect(useStore.getState().threatLists).toEqual([]);
+  });
+
+  it('deleteThreatList refuses to remove a seed list', () => {
+    const seed = {
+      id: 'seed-1', name: 'Seed', format: 'any' as const,
+      mons: [], isSeed: true, createdAt: 0, updatedAt: 0,
+    };
+    useStore.setState({ threatLists: [seed] });
+    useStore.getState().deleteThreatList('seed-1');
+    // Still there.
+    expect(useStore.getState().threatLists).toHaveLength(1);
+    expect(useStore.getState().threatLists[0].id).toBe('seed-1');
+  });
+
+  it('upsertThreatMon adds a new mon then updates it in place', () => {
+    const id = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
+    const m: SavedMon = mon('Garchomp');
+    useStore.getState().upsertThreatMon(id, m);
+    expect(useStore.getState().threatLists[0].mons).toHaveLength(1);
+    expect(useStore.getState().threatLists[0].mons[0].species).toBe('Garchomp');
+    // Same id -> replace.
+    useStore.getState().upsertThreatMon(id, { ...m, ability: 'Rough Skin' });
+    const mons = useStore.getState().threatLists[0].mons;
+    expect(mons).toHaveLength(1);
+    expect(mons[0].ability).toBe('Rough Skin');
+  });
+
+  it('removeThreatMon drops the mon from the list (allows leaving 0 mons even on seeds)', () => {
+    const seedMon: SavedMon = mon('Garchomp');
+    const seed = {
+      id: 'seed-1', name: 'Seed', format: 'any' as const,
+      mons: [seedMon], isSeed: true, createdAt: 0, updatedAt: 0,
+    };
+    useStore.setState({ threatLists: [seed] });
+    useStore.getState().removeThreatMon('seed-1', seedMon.id);
+    expect(useStore.getState().threatLists[0].mons).toEqual([]);
+  });
+
+  it('removeThreatMon is a no-op for unknown list ids', () => {
+    const id = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
+    useStore.getState().upsertThreatMon(id, mon('Garchomp'));
+    useStore.getState().removeThreatMon('nope', 'Garchomp');
+    expect(useStore.getState().threatLists[0].mons).toHaveLength(1);
+  });
+});
