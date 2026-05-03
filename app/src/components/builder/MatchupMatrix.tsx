@@ -87,9 +87,10 @@ export function MatchupMatrix({ team, threatList }: Props) {
                 {/* Sticky-left header cell needs a SOLID background so the
                     cell values from following columns don't bleed through
                     when scrolled. bg-surface is rgba(...,0.04) - too thin
-                    to occlude. We use the panel-gradient base color so the
-                    sticky stripe blends with the surrounding card. */}
-                <th className="sticky left-0 bg-bg-base z-10 p-1.5 text-left text-text-mute font-medium border-r border-surface-hi" />
+                    to occlude. surface-solid is the solid equivalent
+                    (panel-gradient + 0.04 white, eyeballed) so the sticky
+                    stripe matches the surrounding card surface. */}
+                <th className="sticky left-0 bg-surface-solid z-10 p-1.5 text-left text-text-mute font-medium border-r border-surface-hi" />
                 {threats.map(threat => (
                   <th
                     key={threat.id}
@@ -106,7 +107,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
             <tbody>
               {yourMons.map((you, i) => (
                 <tr key={you.id}>
-                  <td className="sticky left-0 bg-bg-base z-10 p-1.5 border-t border-r border-surface-hi">
+                  <td className="sticky left-0 bg-surface-solid z-10 p-1.5 border-t border-r border-surface-hi">
                     <div className="flex items-center gap-2 min-w-[120px] max-w-[160px]">
                       <img src={spriteUrl(you.species)} className="w-7 h-7 object-contain shrink-0" />
                       <span className="text-[11px] truncate">{you.species}</span>
@@ -261,4 +262,3 @@ function bestCellInfo(
     return emptyCell();
   }
 }
-

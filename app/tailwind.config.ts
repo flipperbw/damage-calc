@@ -12,6 +12,12 @@ export default {
       colors: {
         'bg-base': '#050714',
         surface: 'rgba(255,255,255,0.04)',
+        // Solid equivalent of `surface` rendered on top of the panel
+        // gradient. Used wherever the rgba surface would let underlying
+        // content bleed through (sticky table columns, opaque modals on top
+        // of complex layouts). Eyeballed to match how `surface` looks
+        // against the panel-gradient midpoint.
+        'surface-solid': '#1a1830',
         'surface-hi': 'rgba(255,255,255,0.07)',
         text: '#e8ecff',
         'text-mute': '#888fb5',
