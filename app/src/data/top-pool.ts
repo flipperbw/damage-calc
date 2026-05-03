@@ -13,14 +13,14 @@ export interface TopPoolEntry {
   types: readonly string[];
 }
 
-// Curated list of candidate species. Pulled from the Phase 2 meta research
-// (S-tier offensive picks) plus classic coverage staples (Heatran, Toxapex,
-// Clefable, Ferrothorn) that round out type coverage even when not strictly
-// top-meta.
+// Curated list of candidate species. Every entry has been verified against
+// calc's Champions legal list (calc/src/data/species.ts ChampionsLegal). In
+// dev mode `buildTopPool` THROWS if a candidate is missing — silent drops
+// would shrink the suggestion universe without anyone noticing.
 //
-// Names are validated against calc's gen-0 species DB at module init via
-// `buildTopPool` below; any species the calc doesn't know is logged and
-// dropped, so the suggestion engine never references a phantom entry.
+// Champions doesn't include several popular VGC mons (Heatran, Ferrothorn,
+// Magnezone, Rillaboom, Mawile, Urshifu, Tapu*) — only species that are
+// part of the Champions-legal subset are listed below.
 const CANDIDATE_NAMES: readonly string[] = [
   // Top S-tier offensive
   'Garchomp',
@@ -32,20 +32,19 @@ const CANDIDATE_NAMES: readonly string[] = [
   'Floette-Eternal',
   'Incineroar',
   'Kingambit',
-  'Rillaboom',
   'Greninja',
   'Gengar',
   'Delphox',
   'Hawlucha',
   // Common defensive / coverage staples
-  'Heatran',
   'Toxapex',
   'Clefable',
-  'Ferrothorn',
   'Skarmory',
   'Tyranitar',
   'Excadrill',
-  'Magnezone',
+  // Aegislash exists in Champions only as its formes; the Shield (defensive
+  // stance) is the canonical reference.
+  'Aegislash-Shield',
   // Versatile picks that round out coverage
   'Volcarona',
   'Mamoswine',
@@ -53,23 +52,33 @@ const CANDIDATE_NAMES: readonly string[] = [
   'Hydreigon',
   'Gardevoir',
   'Conkeldurr',
-  'Aegislash',
   'Dragapult',
 ];
 
 function buildTopPool(): readonly TopPoolEntry[] {
   const out: TopPoolEntry[] = [];
+  const missing: string[] = [];
   for (const name of CANDIDATE_NAMES) {
     const sp = GEN.species.get(toID(name) as any);
     if (!sp) {
-      // Don't throw — surface the miss in the console and keep going. A
-      // missing-from-calc entry is a data issue, not a runtime fault.
-      // eslint-disable-next-line no-console
-      console.warn(`top-pool: skipping "${name}" — not found in calc gen 0`);
+      missing.push(name);
       continue;
     }
     const types = (sp.types as readonly string[] | undefined) ?? [];
     out.push({ species: sp.name, types: [...types] });
+  }
+  if (missing.length > 0) {
+    const msg = `top-pool: ${missing.length} candidate species missing from calc gen 0: ${missing.join(', ')}`;
+    // In dev/test, fail loudly so a refactor that breaks calc-data lookup
+    // doesn't silently shrink the suggestion pool. In production, downgrade
+    // to a console.error so a stale-data load doesn't take the app down.
+    // eslint-disable-next-line no-console
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV) {
+      throw new Error(msg);
+    } else {
+      // eslint-disable-next-line no-console
+      console.error(msg);
+    }
   }
   return out;
 }

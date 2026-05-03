@@ -41,7 +41,12 @@ export function MatchupMatrix({ team, threatList }: Props) {
   // here regardless. Damage cells in 48ths would be near-unreadable.
   return (
     <section className="mb-5" data-testid="matchup-matrix">
-      <h3 className="text-base font-bold mb-2">Matchup matrix</h3>
+      <div className="flex items-baseline justify-between mb-2 gap-2">
+        <h3 className="text-base font-bold">Matchup matrix</h3>
+        <span className="text-[10px] opacity-50 italic shrink-0">
+          % of opponent max HP · neutral field
+        </span>
+      </div>
 
       {!team || !threatList ? (
         <div className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">

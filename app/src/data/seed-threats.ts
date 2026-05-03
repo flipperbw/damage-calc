@@ -1,5 +1,5 @@
 import { Generations, toID } from '@smogon/calc';
-import type { Format, SavedMon, ThreatList } from '../types';
+import type { Format, SavedMon, SeedKey, ThreatList } from '../types';
 import { defaultOpponentMon } from '../store/factories';
 import { uuid } from '../util/uuid';
 
@@ -18,6 +18,9 @@ interface SeedEntry {
 }
 
 interface SeedSpec {
+  /** Stable identifier — survives renames so Suggestions can pin the
+   *  Most-Used list independent of display name. */
+  seedKey: SeedKey;
   name: string;
   format: Format | 'any';
   entries: SeedEntry[];
@@ -32,6 +35,7 @@ interface SeedSpec {
 // `mega` flag so it shows as Mega-evolved, just without an explicit item set.
 const SPECS: SeedSpec[] = [
   {
+    seedKey: 'singles',
     name: 'Top Threats — Singles',
     format: 'singles',
     entries: [
@@ -45,6 +49,7 @@ const SPECS: SeedSpec[] = [
     ],
   },
   {
+    seedKey: 'doubles',
     name: 'Top Threats — Doubles / VGC',
     format: 'doubles',
     entries: [
@@ -55,10 +60,13 @@ const SPECS: SeedSpec[] = [
       { species: 'Floette-Eternal' },
       { species: 'Kingambit' },
       { species: 'Pelipper' },
-      { species: 'Rillaboom' },
+      // Rillaboom is not in calc's Champions legal list; Aegislash-Shield
+      // stands in as a popular Doubles threat that *is* legal.
+      { species: 'Aegislash-Shield' },
     ],
   },
   {
+    seedKey: 'megas',
     name: 'Top Megas',
     format: 'any',
     entries: [
@@ -74,6 +82,7 @@ const SPECS: SeedSpec[] = [
     ],
   },
   {
+    seedKey: 'most-used',
     name: 'Most-Used',
     format: 'any',
     entries: [
@@ -111,20 +120,23 @@ const warnedMissingSpecies = new Set<string>();
 
 export function buildSeedThreatLists(): ThreatList[] {
   const now = Date.now();
-  return SPECS.map(spec => {
+  const allMissing: string[] = [];
+  const lists = SPECS.map(spec => {
     const validEntries = spec.entries.filter(e => {
       if (speciesExists(e.species)) return true;
       if (!warnedMissingSpecies.has(e.species)) {
         warnedMissingSpecies.add(e.species);
         // eslint-disable-next-line no-console
-        console.warn(
+        console.error(
           `seed-threats: dropping "${e.species}" from "${spec.name}" — species not found in calc gen 0`,
         );
       }
+      allMissing.push(e.species);
       return false;
     });
     return {
       id: uuid(),
+      seedKey: spec.seedKey,
       name: spec.name,
       format: spec.format,
       mons: validEntries.map(entryToMon),
@@ -133,4 +145,17 @@ export function buildSeedThreatLists(): ThreatList[] {
       updatedAt: now,
     };
   });
+  // In dev, fail loudly so a refactor or stale spec doesn't silently shrink
+  // a curated list. In production, fall through with the warnings above so
+  // a stale build still ships something usable.
+  if (
+    allMissing.length > 0
+    && typeof import.meta !== 'undefined'
+    && (import.meta as any).env?.DEV
+  ) {
+    throw new Error(
+      `seed-threats: ${allMissing.length} entries dropped: ${allMissing.join(', ')}`,
+    );
+  }
+  return lists;
 }

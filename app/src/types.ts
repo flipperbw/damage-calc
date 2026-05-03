@@ -45,12 +45,21 @@ export interface Team {
  * cannot be deleted (the user can still edit them or duplicate them to a
  * non-seed copy if they want to remove entries freely).
  */
+export type SeedKey = 'singles' | 'doubles' | 'megas' | 'most-used';
+
 export interface ThreatList {
   id: string;
   name: string;
   format: Format | 'any';
   mons: SavedMon[];
   isSeed: boolean;
+  /**
+   * Stable identifier for seed lists, independent of `name` (the user can
+   * rename seeds). Code that needs to look up a specific seed (e.g. the
+   * Suggestions section's reference to "Most-Used") uses this rather than
+   * the display name. Undefined for user-created lists.
+   */
+  seedKey?: SeedKey;
   createdAt: number;
   updatedAt: number;
 }

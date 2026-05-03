@@ -151,6 +151,21 @@ test('Threat list picker shows all four seeded lists by name', async ({ page }) 
   }
 });
 
+test('Fresh install (no migration path) seeds threat lists too', async ({ page }) => {
+  // freshStart wipes localStorage and reloads — no v3 envelope is left
+  // behind, so the v3->v4 migration does not run. The seeds must come from
+  // buildInitialAppState's first-run path. If a refactor regresses that,
+  // this test fails.
+  await freshStart(page);
+  await nav(page, 'Teams');
+  await createTeam(page);
+  await nav(page, 'Builder');
+
+  const picker = page.getByTestId('threat-list-picker');
+  await expect(picker.getByText('Top Threats — Singles', { exact: true })).toBeVisible();
+  await expect(picker.getByText('Most-Used', { exact: true })).toBeVisible();
+});
+
 test('Matchup matrix renders cells with percentages and never shows NaN', async ({ page }) => {
   await freshStartWithSeeds(page);
   await nav(page, 'Teams');

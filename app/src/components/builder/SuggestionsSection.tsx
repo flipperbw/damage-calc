@@ -24,12 +24,12 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
   const threatLists = useStore(s => s.threatLists);
   const team = teams.find(t => t.id === selectedTeamId) ?? null;
 
-  // Use the seeded "Most-Used" list as the threat reference. Falling back to
-  // the first seed list (or any list) keeps things working if the user has
-  // edited or duplicated their way out of the original seed.
+  // Use the seeded "Most-Used" list as the threat reference. We look up by
+  // the stable seedKey rather than display name so a renamed seed still
+  // resolves correctly. Falls back to any other seed, then any list.
   const reference = useMemo(() => {
     return (
-      threatLists.find(l => l.isSeed && l.name === 'Most-Used')
+      threatLists.find(l => l.seedKey === 'most-used')
       ?? threatLists.find(l => l.isSeed)
       ?? threatLists[0]
       ?? null
