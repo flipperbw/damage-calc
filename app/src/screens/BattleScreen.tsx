@@ -171,6 +171,7 @@ export function BattleScreen() {
           onChangeMega={mega => updateOpponent({ mega })}
           onChangeStatus={status => updateOpponent({ status })}
           onChangeBoosts={boosts => updateOpponent({ boosts })}
+          onChangeAbility={ability => updateOpponent({ ability })}
         />
         <div>
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">

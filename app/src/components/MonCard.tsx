@@ -8,6 +8,8 @@ import { HpBar } from './HpBar';
 import { MegaToggle } from './MegaToggle';
 import { StatusPicker } from './pickers/StatusPicker';
 import { BoostPicker } from './pickers/BoostPicker';
+import { AbilityPicker } from './pickers/AbilityPicker';
+import { AbilityDetailSheet } from './AbilityDetailSheet';
 
 const GEN = Generations.get(0);
 
@@ -21,6 +23,12 @@ interface Props {
   onChangeStatus?: (status: StatusName | undefined) => void;
   onChangeBoosts?: (boosts: Partial<Record<StatIDExceptHP, number>>) => void;
   /**
+   * Optional ability mutator. When provided, the AbilityDetailSheet shows
+   * a "Change ability" button that opens the AbilityPicker inline (no
+   * round-trip through MonEditor).
+   */
+  onChangeAbility?: (ability: string) => void;
+  /**
    * When provided, the outer card surface is clickable and triggers a swap
    * (e.g. opens the species picker for the opponent). Sprite/name still route
    * to onEdit; chips and other controls stop propagation so they don't bubble
@@ -31,13 +39,14 @@ interface Props {
 
 export function MonCard({
   mon, maxHp, side, onEdit, onChangeHp, onChangeMega,
-  onChangeStatus, onChangeBoosts, onSwap,
+  onChangeStatus, onChangeBoosts, onChangeAbility, onSwap,
 }: Props) {
   const sp = GEN.species.get(toID(mon.species) as any);
   const types = sp?.types ?? [];
   const dashed = side === 'opp' ? 'border-dashed border-danger/25' : 'border-surface-hi';
 
-  const [picker, setPicker] = useState<'status' | 'boosts' | null>(null);
+  const [picker, setPicker] = useState<'status' | 'boosts' | 'ability' | null>(null);
+  const [abilityDetailOpen, setAbilityDetailOpen] = useState(false);
 
   const hasStatus = mon.status && mon.status !== 'Healthy';
   const hasBoosts =
@@ -107,7 +116,15 @@ export function MonCard({
 
         <div className="flex gap-1.5 mt-2 flex-wrap">
           {mon.ability && (
-            <StatChip icon="🩸" label={mon.ability} editable={side === 'opp'} onClick={onEdit} />
+            // Tapping the ability chip opens the read-only detail sheet —
+            // not the editor. The sheet's "Change ability" button (rendered
+            // only when onChangeAbility is wired) routes to AbilityPicker.
+            <StatChip
+              icon="🩸"
+              label={mon.ability}
+              editable={!!onChangeAbility}
+              onClick={() => setAbilityDetailOpen(true)}
+            />
           )}
           {mon.item && (
             <StatChip icon="🎒" label={mon.item} editable={side === 'opp'} onClick={onEdit} />
@@ -160,6 +177,21 @@ export function MonCard({
           boosts={mon.boosts}
           onClose={() => setPicker(null)}
           onSave={onChangeBoosts}
+        />
+      )}
+      <AbilityDetailSheet
+        open={abilityDetailOpen}
+        abilityName={mon.ability ?? null}
+        canChange={!!onChangeAbility}
+        onClose={() => setAbilityDetailOpen(false)}
+        onChangeRequest={onChangeAbility ? () => setPicker('ability') : undefined}
+      />
+      {onChangeAbility && (
+        <AbilityPicker
+          open={picker === 'ability'}
+          species={mon.species}
+          onClose={() => setPicker(null)}
+          onPick={a => { onChangeAbility(a); setPicker(null); }}
         />
       )}
     </div>
