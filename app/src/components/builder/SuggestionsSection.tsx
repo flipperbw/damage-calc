@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { useStore } from '../../store';
 import { suggestAdditions, type Suggestion, type SuggestionReason } from '../../calc/suggestions';
 import { spriteUrl } from '../../data/sprites';
 import { TypeBadge } from '../TypeBadge';
 import { PickerShell } from '../pickers/PickerShell';
+import { emptyMon } from '../../store/factories';
 import { Generations, toID } from '@smogon/calc';
 
 const GEN = Generations.get(0);
@@ -22,7 +24,20 @@ interface Props {
 export function SuggestionsSection({ selectedTeamId }: Props) {
   const teams = useStore(s => s.teams);
   const threatLists = useStore(s => s.threatLists);
+  const upsertMon = useStore(s => s.upsertMon);
+  const setEditor = useStore(s => s.setEditor);
   const team = teams.find(t => t.id === selectedTeamId) ?? null;
+  const teamFull = !!team && team.mons.length >= 6;
+
+  function addSpeciesToTeam(species: string) {
+    if (!team || teamFull) return;
+    const mon = emptyMon(species);
+    upsertMon(team.id, mon);
+    toast.success(`Added ${species} to ${team.name}`);
+    // Drop the user into the editor on the new mon so they can pick a build /
+    // moves immediately — same flow as the Coverage roster's "+ slot" path.
+    setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
+  }
 
   // Use the seeded "Most-Used" list as the threat reference. We look up by
   // the stable seedKey rather than display name so a renamed seed still
@@ -66,11 +81,18 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
             {suggestions.map(s => (
-              <SuggestionCard key={s.species} suggestion={s} onOpen={() => setDetail(s)} />
+              <SuggestionCard
+                key={s.species}
+                suggestion={s}
+                onOpen={() => setDetail(s)}
+                onAdd={teamFull ? null : () => addSpeciesToTeam(s.species)}
+              />
             ))}
           </div>
           <p className="text-xs opacity-50 mt-2 text-center">
-            Tap a Pokémon to view details
+            {teamFull
+              ? `${team!.name} is full — remove a mon to add a suggestion.`
+              : 'Tap a Pokémon for details, or + to add it to your team.'}
           </p>
         </>
       )}
@@ -78,21 +100,36 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
       <SuggestionDetailSheet
         open={!!detail}
         suggestion={detail}
+        canAdd={!teamFull}
+        onAdd={detail ? () => {
+          addSpeciesToTeam(detail.species);
+          setDetail(null);
+        } : undefined}
         onClose={() => setDetail(null)}
       />
     </section>
   );
 }
 
-function SuggestionCard({ suggestion, onOpen }: {
-  suggestion: Suggestion; onOpen: () => void;
+function SuggestionCard({ suggestion, onOpen, onAdd }: {
+  suggestion: Suggestion;
+  onOpen: () => void;
+  /** When null, the team is full and the + button is hidden. */
+  onAdd: (() => void) | null;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onOpen}
+    <div
       data-testid={`suggestion-${suggestion.species}`}
-      className="bg-surface border border-surface-hi rounded-card p-2.5 text-left hover:bg-surface-hi/40 cursor-pointer flex flex-col gap-1.5"
+      // Card is a div, not a button, because we need a nested + button for
+      // adding to team. Outer surface is a button-styled div with
+      // role=button/keyboard handler so the whole card stays keyboard-friendly.
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); }
+      }}
+      className="relative bg-surface border border-surface-hi rounded-card p-2.5 text-left cursor-pointer flex flex-col gap-1.5 transition-colors hover:bg-accent/[0.06] hover:border-accent/40"
     >
       <div className="flex items-center gap-2">
         <img
@@ -117,7 +154,19 @@ function SuggestionCard({ suggestion, onOpen }: {
           <ReasonChip key={`${r.kind}-${r.text}-${i}`} reason={r} />
         ))}
       </div>
-    </button>
+      {onAdd && (
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); onAdd(); }}
+          aria-label={`Add ${suggestion.species} to team`}
+          data-testid={`suggestion-add-${suggestion.species}`}
+          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-accent text-white text-base font-bold flex items-center justify-center shadow-[0_2px_8px_rgba(124,92,255,0.3)] opacity-90 hover:opacity-100 hover:scale-105 transition-transform"
+          style={{ touchAction: 'manipulation' }}
+        >
+          +
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -143,8 +192,12 @@ function reasonTone(kind: SuggestionReason['kind']): string {
   }
 }
 
-function SuggestionDetailSheet({ open, suggestion, onClose }: {
-  open: boolean; suggestion: Suggestion | null; onClose: () => void;
+function SuggestionDetailSheet({ open, suggestion, canAdd, onAdd, onClose }: {
+  open: boolean;
+  suggestion: Suggestion | null;
+  canAdd: boolean;
+  onAdd?: () => void;
+  onClose: () => void;
 }) {
   if (!suggestion) return null;
   const sp = GEN.species.get(toID(suggestion.species) as any);
@@ -174,9 +227,19 @@ function SuggestionDetailSheet({ open, suggestion, onClose }: {
           ))}
         </ul>
 
-        <p className="text-xs opacity-55 italic">
-          Add this mon manually from Teams — we don't auto-pick a slot.
-        </p>
+        {canAdd && onAdd ? (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="w-full py-3 rounded-card font-bold text-base bg-accent text-white hover:bg-accent-2 transition-colors"
+          >
+            + Add {suggestion.species} to team
+          </button>
+        ) : (
+          <p className="text-xs opacity-55 italic">
+            Team is full — remove a mon to add a new one.
+          </p>
+        )}
       </div>
     </PickerShell>
   );

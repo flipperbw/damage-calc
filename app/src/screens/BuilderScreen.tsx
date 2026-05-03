@@ -12,9 +12,20 @@ export function BuilderScreen() {
   const activeTeamId = useStore(s => s.activeTeamId);
   const upsertThreatMon = useStore(s => s.upsertThreatMon);
   const removeThreatMon = useStore(s => s.removeThreatMon);
+  const upsertMon = useStore(s => s.upsertMon);
+  const removeMon = useStore(s => s.removeMon);
+  const ensureSeedThreatLists = useStore(s => s.ensureSeedThreatLists);
 
   const editor = useStore(s => s.editor);
   const setEditor = useStore(s => s.setEditor);
+
+  // Backfill the curated threat lists for users whose persisted state somehow
+  // ended up at v4 with an empty threatLists slice (early build of stage 1
+  // with the seed throw, a manual reset, an aborted migration, etc.). Idempotent
+  // — the action no-ops when the slice is non-empty.
+  useEffect(() => {
+    ensureSeedThreatLists();
+  }, [ensureSeedThreatLists]);
 
   // The team that drives Coverage / Suggestions / Matrix. Defaults to the
   // user's active team; falls back to the first team if there is no active.
@@ -53,6 +64,19 @@ export function BuilderScreen() {
     const mon = list.mons.find(m => m.id === editor.monId);
     if (!mon) return null;
     return { list, mon };
+  })();
+
+  // The CoverageSection roster lets the user tap into a team mon to edit.
+  // Same persisted-target pattern as TeamsScreen / threat-mon above; we
+  // resolve here in BuilderScreen so the editor sheet renders inside the
+  // Builder tab without a round-trip through Teams.
+  const editorTeamMon = (() => {
+    if (!editor || editor.kind !== 'team-mon') return null;
+    const t = teams.find(x => x.id === editor.teamId);
+    if (!t) return null;
+    const mon = t.mons.find(x => x.id === editor.monId);
+    if (!mon) return null;
+    return { team: t, mon };
   })();
 
   const team = teams.find(t => t.id === selectedTeamId) ?? null;
@@ -106,6 +130,23 @@ export function BuilderScreen() {
             removeThreatMon(editorThreatMon.list.id, editorThreatMon.mon.id);
           }}
           isForOpponent
+        />
+      )}
+
+      {editorTeamMon && (
+        <MonEditor
+          open
+          initial={editorTeamMon.mon}
+          teamName={editorTeamMon.team.name}
+          onClose={() => setEditor(null)}
+          onSave={mon => {
+            upsertMon(editorTeamMon.team.id, mon);
+            setEditor(null);
+          }}
+          onDelete={() => {
+            // removeMon clears the editor pointer too.
+            removeMon(editorTeamMon.team.id, editorTeamMon.mon.id);
+          }}
         />
       )}
     </div>

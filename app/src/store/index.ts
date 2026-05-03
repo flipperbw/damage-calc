@@ -50,6 +50,13 @@ interface Actions {
   deleteThreatList: (id: string) => void;
   upsertThreatMon: (threatListId: string, mon: SavedMon) => void;
   removeThreatMon: (threatListId: string, monId: string) => void;
+  /**
+   * Idempotent backfill: if `threatLists` is empty (e.g. user reset, or an
+   * older build that briefly shipped with empty seeds), repopulate from
+   * buildSeedThreatLists(). Safe to call repeatedly — no-op when seeds are
+   * already present.
+   */
+  ensureSeedThreatLists: () => void;
   // Field
   setField: (patch: Partial<FieldState>) => void;
   // UI
@@ -249,6 +256,10 @@ export const useStore = create<AppState & Actions>()(
             ? null
             : s.editor,
       })),
+      ensureSeedThreatLists: () => set(s => {
+        if (s.threatLists.length > 0) return {};
+        return { threatLists: buildSeedThreatLists() };
+      }),
 
       setField: (patch) => set(s => ({ field: { ...s.field, ...patch } })),
 
