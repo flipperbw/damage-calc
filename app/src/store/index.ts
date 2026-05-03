@@ -204,7 +204,15 @@ export const useStore = create<AppState & Actions>()(
           console.warn(`Refusing to delete seed threat list "${list.name}" (id ${id}).`);
           return;
         }
-        set(s => ({ threatLists: s.threatLists.filter(l => l.id !== id) }));
+        set(s => ({
+          threatLists: s.threatLists.filter(l => l.id !== id),
+          // Clear an editor pointing at a mon in the threat list we just
+          // deleted — same hygiene rule as deleteTeam.
+          editor:
+            s.editor && s.editor.kind === 'threat-mon' && s.editor.threatListId === id
+              ? null
+              : s.editor,
+        }));
       },
       upsertThreatMon: (threatListId, mon) => set(s => ({
         threatLists: s.threatLists.map(l => {
@@ -221,6 +229,14 @@ export const useStore = create<AppState & Actions>()(
           ? { ...l, mons: l.mons.filter(m => m.id !== monId), updatedAt: Date.now() }
           : l,
         ),
+        // Clear an editor that was pointing at the threat-mon we just
+        // removed — mirrors the team-mon hygiene above.
+        editor:
+          s.editor && s.editor.kind === 'threat-mon'
+            && s.editor.threatListId === threatListId
+            && s.editor.monId === monId
+            ? null
+            : s.editor,
       })),
 
       setField: (patch) => set(s => ({ field: { ...s.field, ...patch } })),

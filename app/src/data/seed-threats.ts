@@ -89,6 +89,11 @@ function itemExists(name: string): boolean {
   return GEN.items.get(toID(name) as any) !== undefined;
 }
 
+function speciesExists(name: string): boolean {
+  if (!name) return false;
+  return GEN.species.get(toID(name) as any) !== undefined;
+}
+
 function entryToMon(entry: SeedEntry): SavedMon {
   const base = defaultOpponentMon(entry.species);
   if (!entry.mega) return base;
@@ -100,15 +105,32 @@ function entryToMon(entry: SeedEntry): SavedMon {
   return { ...base, mega: entry.mega, item };
 }
 
+// Module-load-time warn dedup: we only want to log a given missing species
+// once per session, no matter how many seed lists reference it.
+const warnedMissingSpecies = new Set<string>();
+
 export function buildSeedThreatLists(): ThreatList[] {
   const now = Date.now();
-  return SPECS.map(spec => ({
-    id: uuid(),
-    name: spec.name,
-    format: spec.format,
-    mons: spec.entries.map(entryToMon),
-    isSeed: true,
-    createdAt: now,
-    updatedAt: now,
-  }));
+  return SPECS.map(spec => {
+    const validEntries = spec.entries.filter(e => {
+      if (speciesExists(e.species)) return true;
+      if (!warnedMissingSpecies.has(e.species)) {
+        warnedMissingSpecies.add(e.species);
+        // eslint-disable-next-line no-console
+        console.warn(
+          `seed-threats: dropping "${e.species}" from "${spec.name}" — species not found in calc gen 0`,
+        );
+      }
+      return false;
+    });
+    return {
+      id: uuid(),
+      name: spec.name,
+      format: spec.format,
+      mons: validEntries.map(entryToMon),
+      isSeed: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+  });
 }

@@ -4,6 +4,7 @@ import type { Tab } from '../types';
 const ITEMS: Array<{ id: Tab; icon: string; label: string }> = [
   { id: 'battle', icon: '⚔', label: 'Battle' },
   { id: 'teams', icon: '👥', label: 'Teams' },
+  { id: 'builder', icon: '🧪', label: 'Builder' },
   { id: 'settings', icon: '⚙', label: 'Settings' },
 ];
 

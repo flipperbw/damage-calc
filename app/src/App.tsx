@@ -4,6 +4,7 @@ import { useStore } from './store';
 import { Nav } from './components/Nav';
 import { BattleScreen } from './screens/BattleScreen';
 import { TeamsScreen } from './screens/TeamsScreen';
+import { BuilderScreen } from './screens/BuilderScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { ConfirmProvider } from './components/ConfirmDialog';
 import { preloadPkmn } from './data/pkmn';
@@ -45,6 +46,7 @@ export function App() {
           <Nav />
           {tab === 'battle' && <BattleScreen />}
           {tab === 'teams' && <TeamsScreen />}
+          {tab === 'builder' && <BuilderScreen />}
           {tab === 'settings' && <SettingsScreen />}
         </main>
       </div>

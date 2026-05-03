@@ -106,6 +106,7 @@ export type Tab = 'battle' | 'teams' | 'builder' | 'settings';
 export type EditorTarget =
   | { kind: 'team-mon'; teamId: string; monId: string }
   | { kind: 'opponent' }
+  | { kind: 'threat-mon'; threatListId: string; monId: string }
   | null;
 
 export interface AppState {
