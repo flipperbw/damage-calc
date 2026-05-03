@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { calculateMatchup, type MoveResult } from '@/calc/adapter';
-import { SectionToggle } from '@/components/builder/CoverageSection';
+import { SectionToggle } from '@/components/builder/SectionToggle';
 import { FieldBar } from '@/components/FieldBar';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { TypeBadge } from '@/components/TypeBadge';

@@ -153,6 +153,32 @@ describe('store: editor target', () => {
     expect(useStore.getState().editor).toEqual({ kind: 'team-mon', teamId: id, monId: m1.id });
   });
 
+  it('removeMon clamps activeMonIndex when the active mon is the last one removed', () => {
+    const id = useStore.getState().createTeam({ name: 'T', format: 'singles' });
+    const m1 = mon('Garchomp');
+    const m2 = mon('Skarmory');
+    useStore.getState().upsertMon(id, m1);
+    useStore.getState().upsertMon(id, m2);
+    // Active team + active index pointing at the last mon.
+    useStore.setState({ activeMonIndex: 1 });
+    useStore.getState().removeMon(id, m2.id);
+    expect(useStore.getState().activeMonIndex).toBe(0);
+  });
+
+  it('removeMon does not clamp when the team being modified is not active', () => {
+    const a = useStore.getState().createTeam({ name: 'A', format: 'singles' });
+    const b = useStore.getState().createTeam({ name: 'B', format: 'singles' });
+    const m1 = mon('Garchomp');
+    const m2 = mon('Skarmory');
+    useStore.getState().upsertMon(a, m1);
+    useStore.getState().upsertMon(a, m2);
+    // Switch active to B but leave activeMonIndex at 1 (a stale leftover).
+    useStore.getState().setActiveTeam(b);
+    useStore.setState({ activeMonIndex: 1 });
+    useStore.getState().removeMon(a, m2.id);
+    expect(useStore.getState().activeMonIndex).toBe(1);
+  });
+
   it('deleteTeam clears editor when it points at a mon in the deleted team', () => {
     const id = useStore.getState().createTeam({ name: 'T', format: 'singles' });
     const m = mon('Garchomp');

@@ -36,6 +36,19 @@ describe('monFromBuild', () => {
   it('returns null when the build does not exist', () => {
     expect(monFromBuild('Charizard', 'No Such Build')).toBeNull();
   });
+
+  it('produces independent sps objects for two mons spawned from the same build', () => {
+    const builds = getBuildsForSpecies('Charizard');
+    const name = builds[0];
+    const a = monFromBuild('Charizard', name)!;
+    const b = monFromBuild('Charizard', name)!;
+    // Distinct references so a future in-place mutation on one doesn't leak.
+    expect(a.sps).not.toBe(b.sps);
+    // Mutating one must not affect the other or the underlying build.
+    a.sps.atk = (a.sps.atk ?? 0) + 1;
+    expect(a.sps.atk).not.toBe(b.sps.atk);
+    expect(getBuild('Charizard', name)!.sps).not.toBe(a.sps);
+  });
 });
 
 describe('defaultOpponentMon', () => {

@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Generations, toID } from '@smogon/calc';
+import { useMemo } from 'react';
 
 import type { MoveResult } from '@/calc/adapter';
-import { effectivenessBadge, koTagFromText, priorityFlag } from '@/calc/format';
+import { categoryBadge, effectivenessBadge, koBadge, koTagFromText, priorityFlag, type MoveCategory } from '@/calc/format';
+import { GEN, toID } from '@/calc/gen';
 import { PickerShell } from '@/components/pickers/PickerShell';
+import { ProseBlock } from '@/components/ProseBlock';
 import { TypeBadge } from '@/components/TypeBadge';
-import { moveDescription, priorityOverride, type DescPair } from '@/data/pkmn';
-
-const GEN = Generations.get(0);
+import { useDescription } from '@/components/useDescription';
+import { priorityOverride } from '@/data/pkmn';
 
 interface Props {
   open: boolean;
@@ -23,38 +23,13 @@ interface Props {
  * relevant facts (BP, priority, multihit, recoil, drain, secondaries, flags)
  * from the Move record, plus the live matchup numbers when provided.
  */
-/** Loading state for the @pkmn/data prose fetch. */
-type ProseState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ready'; pair: DescPair } | { kind: 'error' };
-
 export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
   const move = useMemo(() => {
     if (!moveName) return null;
     return GEN.moves.get(toID(moveName) as any) ?? null;
   }, [moveName]);
 
-  const [prose, setProse] = useState<ProseState>({ kind: 'idle' });
-
-  // Fetch prose on each open. We don't memoise across move names because the
-  // pkmn module already caches the gen object - the lookup itself is sync
-  // after the first call, so a fresh effect per move is cheap.
-  useEffect(() => {
-    if (!open || !moveName) {
-      setProse({ kind: 'idle' });
-      return;
-    }
-    let cancelled = false;
-    setProse({ kind: 'loading' });
-    moveDescription(moveName)
-      .then((pair) => {
-        if (!cancelled) setProse({ kind: 'ready', pair });
-      })
-      .catch(() => {
-        if (!cancelled) setProse({ kind: 'error' });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, moveName]);
+  const prose = useDescription(moveName, 'move', open);
 
   if (!open || !moveName || !move) return null;
 
@@ -107,15 +82,7 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
         <div className="flex items-center gap-2 mb-3">
           <TypeBadge type={String(move.type)} size="md" />
           <h3 className="text-lg font-bold flex-1">{move.name}</h3>
-          <span
-            className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded ${
-              category === 'Physical'
-                ? 'bg-danger/15 text-danger border border-danger/30'
-                : category === 'Special'
-                  ? 'bg-accent/15 text-accent border border-accent/30'
-                  : 'bg-surface border border-surface-hi opacity-70'
-            }`}
-          >
+          <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded ${categoryBadge(category as MoveCategory).cls}`}>
             {category}
           </span>
         </div>
@@ -124,7 +91,7 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
             aren't in our gen-7 dataset and will silently render nothing -
             the structured info below still tells the user what the move
             does in mechanical terms. */}
-        <ProseSection state={prose} />
+        <ProseBlock state={prose} testId="move-prose" />
 
         {/* Live matchup info, when available */}
         {result && !result.isStatus && (
@@ -140,13 +107,7 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {ko && (
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                    ko.kind === 'ohko' ? 'bg-danger text-white' : ko.kind === 'thko' ? 'bg-warn text-black' : 'bg-black/40 text-white'
-                  }`}
-                >
-                  {ko.label}
-                </span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${koBadge(ko.kind).cls}`}>{ko.label}</span>
               )}
               {eff && <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${eff.cls}`}>{eff.label}</span>}
               {result.koChanceText && <span className="text-xs opacity-65">{result.koChanceText}</span>}
@@ -188,32 +149,6 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
         )}
       </div>
     </PickerShell>
-  );
-}
-
-/**
- * Renders the @pkmn/data prose for a move. While loading, shows a thin
- * skeleton (two grey lines) so the layout doesn't jump when prose arrives.
- * On error or when both fields are empty, renders nothing - the structured
- * info elsewhere on the sheet remains useful.
- */
-function ProseSection({ state }: { state: ProseState }) {
-  if (state.kind === 'idle' || state.kind === 'error') return null;
-  if (state.kind === 'loading') {
-    return (
-      <div className="mb-3 space-y-1.5" data-testid="move-prose-loading">
-        <div className="h-3 rounded bg-surface-hi/40 animate-pulse w-3/4" />
-        <div className="h-3 rounded bg-surface-hi/40 animate-pulse w-5/6" />
-      </div>
-    );
-  }
-  const { short, full } = state.pair;
-  if (!short && !full) return null;
-  return (
-    <div className="mb-3" data-testid="move-prose">
-      {short && <div className="text-sm font-medium opacity-90 mb-1">{short}</div>}
-      {full && <p className="text-sm opacity-75 leading-snug">{full}</p>}
-    </div>
   );
 }
 

@@ -7,12 +7,15 @@ export interface SpValidation {
 }
 
 export function validateSps(sps: Partial<Record<StatID, number>>): SpValidation {
+  const entries = Object.entries(sps) as [StatID, number][];
+  // Sum first so the reported `total` always reflects every stat, even when
+  // one of them blows the per-stat cap.
   let total = 0;
-  for (const [stat, value] of Object.entries(sps) as [StatID, number][]) {
+  for (const [, value] of entries) total += value;
+  for (const [stat, value] of entries) {
     if (value > SP_PER_STAT_MAX) {
-      return { ok: false, total: total + value, error: `${stat} exceeds ${SP_PER_STAT_MAX}` };
+      return { ok: false, total, error: `${stat} exceeds ${SP_PER_STAT_MAX}` };
     }
-    total += value;
   }
   if (total > SP_TOTAL_MAX) {
     return { ok: false, total, error: `total exceeds ${SP_TOTAL_MAX}` };

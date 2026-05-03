@@ -1,16 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Generations, toID } from '@smogon/calc';
 import { toast } from 'sonner';
 
+import { GEN, toID } from '@/calc/gen';
 import { suggestAdditions, type Suggestion, type SuggestionReason } from '@/calc/suggestions';
-import { SectionToggle } from '@/components/builder/CoverageSection';
+import { SectionToggle } from '@/components/builder/SectionToggle';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { TypeBadge } from '@/components/TypeBadge';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
 import { defaultTeamMon } from '@/store/factories';
-
-const GEN = Generations.get(0);
 
 interface Props {
   selectedTeamId: string | null;

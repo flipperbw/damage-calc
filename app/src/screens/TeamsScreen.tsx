@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { ActionMenu } from '@/components/ActionMenu';
 import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
 import { MonEditor } from '@/components/editor/MonEditor';
-import { PickerShell } from '@/components/pickers/PickerShell';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
@@ -207,55 +207,47 @@ export function TeamsScreen() {
         />
       )}
 
-      <PickerShell open={!!menuTeam} onClose={() => setMenuTeamId(null)} title={menuTeam?.name}>
-        {menuTeam && (
-          <div className="flex flex-col gap-1.5">
-            <MenuButton
-              onClick={() => {
-                setMenuTeamId(null);
-                handleRename(menuTeam);
-              }}
-            >
-              Rename
-            </MenuButton>
-            <MenuButton
-              onClick={() => {
-                setMenuTeamId(null);
-                handleDuplicate(menuTeam);
-              }}
-            >
-              Duplicate
-            </MenuButton>
-            <MenuButton
-              onClick={() => {
-                setMenuTeamId(null);
-                handleExport(menuTeam);
-              }}
-            >
-              Export (text)
-            </MenuButton>
-            <MenuButton
-              tone="danger"
-              onClick={() => {
-                setMenuTeamId(null);
-                handleDelete(menuTeam);
-              }}
-            >
-              Delete
-            </MenuButton>
-          </div>
-        )}
-      </PickerShell>
+      <ActionMenu
+        open={!!menuTeam}
+        onClose={() => setMenuTeamId(null)}
+        title={menuTeam?.name}
+        items={
+          menuTeam
+            ? [
+                {
+                  label: 'Rename',
+                  onClick: () => {
+                    setMenuTeamId(null);
+                    handleRename(menuTeam);
+                  },
+                },
+                {
+                  label: 'Duplicate',
+                  onClick: () => {
+                    setMenuTeamId(null);
+                    handleDuplicate(menuTeam);
+                  },
+                },
+                {
+                  label: 'Export (text)',
+                  onClick: () => {
+                    setMenuTeamId(null);
+                    handleExport(menuTeam);
+                  },
+                },
+                {
+                  label: 'Delete',
+                  tone: 'danger',
+                  onClick: () => {
+                    setMenuTeamId(null);
+                    handleDelete(menuTeam);
+                  },
+                },
+              ]
+            : []
+        }
+      />
     </>
-  );
-}
-
-function MenuButton({ onClick, tone, children }: { onClick: () => void; tone?: 'danger'; children: React.ReactNode }) {
-  const cls = tone === 'danger' ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-surface border-surface-hi';
-  return (
-    <button onClick={onClick} className={`text-left px-3 py-2 rounded-lg border text-sm ${cls}`}>
-      {children}
-    </button>
   );
 }
 

@@ -1,6 +1,18 @@
 // Stat IDs aligned with @smogon/calc (no translation at the boundary).
 export type StatID = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
 export type StatIDExceptHP = Exclude<StatID, 'hp'>;
+
+export const STAT_LABEL: Record<StatID, string> = {
+  hp: 'HP',
+  atk: 'Atk',
+  def: 'Def',
+  spa: 'SpA',
+  spd: 'SpD',
+  spe: 'Spe',
+};
+
+export const STAT_ORDER: readonly StatID[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+export const STAT_ORDER_NO_HP: readonly StatIDExceptHP[] = ['atk', 'def', 'spa', 'spd', 'spe'];
 export type StatusName = 'Healthy' | 'Poisoned' | 'Badly Poisoned' | 'Burned' | 'Paralyzed' | 'Asleep' | 'Frozen';
 
 export type MegaState = '' | 'mega' | 'mega-x' | 'mega-y';

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { analyzeCoverage, STANDARD_TYPES } from '@/calc/coverage';
+import { analyzeCoverage } from '@/calc/coverage';
+import { ALL_TYPES } from '@/data/poke-types';
 import type { SavedMon } from '@/types';
 
 function mon(species: string, moves: [string, string, string, string] = ['', '', '', '']): SavedMon {
@@ -106,7 +107,7 @@ describe('analyzeCoverage', () => {
   it('only the 18 standard types are considered for gaps', () => {
     const r = analyzeCoverage([mon('Garchomp')]);
     for (const t of r.offensiveGaps) {
-      expect(STANDARD_TYPES).toContain(t);
+      expect(ALL_TYPES).toContain(t as (typeof ALL_TYPES)[number]);
     }
     expect(r.offensiveGaps).not.toContain('???');
     expect(r.offensiveGaps).not.toContain('Status');

@@ -39,7 +39,11 @@ export function FieldDrawer({ open, onClose }: Props) {
   const [advancedOpen, setAdvancedOpen] = useState(true);
 
   function setSide(side: 'yourSide' | 'oppSide', key: keyof SideState, value: unknown) {
-    setField({ [side]: { ...field[side], [key]: value } } as Partial<FieldState>);
+    // Read the freshest side state from the store rather than the render-time
+    // `field` snapshot, so two rapid taps in the same React batch don't clobber
+    // each other.
+    const current = useStore.getState().field[side];
+    setField({ [side]: { ...current, [key]: value } } as Partial<FieldState>);
   }
 
   return (

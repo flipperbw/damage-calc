@@ -24,6 +24,14 @@ describe('validateSps', () => {
   it('passes empty allocation', () => {
     expect(validateSps({})).toEqual({ ok: true, total: 0 });
   });
+  it('reports the full total when one stat exceeds the per-stat cap', () => {
+    // atk: 40 (over per-stat cap), spa: 10, spd: 20 -> full total 70.
+    expect(validateSps({ atk: 40, spa: 10, spd: 20 })).toEqual({
+      ok: false,
+      total: 70,
+      error: 'atk exceeds 32',
+    });
+  });
 });
 
 describe('addRecent', () => {

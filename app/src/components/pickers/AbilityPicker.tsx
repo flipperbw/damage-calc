@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Generations, toID } from '@smogon/calc';
 
+import { GEN, toID } from '@/calc/gen';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { abilityDescription } from '@/data/pkmn';
 
@@ -10,8 +10,6 @@ interface Props {
   onPick: (ability: string) => void;
   species?: string;
 }
-
-const GEN = Generations.get(0);
 
 export function AbilityPicker({ open, onClose, onPick, species }: Props) {
   const [query, setQuery] = useState('');
@@ -64,33 +62,28 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
   }, [open, filtered, descs]);
 
   return (
-    <PickerShell open={open} onClose={onClose} title="Pick an ability">
-      <input
-        autoFocus
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search abilities"
-        // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
-        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-3 text-base"
-      />
-      <div className="overflow-y-auto flex-1 -mx-1 px-1">
-        {filtered.map((name) => {
-          const short = descs[name];
-          return (
-            <button
-              key={name}
-              onClick={() => {
-                onPick(name);
-                onClose();
-              }}
-              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface"
-            >
-              <div className="text-sm font-medium">{name}</div>
-              {short && <div className="text-xxs opacity-60 leading-snug truncate">{short}</div>}
-            </button>
-          );
-        })}
-      </div>
+    <PickerShell
+      open={open}
+      onClose={onClose}
+      title="Pick an ability"
+      search={{ value: query, onChange: setQuery, placeholder: 'Search abilities' }}
+    >
+      {filtered.map((name) => {
+        const short = descs[name];
+        return (
+          <button
+            key={name}
+            onClick={() => {
+              onPick(name);
+              onClose();
+            }}
+            className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface"
+          >
+            <div className="text-sm font-medium">{name}</div>
+            {short && <div className="text-xxs opacity-60 leading-snug truncate">{short}</div>}
+          </button>
+        );
+      })}
     </PickerShell>
   );
 }

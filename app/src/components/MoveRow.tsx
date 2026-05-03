@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import type { MoveResult } from '@/calc/adapter';
-import { effectivenessBadge, koTagFromText, priorityFlag, sturdyWarning } from '@/calc/format';
+import { effectivenessBadge, koBadge, koTagFromText, priorityFlag, sturdyWarning } from '@/calc/format';
 import { MoveDetailSheet } from '@/components/MoveDetailSheet';
 import { TypeBadge } from '@/components/TypeBadge';
 import type { SavedMon } from '@/types';
@@ -55,14 +55,8 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
         {/* Right cluster: badges centered next to the % readout. */}
         <div className="flex items-center gap-1 shrink-0">
           {eff && <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${eff.cls}`}>{eff.label}</span>}
-          {ko && koLabel && (
-            <span
-              className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
-                koKind === 'ohko' ? 'bg-danger text-white' : koKind === 'thko' ? 'bg-warn text-black' : 'bg-black/40 text-white'
-              }`}
-            >
-              {koLabel}
-            </span>
+          {ko && koLabel && koKind && (
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${koBadge(koKind).cls}`}>{koLabel}</span>
           )}
           {sturdyApplies && <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-warn/30 text-warn">Sturdy</span>}
           {result.isStatus ? (

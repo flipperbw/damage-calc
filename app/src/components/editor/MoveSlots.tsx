@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { Generations, toID } from '@smogon/calc';
 
+import { GEN, toID } from '@/calc/gen';
 import { MovePicker } from '@/components/pickers/MovePicker';
 import { TypeBadge } from '@/components/TypeBadge';
-
-const GEN = Generations.get(0);
 
 function moveTypeOf(name: string): string {
   if (!name) return '???';

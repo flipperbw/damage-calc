@@ -1,18 +1,9 @@
 import { useMemo } from 'react';
-import { calcStat, Generations, MEGA_STONES, toID } from '@smogon/calc';
+import { calcStat, MEGA_STONES } from '@smogon/calc';
 
-import type { StatID } from '@/types';
-
-const GEN = Generations.get(0);
-
-const STATS: { id: StatID; label: string }[] = [
-  { id: 'hp', label: 'HP' },
-  { id: 'atk', label: 'Atk' },
-  { id: 'def', label: 'Def' },
-  { id: 'spa', label: 'SpA' },
-  { id: 'spd', label: 'SpD' },
-  { id: 'spe', label: 'Spe' },
-];
+import { GEN, toID } from '@/calc/gen';
+import { natureMods } from '@/calc/helpers';
+import { STAT_LABEL, STAT_ORDER, type StatID } from '@/types';
 
 interface Props {
   species: string;
@@ -52,18 +43,6 @@ export function megaFormeFromItem(species: string, item: string | undefined): st
   return forme;
 }
 
-/** True iff `item` is in the calc's MEGA_STONES table (any stone, any species). */
-export function isMegaStone(item: string | undefined): boolean {
-  if (!item) return false;
-  return Object.prototype.hasOwnProperty.call(MEGA_STONES, item);
-}
-
-function natureMods(nature: string): { plus?: StatID; minus?: StatID } {
-  const n = GEN.natures.get(toID(nature) as any);
-  if (!n) return {};
-  return { plus: n.plus as StatID | undefined, minus: n.minus as StatID | undefined };
-}
-
 function arrowFor(stat: StatID, plus?: StatID, minus?: StatID): '▲' | '▼' | '-' {
   if (stat === 'hp') return '-';
   if (plus && minus && plus === minus) return '-'; // neutral nature
@@ -82,16 +61,19 @@ export function EffectiveStats({ species, nature, sps, item }: Props) {
     const megaSp = megaForme ? GEN.species.get(toID(megaForme) as any) : null;
     const megaBaseStats = megaSp?.baseStats;
 
-    return STATS.map(({ id, label }) => {
+    return STAT_ORDER.map((id) => {
       const base = baseStats?.[id] ?? 0;
       const sp = sps[id] ?? 0;
       // Champions: gen 0; level passed but unused in the formula.
       const value = baseStats ? calcStat(GEN, id, base, 31, sp, 50, nature) : 0;
-      const megaBase = megaBaseStats?.[id];
-      const megaValue = megaBaseStats != null ? calcStat(GEN, id, megaBase!, 31, sp, 50, nature) : undefined;
+      // Fall back to the unmega'd base stat if the mega forme's data is
+      // missing this stat (defensive against incomplete calc data); avoids
+      // passing `undefined` into calcStat and producing NaN.
+      const megaBase = typeof megaBaseStats?.[id] === 'number' ? megaBaseStats[id] : base;
+      const megaValue = megaBaseStats != null ? calcStat(GEN, id, megaBase, 31, sp, 50, nature) : undefined;
       return {
         stat: id,
-        label,
+        label: STAT_LABEL[id],
         base,
         value,
         arrow: arrowFor(id, plus, minus),

@@ -1,13 +1,7 @@
-import { Generations, toID } from '@smogon/calc';
-
+import { GEN, toID } from '@/calc/gen';
 import { defaultOpponentMon } from '@/store/factories';
 import type { Format, SavedMon, SeedKey, ThreatList } from '@/types';
 import { uuid } from '@/util/uuid';
-
-// Champions runs on calc gen 0. Use it to verify items / formes exist before
-// applying them, so a typo or a missing-from-calc Mega item doesn't crash the
-// migration or pin a Pokemon to an item that calc can't price.
-const GEN = Generations.get(0);
 
 type MegaKind = 'mega' | 'mega-x' | 'mega-y';
 

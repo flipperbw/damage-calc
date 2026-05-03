@@ -1,8 +1,6 @@
-import { Generations, MEGA_STONES, toID } from '@smogon/calc';
-
+import { GEN, toID } from '@/calc/gen';
+import { isMegaStone } from '@/calc/helpers';
 import type { MegaState } from '@/types';
-
-const GEN = Generations.get(0);
 
 interface MegaOptions {
   hasPlain: boolean;
@@ -21,17 +19,6 @@ function megaOptions(species: string): MegaOptions {
     hasX: has(`${baseName}-Mega-X`),
     hasY: has(`${baseName}-Mega-Y`),
   };
-}
-
-export function hasMegaForme(species: string): boolean {
-  const o = megaOptions(species);
-  return o.hasPlain || o.hasX || o.hasY;
-}
-
-/** True iff the item is a mega stone in the calc's MEGA_STONES table. */
-export function isMegaStone(item: string | undefined): boolean {
-  if (!item) return false;
-  return Object.prototype.hasOwnProperty.call(MEGA_STONES, item);
 }
 
 interface Props {

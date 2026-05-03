@@ -56,32 +56,56 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   // Track whether the user actually picked OK/Cancel so we resolve consistently
   // when the modal closes (e.g. backdrop tap should resolve as cancel).
   const settledRef = useRef(false);
+  // Mirror the latest pending state so a rapid second call can resolve the
+  // first one with its cancel value before installing the new state. Using a
+  // ref avoids stale closures inside the useCallback dispatchers.
+  const confirmStateRef = useRef<ConfirmState | null>(null);
+  const promptStateRef = useRef<PromptState | null>(null);
 
   const confirm = useCallback((body: string, opts?: ConfirmOpts) => {
     return new Promise<boolean>((resolve) => {
+      const pending = confirmStateRef.current;
+      if (pending && !settledRef.current) {
+        // Resolve the prior call as cancel so its caller doesn't hang.
+        pending.resolve(false);
+      }
       settledRef.current = false;
-      setConfirmState({ body, ...opts, resolve });
+      const next: ConfirmState = { body, ...opts, resolve };
+      confirmStateRef.current = next;
+      setConfirmState(next);
     });
   }, []);
 
   const prompt = useCallback((body: string, opts?: PromptOpts) => {
     return new Promise<string | null>((resolve) => {
+      const pending = promptStateRef.current;
+      if (pending && !settledRef.current) {
+        pending.resolve(null);
+      }
       settledRef.current = false;
       setPromptValue(opts?.defaultValue ?? '');
-      setPromptState({ body, ...opts, resolve });
+      const next: PromptState = { body, ...opts, resolve };
+      promptStateRef.current = next;
+      setPromptState(next);
     });
   }, []);
 
   const alert = useCallback((body: string, opts?: { title?: string; okLabel?: string }) => {
     return new Promise<void>((resolve) => {
+      const pending = confirmStateRef.current;
+      if (pending && !settledRef.current) {
+        pending.resolve(false);
+      }
       settledRef.current = false;
-      setConfirmState({
+      const next: ConfirmState = {
         body,
         title: opts?.title,
         okLabel: opts?.okLabel ?? 'OK',
         cancelLabel: '',
         resolve: () => resolve(),
-      });
+      };
+      confirmStateRef.current = next;
+      setConfirmState(next);
     });
   }, []);
 
@@ -89,6 +113,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     if (!confirmState || settledRef.current) return;
     settledRef.current = true;
     confirmState.resolve(ok);
+    confirmStateRef.current = null;
     setConfirmState(null);
   }
 
@@ -96,6 +121,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     if (!promptState || settledRef.current) return;
     settledRef.current = true;
     promptState.resolve(value);
+    promptStateRef.current = null;
     setPromptState(null);
   }
 

@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import { buildSeedThreatLists, CURRENT_SEED_KEYS } from '@/data/seed-threats';
 import { emptyField } from '@/store/factories';
 import { CURRENT_VERSION, migrate } from '@/store/migrations';
+import { deleteById, duplicateById, removeChild, renameById, upsertChild } from '@/store/utils';
 import { addRecent } from '@/store/validators';
 import type { AppState, EditorTarget, FieldState, Format, Notation, SavedMon, Tab, Team, ThreatList } from '@/types';
 import { uuid } from '@/util/uuid';
@@ -109,51 +110,51 @@ export const useStore = create<AppState & Actions>()(
         set((s) => ({ teams: [...s.teams, t], activeTeamId: id, activeMonIndex: 0 }));
         return id;
       },
-      renameTeam: (id, name) =>
-        set((s) => ({
-          teams: s.teams.map((t) => (t.id === id ? { ...t, name, updatedAt: Date.now() } : t)),
-        })),
+      renameTeam: (id, name) => set((s) => ({ teams: renameById(s.teams, id, name) })),
       duplicateTeam: (id) => {
-        const original = _get().teams.find((t) => t.id === id);
-        if (!original) return null;
-        const newId = uuid();
         const now = Date.now();
-        const copy: Team = {
+        const newId = uuid();
+        const result = duplicateById<Team>(_get().teams, id, (orig) => ({
           id: newId,
-          name: `${original.name} (copy)`,
-          format: original.format,
-          mons: original.mons.map((m) => ({ ...m, id: uuid() })),
+          name: `${orig.name} (copy)`,
+          format: orig.format,
+          mons: orig.mons.map((m) => ({ ...m, id: uuid() })),
           createdAt: now,
           updatedAt: now,
-        };
-        set((s) => ({ teams: [...s.teams, copy] }));
+        }));
+        if (!result) return null;
+        set({ teams: result.arr });
         return newId;
       },
       deleteTeam: (id) =>
         set((s) => ({
-          teams: s.teams.filter((t) => t.id !== id),
+          teams: deleteById(s.teams, id),
           activeTeamId: s.activeTeamId === id ? null : s.activeTeamId,
           // Avoid leaving the editor pointed at a team we just deleted.
           editor: s.editor && s.editor.kind === 'team-mon' && s.editor.teamId === id ? null : s.editor,
         })),
       setActiveTeam: (id) => set({ activeTeamId: id, activeMonIndex: 0 }),
       setActiveMonIndex: (i) => set({ activeMonIndex: i }),
-      upsertMon: (teamId, mon) =>
-        set((s) => ({
-          teams: s.teams.map((t) => {
-            if (t.id !== teamId) return t;
-            const idx = t.mons.findIndex((m) => m.id === mon.id);
-            const mons = idx >= 0 ? t.mons.map((m) => (m.id === mon.id ? mon : m)) : [...t.mons, mon];
-            return { ...t, mons, updatedAt: Date.now() };
-          }),
-        })),
+      upsertMon: (teamId, mon) => set((s) => ({ teams: upsertChild(s.teams, teamId, mon) })),
       removeMon: (teamId, monId) =>
-        set((s) => ({
-          teams: s.teams.map((t) => (t.id === teamId ? { ...t, mons: t.mons.filter((m) => m.id !== monId), updatedAt: Date.now() } : t)),
-          // Clear an editor that was pointing at the mon we just removed -
-          // otherwise the editor reopens on a vapor target after reload.
-          editor: s.editor && s.editor.kind === 'team-mon' && s.editor.teamId === teamId && s.editor.monId === monId ? null : s.editor,
-        })),
+        set((s) => {
+          const teams = removeChild(s.teams, teamId, monId);
+          // If we shrunk the active team, clamp activeMonIndex so callers
+          // don't land on `team.mons[undefined]` and render the empty-team UI.
+          let activeMonIndex = s.activeMonIndex;
+          if (s.activeTeamId === teamId) {
+            const updated = teams.find((t) => t.id === teamId);
+            const lastIdx = Math.max(0, (updated?.mons.length ?? 0) - 1);
+            if (activeMonIndex > lastIdx) activeMonIndex = lastIdx;
+          }
+          return {
+            teams,
+            activeMonIndex,
+            // Clear an editor that was pointing at the mon we just removed -
+            // otherwise the editor reopens on a vapor target after reload.
+            editor: s.editor && s.editor.kind === 'team-mon' && s.editor.teamId === teamId && s.editor.monId === monId ? null : s.editor,
+          };
+        }),
 
       setOpponent: (mon) =>
         set((s) => {
@@ -188,27 +189,23 @@ export const useStore = create<AppState & Actions>()(
         set((s) => ({ threatLists: [...s.threatLists, list] }));
         return id;
       },
-      renameThreatList: (id, name) =>
-        set((s) => ({
-          threatLists: s.threatLists.map((l) => (l.id === id ? { ...l, name, updatedAt: Date.now() } : l)),
-        })),
+      renameThreatList: (id, name) => set((s) => ({ threatLists: renameById(s.threatLists, id, name) })),
       duplicateThreatList: (id) => {
-        const original = _get().threatLists.find((l) => l.id === id);
-        if (!original) return null;
-        const newId = uuid();
         const now = Date.now();
+        const newId = uuid();
         // Copies always come back as non-seed lists; that's the whole point of
         // duplicating a curated list - to get a freely editable/deletable copy.
-        const copy: ThreatList = {
+        const result = duplicateById<ThreatList>(_get().threatLists, id, (orig) => ({
           id: newId,
-          name: `${original.name} (copy)`,
-          format: original.format,
-          mons: original.mons.map((m) => ({ ...m, id: uuid() })),
+          name: `${orig.name} (copy)`,
+          format: orig.format,
+          mons: orig.mons.map((m) => ({ ...m, id: uuid() })),
           isSeed: false,
           createdAt: now,
           updatedAt: now,
-        };
-        set((s) => ({ threatLists: [...s.threatLists, copy] }));
+        }));
+        if (!result) return null;
+        set({ threatLists: result.arr });
         return newId;
       },
       deleteThreatList: (id) => {
@@ -220,26 +217,16 @@ export const useStore = create<AppState & Actions>()(
           return;
         }
         set((s) => ({
-          threatLists: s.threatLists.filter((l) => l.id !== id),
+          threatLists: deleteById(s.threatLists, id),
           // Clear an editor pointing at a mon in the threat list we just
           // deleted - same hygiene rule as deleteTeam.
           editor: s.editor && s.editor.kind === 'threat-mon' && s.editor.threatListId === id ? null : s.editor,
         }));
       },
-      upsertThreatMon: (threatListId, mon) =>
-        set((s) => ({
-          threatLists: s.threatLists.map((l) => {
-            if (l.id !== threatListId) return l;
-            const idx = l.mons.findIndex((m) => m.id === mon.id);
-            const mons = idx >= 0 ? l.mons.map((m) => (m.id === mon.id ? mon : m)) : [...l.mons, mon];
-            return { ...l, mons, updatedAt: Date.now() };
-          }),
-        })),
+      upsertThreatMon: (threatListId, mon) => set((s) => ({ threatLists: upsertChild(s.threatLists, threatListId, mon) })),
       removeThreatMon: (threatListId, monId) =>
         set((s) => ({
-          threatLists: s.threatLists.map((l) =>
-            l.id === threatListId ? { ...l, mons: l.mons.filter((m) => m.id !== monId), updatedAt: Date.now() } : l,
-          ),
+          threatLists: removeChild(s.threatLists, threatListId, monId),
           // Clear an editor that was pointing at the threat-mon we just
           // removed - mirrors the team-mon hygiene above.
           editor: s.editor && s.editor.kind === 'threat-mon' && s.editor.threatListId === threatListId && s.editor.monId === monId ? null : s.editor,

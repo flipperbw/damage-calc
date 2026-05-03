@@ -1,16 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { validateSps } from '@/store/validators';
-import { SP_PER_STAT_MAX, SP_TOTAL_MAX, type StatID } from '@/types';
-
-const STATS: { id: StatID; label: string }[] = [
-  { id: 'hp', label: 'HP' },
-  { id: 'atk', label: 'Atk' },
-  { id: 'def', label: 'Def' },
-  { id: 'spa', label: 'SpA' },
-  { id: 'spd', label: 'SpD' },
-  { id: 'spe', label: 'Spe' },
-];
+import { SP_PER_STAT_MAX, SP_TOTAL_MAX, STAT_LABEL, STAT_ORDER, type StatID } from '@/types';
 
 interface Props {
   sps: Partial<Record<StatID, number>>;
@@ -75,8 +66,8 @@ export function SpGrid({ sps, onChange }: Props) {
         </div>
       </div>
       <div className="grid grid-cols-3 gap-1.5">
-        {STATS.map((s) => {
-          const value = sps[s.id] ?? 0;
+        {STAT_ORDER.map((id) => {
+          const value = sps[id] ?? 0;
           const pct = (value / SP_PER_STAT_MAX) * 100;
           // Three tiers so the eye can scan allocation density:
           //   max  (32)    : bright green border + glow, bold value
@@ -98,9 +89,9 @@ export function SpGrid({ sps, onChange }: Props) {
                 : 'font-extrabold text-lg leading-none mt-1 opacity-50';
           const barFill = tier === 'max' ? 'bg-ok' : tier === 'some' ? 'bg-gradient-to-r from-accent/60 to-accent' : 'bg-white/10';
           return (
-            <div key={s.id} className={`border rounded-lg p-2 text-center transition-colors ${cell}`}>
-              <div className="text-[9px] uppercase opacity-55 tracking-wider">{s.label}</div>
-              <SpValueInput stat={s.id} value={value} valueCls={valueCls} onCommit={(raw) => commitTyped(s.id, raw)} />
+            <div key={id} className={`border rounded-lg p-2 text-center transition-colors ${cell}`}>
+              <div className="text-[9px] uppercase opacity-55 tracking-wider">{STAT_LABEL[id]}</div>
+              <SpValueInput stat={id} value={value} valueCls={valueCls} onCommit={(raw) => commitTyped(id, raw)} />
               <div className="h-0.5 bg-white/10 rounded mt-1.5 overflow-hidden">
                 <div className={`h-full ${barFill}`} style={{ width: `${pct}%` }} />
               </div>
@@ -112,32 +103,32 @@ export function SpGrid({ sps, onChange }: Props) {
               */}
               <div className="grid grid-cols-2 gap-1 mt-1.5" style={{ touchAction: 'manipulation' }}>
                 <button
-                  aria-label={`${s.id} -`}
-                  onClick={() => bump(s.id, -1)}
+                  aria-label={`${id} -`}
+                  onClick={() => bump(id, -1)}
                   className="h-9 rounded bg-white/5 text-sm"
                   style={{ touchAction: 'manipulation' }}
                 >
                   −
                 </button>
                 <button
-                  aria-label={`${s.id} +`}
-                  onClick={() => bump(s.id, 1)}
+                  aria-label={`${id} +`}
+                  onClick={() => bump(id, 1)}
                   className="h-9 rounded bg-white/5 text-sm"
                   style={{ touchAction: 'manipulation' }}
                 >
                   +
                 </button>
                 <button
-                  aria-label={`${s.id} 0`}
-                  onClick={() => setStat(s.id, 0)}
+                  aria-label={`${id} 0`}
+                  onClick={() => setStat(id, 0)}
                   className="h-9 rounded bg-white/5 text-[10px] font-bold tracking-wider opacity-70"
                   style={{ touchAction: 'manipulation' }}
                 >
                   0
                 </button>
                 <button
-                  aria-label={`${s.id} max`}
-                  onClick={() => setStat(s.id, SP_PER_STAT_MAX)}
+                  aria-label={`${id} max`}
+                  onClick={() => setStat(id, SP_PER_STAT_MAX)}
                   className="h-9 rounded bg-white/5 text-[10px] font-bold tracking-wider opacity-70"
                   style={{ touchAction: 'manipulation' }}
                 >

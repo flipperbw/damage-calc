@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-
 import { PickerShell } from '@/components/pickers/PickerShell';
-import { abilityDescription, type DescPair } from '@/data/pkmn';
+import { ProseBlock } from '@/components/ProseBlock';
+import { useDescription } from '@/components/useDescription';
 
 interface Props {
   open: boolean;
@@ -13,9 +12,6 @@ interface Props {
   onChangeRequest?: () => void;
 }
 
-/** Loading state for the @pkmn/data prose fetch. */
-type ProseState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ready'; pair: DescPair } | { kind: 'error' };
-
 /**
  * Read-only sheet showing an ability's name, shortDesc and full desc from
  * @pkmn/data. Triggered by tapping a non-edit ability chip on the MonCard.
@@ -24,26 +20,7 @@ type ProseState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ready'; pair
  * is editable.
  */
 export function AbilityDetailSheet({ open, abilityName, canChange, onClose, onChangeRequest }: Props) {
-  const [prose, setProse] = useState<ProseState>({ kind: 'idle' });
-
-  useEffect(() => {
-    if (!open || !abilityName) {
-      setProse({ kind: 'idle' });
-      return;
-    }
-    let cancelled = false;
-    setProse({ kind: 'loading' });
-    abilityDescription(abilityName)
-      .then((pair) => {
-        if (!cancelled) setProse({ kind: 'ready', pair });
-      })
-      .catch(() => {
-        if (!cancelled) setProse({ kind: 'error' });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, abilityName]);
+  const prose = useDescription(abilityName, 'ability', open);
 
   if (!open || !abilityName) return null;
 
@@ -54,7 +31,7 @@ export function AbilityDetailSheet({ open, abilityName, canChange, onClose, onCh
           <h3 className="text-lg font-bold flex-1">{abilityName}</h3>
         </div>
 
-        <ProseSection state={prose} />
+        <ProseBlock state={prose} testId="ability-prose" />
 
         {/* Fallback when @pkmn/data has nothing - common for niche abilities
             that are only documented by SV-era data. */}
@@ -77,25 +54,5 @@ export function AbilityDetailSheet({ open, abilityName, canChange, onClose, onCh
         )}
       </div>
     </PickerShell>
-  );
-}
-
-function ProseSection({ state }: { state: ProseState }) {
-  if (state.kind === 'idle' || state.kind === 'error') return null;
-  if (state.kind === 'loading') {
-    return (
-      <div className="mb-3 space-y-1.5" data-testid="ability-prose-loading">
-        <div className="h-3 rounded bg-surface-hi/40 animate-pulse w-3/4" />
-        <div className="h-3 rounded bg-surface-hi/40 animate-pulse w-5/6" />
-      </div>
-    );
-  }
-  const { short, full } = state.pair;
-  if (!short && !full) return null;
-  return (
-    <div className="mb-3" data-testid="ability-prose">
-      {short && <div className="text-sm font-medium opacity-90 mb-1">{short}</div>}
-      {full && <p className="text-sm opacity-75 leading-snug">{full}</p>}
-    </div>
   );
 }

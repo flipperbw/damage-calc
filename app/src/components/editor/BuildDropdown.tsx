@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { Generations, toID } from '@smogon/calc';
 
+import { natureMods } from '@/calc/helpers';
 import { getBuild, getBuildsForSpecies } from '@/data/setdex-champions';
 import { monFromBuild } from '@/store/factories';
 import { summarizeSynth, synthesizeBuild } from '@/store/synthesize';
 import type { SavedMon, StatID } from '@/types';
-
-const GEN = Generations.get(0);
 
 const SETUP_MOVES = new Set(
   [
@@ -36,12 +34,6 @@ interface ChampionsBuildLite {
   sps: Partial<Record<StatID, number>>;
 }
 
-function naturePlusMinus(nature: string): { plus?: StatID; minus?: StatID } {
-  const n = GEN.natures.get(toID(nature) as any);
-  if (!n) return {};
-  return { plus: n.plus as StatID | undefined, minus: n.minus as StatID | undefined };
-}
-
 /**
  * Derive a plain-language role label from a curated build. Returns null when
  * no heuristic matches confidently — caller should fall back to the Smogon
@@ -51,7 +43,7 @@ function deriveRoleLabel(build: ChampionsBuildLite): string | null {
   const sps = build.sps;
   const moves = build.moves.map((m) => m.toLowerCase());
   const item = (build.item ?? '').toLowerCase();
-  const { plus } = naturePlusMinus(build.nature);
+  const { plus } = natureMods(build.nature);
   const atkSps = sps.atk ?? 0;
   const spaSps = sps.spa ?? 0;
   const hpSps = sps.hp ?? 0;

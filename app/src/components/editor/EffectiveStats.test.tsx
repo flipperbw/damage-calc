@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { EffectiveStats, isMegaStone, megaFormeFromItem } from '@/components/editor/EffectiveStats';
+import { isMegaStone } from '@/calc/helpers';
+import { EffectiveStats, megaFormeFromItem } from '@/components/editor/EffectiveStats';
 
 describe('megaFormeFromItem', () => {
   it('returns -Mega-X for Charizard with Charizardite X', () => {

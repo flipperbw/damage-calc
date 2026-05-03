@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Generations, MEGA_STONES } from '@smogon/calc';
+import { MEGA_STONES } from '@smogon/calc';
 
+import { GEN } from '@/calc/gen';
 import { PickerShell } from '@/components/pickers/PickerShell';
 
 interface Props {
@@ -17,8 +18,6 @@ interface Props {
    */
   species?: string;
 }
-
-const GEN = Generations.get(0);
 
 const ALL_MEGA_STONE_NAMES: Set<string> = new Set(Object.keys(MEGA_STONES));
 
@@ -67,59 +66,54 @@ export function ItemPicker({ open, onClose, onPick, species }: Props) {
   const showNoneRow = !query; // hide the "(none)" sentinel when searching
 
   return (
-    <PickerShell open={open} onClose={onClose} title="Pick an item">
-      <input
-        autoFocus
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search items"
-        // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
-        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-3 text-base"
-      />
-      <div className="overflow-y-auto flex-1 -mx-1 px-1">
-        {showNoneRow && (
-          <button
-            key="(none)"
-            onClick={() => {
-              onPick('');
-              onClose();
-            }}
-            className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
-          >
-            (none)
-          </button>
-        )}
-        {filteredMega.length > 0 && (
-          <>
-            <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 mt-2">Mega Stones</div>
-            {filteredMega.map((name) => (
-              <button
-                key={`mega-${name}`}
-                onClick={() => {
-                  onPick(name);
-                  onClose();
-                }}
-                className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
-              >
-                {name}
-              </button>
-            ))}
-            <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 mt-3">All items</div>
-          </>
-        )}
-        {filteredBase.map((name) => (
-          <button
-            key={name}
-            onClick={() => {
-              onPick(name);
-              onClose();
-            }}
-            className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
-          >
-            {name}
-          </button>
-        ))}
-      </div>
+    <PickerShell
+      open={open}
+      onClose={onClose}
+      title="Pick an item"
+      search={{ value: query, onChange: setQuery, placeholder: 'Search items' }}
+    >
+      {showNoneRow && (
+        <button
+          key="(none)"
+          onClick={() => {
+            onPick('');
+            onClose();
+          }}
+          className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
+        >
+          (none)
+        </button>
+      )}
+      {filteredMega.length > 0 && (
+        <>
+          <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 mt-2">Mega Stones</div>
+          {filteredMega.map((name) => (
+            <button
+              key={`mega-${name}`}
+              onClick={() => {
+                onPick(name);
+                onClose();
+              }}
+              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
+            >
+              {name}
+            </button>
+          ))}
+          <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 mt-3">All items</div>
+        </>
+      )}
+      {filteredBase.map((name) => (
+        <button
+          key={name}
+          onClick={() => {
+            onPick(name);
+            onClose();
+          }}
+          className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
+        >
+          {name}
+        </button>
+      ))}
     </PickerShell>
   );
 }

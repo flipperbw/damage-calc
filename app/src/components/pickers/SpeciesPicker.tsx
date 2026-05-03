@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Generations, toID } from '@smogon/calc';
 
+import { GEN, toID } from '@/calc/gen';
 import { PickerShell } from '@/components/pickers/PickerShell';
+import { ALL_TYPES, type TypeName } from '@/data/poke-types';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
 
@@ -12,34 +13,10 @@ interface Props {
   showRecents?: boolean;
 }
 
-const GEN = Generations.get(0);
-
 // Mega formes are an in-battle event tied to the held mega stone, not a base
 // team member, so we hide them from the picker. Matches "-Mega", "-Mega-X",
 // "-Mega-Y", and ZA's "-Mega-Z" suffixes.
 const MEGA_SUFFIX = /-Mega(-[XYZ])?$/;
-
-const ALL_TYPES = [
-  'Normal',
-  'Fire',
-  'Water',
-  'Electric',
-  'Grass',
-  'Ice',
-  'Fighting',
-  'Poison',
-  'Ground',
-  'Flying',
-  'Psychic',
-  'Bug',
-  'Rock',
-  'Ghost',
-  'Dragon',
-  'Dark',
-  'Steel',
-  'Fairy',
-] as const;
-type TypeName = (typeof ALL_TYPES)[number];
 
 type SortMode = 'az' | 'power' | 'bulk' | 'speed';
 
@@ -187,18 +164,8 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
 
   const fcount = filterCount(filters);
 
-  return (
-    <PickerShell open={open} onClose={onClose}>
-      <input
-        autoFocus
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search Pokémon"
-        // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
-        // Anything <16px triggers it; pinch-zoom stays available either way.
-        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-base"
-      />
-
+  const filtersSlot = (
+    <>
       <div className="flex items-center justify-between mt-1.5 mb-1 px-1 gap-2">
         <button
           type="button"
@@ -291,7 +258,18 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
         </div>
       )}
 
-      <div className="overflow-y-auto flex-1 -mx-1 px-1 mt-2">
+    </>
+  );
+
+  return (
+    <PickerShell
+      open={open}
+      onClose={onClose}
+      search={{ value: query, onChange: setQuery, placeholder: 'Search Pokémon' }}
+      filters={filtersSlot}
+    >
+      {/* mt-2 keeps the recents header from kissing the filters block. */}
+      <div className="mt-2">
         {showRecentsHeader && (
           <>
             <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5">Recent</div>

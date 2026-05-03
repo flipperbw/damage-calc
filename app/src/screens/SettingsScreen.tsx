@@ -151,7 +151,26 @@ function pickFile(): Promise<File | null> {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json';
-    input.onchange = () => resolve(input.files?.[0] ?? null);
+
+    let settled = false;
+    function settle(value: File | null) {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener('focus', onFocus);
+      resolve(value);
+    }
+    // Fallback for browsers that don't fire `cancel` (Safari/Firefox): when
+    // the window regains focus after the picker closes, give the change event
+    // a beat to fire; if no file was selected, treat it as a cancellation.
+    function onFocus() {
+      setTimeout(() => {
+        if (!settled && (input.files?.length ?? 0) === 0) settle(null);
+      }, 200);
+    }
+
+    input.onchange = () => settle(input.files?.[0] ?? null);
+    input.oncancel = () => settle(null);
+    window.addEventListener('focus', onFocus);
     input.click();
   });
 }

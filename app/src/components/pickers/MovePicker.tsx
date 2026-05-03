@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Generations, toID } from '@smogon/calc';
 
+import { categoryBadge } from '@/calc/format';
+import { GEN, toID } from '@/calc/gen';
 import { MoveDetailSheet } from '@/components/MoveDetailSheet';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { TypeBadge } from '@/components/TypeBadge';
 import { getLearnableMoveIds, moveBoostsUser, moveLowersTarget, priorityOverride, usePkmnReady } from '@/data/pkmn';
+import { ALL_TYPES, type TypeName } from '@/data/poke-types';
 import { getKnownMovesForSpecies } from '@/data/setdex-champions';
 
 interface Props {
@@ -21,8 +23,6 @@ interface Props {
   isForOpponent?: boolean;
 }
 
-const GEN = Generations.get(0);
-
 interface MoveOption {
   name: string;
   type: string;
@@ -35,29 +35,6 @@ interface MoveOption {
   /** True iff move has a secondary that lowers a target stat. */
   lowersTarget: boolean;
 }
-
-/** All Pokémon types in display order - used for the type filter chips. */
-const ALL_TYPES = [
-  'Normal',
-  'Fire',
-  'Water',
-  'Electric',
-  'Grass',
-  'Ice',
-  'Fighting',
-  'Poison',
-  'Ground',
-  'Flying',
-  'Psychic',
-  'Bug',
-  'Rock',
-  'Ghost',
-  'Dragon',
-  'Dark',
-  'Steel',
-  'Fairy',
-] as const;
-type TypeName = (typeof ALL_TYPES)[number];
 
 type PriorityFilter = 'any' | 'pos' | 'neg';
 type SortMode = 'az' | 'bp-desc' | 'prio-desc' | 'phys' | 'spec';
@@ -289,17 +266,8 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
     setFilters(emptyFilters(isForOpponent));
   }
 
-  return (
-    <PickerShell open={open} onClose={onClose} title="Pick a move">
-      <input
-        autoFocus
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search moves"
-        // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
-        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-base"
-      />
-
+  const filtersSlot = (
+    <>
       {/* Filters toggle row. The toggle stays compact when no filters are
           active; once the user enables anything, a count badge surfaces. */}
       <div className="flex items-center justify-between mt-1.5 mb-1 px-1 gap-2">
@@ -511,38 +479,47 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
           </button>
         </div>
       )}
-      <div className="overflow-y-auto flex-1 -mx-1 px-1">
-        {showCommonHeader && (
-          <>
-            <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5">Common</div>
-            {filteredCommon.map((m) => (
-              <Row
-                key={`c-${m.name}`}
-                option={m}
-                onPick={() => {
-                  onPick(m.name);
-                  onClose();
-                }}
-                onInfo={() => setDetailMove(m.name)}
-              />
-            ))}
-          </>
-        )}
-        {showMainHeader && (
-          <div className={`text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 ${showCommonHeader ? 'mt-3' : ''}`}>{mainHeader}</div>
-        )}
-        {filteredMain.map((m) => (
-          <Row
-            key={m.name}
-            option={m}
-            onPick={() => {
-              onPick(m.name);
-              onClose();
-            }}
-            onInfo={() => setDetailMove(m.name)}
-          />
-        ))}
-      </div>
+    </>
+  );
+
+  return (
+    <PickerShell
+      open={open}
+      onClose={onClose}
+      title="Pick a move"
+      search={{ value: query, onChange: setQuery, placeholder: 'Search moves' }}
+      filters={filtersSlot}
+    >
+      {showCommonHeader && (
+        <>
+          <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5">Common</div>
+          {filteredCommon.map((m) => (
+            <Row
+              key={`c-${m.name}`}
+              option={m}
+              onPick={() => {
+                onPick(m.name);
+                onClose();
+              }}
+              onInfo={() => setDetailMove(m.name)}
+            />
+          ))}
+        </>
+      )}
+      {showMainHeader && (
+        <div className={`text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 ${showCommonHeader ? 'mt-3' : ''}`}>{mainHeader}</div>
+      )}
+      {filteredMain.map((m) => (
+        <Row
+          key={m.name}
+          option={m}
+          onPick={() => {
+            onPick(m.name);
+            onClose();
+          }}
+          onInfo={() => setDetailMove(m.name)}
+        />
+      ))}
       <MoveDetailSheet open={detailMove !== null} moveName={detailMove} onClose={() => setDetailMove(null)} />
     </PickerShell>
   );
@@ -551,13 +528,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
 function Row({ option, onPick, onInfo }: { option: MoveOption; onPick: () => void; onInfo: () => void }) {
   const prioLabel = option.priority === 0 ? null : option.priority > 0 ? `+${option.priority}` : `${option.priority}`;
   const prioCls = option.priority > 0 ? 'bg-priority/20 text-priority border-priority/40' : 'bg-warn/15 text-warn border-warn/40';
-  const catCls =
-    option.category === 'Physical'
-      ? 'bg-danger/15 text-danger border-danger/30'
-      : option.category === 'Special'
-        ? 'bg-accent/15 text-accent border-accent/30'
-        : 'bg-white/5 text-text-mute border-surface-hi';
-  const catLabel = option.category === 'Physical' ? 'Phys' : option.category === 'Special' ? 'Spec' : 'Stat';
+  const cat = categoryBadge(option.category);
   return (
     <div className="w-full flex items-center gap-1.5 px-1 py-1 rounded-lg hover:bg-surface">
       {/* Info icon (leftmost) - opens MoveDetailSheet without picking. */}
@@ -591,7 +562,7 @@ function Row({ option, onPick, onInfo }: { option: MoveOption; onPick: () => voi
           </span>
         )}
         {!option.isStatus && option.bp > 0 && <span className="text-[10px] tabular-nums opacity-60">BP {option.bp}</span>}
-        <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border ${catCls}`}>{catLabel}</span>
+        <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${cat.cls}`}>{cat.label}</span>
       </button>
     </div>
   );

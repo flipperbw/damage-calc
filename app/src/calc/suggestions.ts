@@ -1,11 +1,8 @@
-import { Generations, toID } from '@smogon/calc';
-
 import { typeEffectiveness } from '@/calc/adapter';
 import { analyzeCoverage } from '@/calc/coverage';
+import { GEN, toID } from '@/calc/gen';
 import { TOP_POOL, type TopPoolEntry } from '@/data/top-pool';
 import type { SavedMon } from '@/types';
-
-const GEN = Generations.get(0);
 
 export interface SuggestionReason {
   /** Short string for the UI: "covers Fairy", "resists Ground", "2× Garchomp". */

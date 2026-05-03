@@ -1,22 +1,19 @@
-import { Generations, toID } from '@smogon/calc';
-
+import { GEN, toID } from '@/calc/gen';
 import { getLearnableMoveIds } from '@/data/pkmn';
 import type { SavedMon, StatID } from '@/types';
 import { uuid } from '@/util/uuid';
 
-const GEN = Generations.get(0);
-
 /**
- * Synthesizes a "max-offense" build for any species: max best-attack stat
- * + max speed, nature picked to push the chosen stats further, and the
- * top four highest-BP moves from the species's learnset (preferring the
- * category that matches the chosen attack stat).
+ * Synthesizes a "max-offense" build for any species: max best-attack stat,
+ * nature picked to push the chosen stat further, and the top four highest-BP
+ * moves from the species's learnset (preferring the category that matches
+ * the chosen attack stat).
  *
  * Algorithm:
  *   - bestAtk = atk vs spa (whichever base stat is higher)
- *   - if base spe ≥ 90 (already fast) → nature +Spe -worstAtk; max bestAtk + Spe
- *   - else → nature +bestAtk -worstAtk; max bestAtk + Spe
- *   - SPs: bestAtk = 32, spe = 32, hp = 2 (sum = 66)
+ *   - if base spe ≥ 90 (already fast) → nature +Spe -worstAtk; SPs: bestAtk=32, spe=32, hp=2
+ *   - else → nature +bestAtk -worstAtk; SPs: bestAtk=32, hp=18, (def or spd)=16
+ *     (slow mons gain more from bulk than from chasing speed they can't hit)
  *   - moves: top 4 by BP, matching-category first; status moves excluded
  *   - ability: species's first canonical ability
  */
@@ -59,11 +56,13 @@ export async function synthesizeBuild(species: string): Promise<SavedMon | null>
   if (!summary) return null;
   const { bestAtk, isFast, nature } = summary;
 
-  const sps: Partial<Record<StatID, number>> = {
-    [bestAtk]: 32,
-    spe: 32,
-    hp: 2,
-  };
+  // Slow mons can't reasonably outspeed by maxing Spe; spend the budget on
+  // bulk instead (HP + the higher of def/spd).
+  const sps: Partial<Record<StatID, number>> = isFast
+    ? { [bestAtk]: 32, spe: 32, hp: 2 }
+    : sp.baseStats.def >= sp.baseStats.spd
+      ? { [bestAtk]: 32, hp: 18, def: 16 }
+      : { [bestAtk]: 32, hp: 18, spd: 16 };
 
   // Filter candidate moves: any non-status move the species can learn.
   // If learnset lookup fails or returns empty (species not in @pkmn/data),
@@ -92,8 +91,6 @@ export async function synthesizeBuild(species: string): Promise<SavedMon | null>
 
   const abilities = sp.abilities ?? {};
   const ability = (Object.values(abilities)[0] as string | undefined) ?? undefined;
-
-  void isFast;
 
   return {
     id: uuid(),

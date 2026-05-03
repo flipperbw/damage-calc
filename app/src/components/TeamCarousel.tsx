@@ -59,7 +59,3 @@ export function TeamCarousel({ vertical = false, onAddMon }: CarouselProps) {
     </div>
   );
 }
-
-export function VerticalTeamCarousel({ onAddMon }: { onAddMon?: (slotIndex: number) => void } = {}) {
-  return <TeamCarousel vertical onAddMon={onAddMon} />;
-}

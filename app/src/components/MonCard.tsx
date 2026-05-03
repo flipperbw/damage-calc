@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Generations, toID } from '@smogon/calc';
 
 import type { ComputedStats } from '@/calc/adapter';
+import { GEN, toID } from '@/calc/gen';
+import { natureMods } from '@/calc/helpers';
 import { AbilityDetailSheet } from '@/components/AbilityDetailSheet';
 import { HpBar } from '@/components/HpBar';
 import { MegaToggle } from '@/components/MegaToggle';
@@ -11,17 +12,7 @@ import { StatusPicker } from '@/components/pickers/StatusPicker';
 import { StatChip } from '@/components/StatChip';
 import { TypeBadge } from '@/components/TypeBadge';
 import { spriteUrl } from '@/data/sprites';
-import type { MegaState, SavedMon, StatID, StatIDExceptHP, StatusName } from '@/types';
-
-const GEN_FOR_NATURE = Generations.get(0);
-
-function natureMods(nature: string): { plus?: StatID; minus?: StatID } {
-  const n = GEN_FOR_NATURE.natures.get(toID(nature) as any);
-  if (!n) return {};
-  return { plus: n.plus as StatID | undefined, minus: n.minus as StatID | undefined };
-}
-
-const GEN = Generations.get(0);
+import { STAT_LABEL, STAT_ORDER, type MegaState, type SavedMon, type StatIDExceptHP, type StatusName } from '@/types';
 
 interface Props {
   mon: SavedMon;
@@ -103,11 +94,6 @@ export function MonCard({
     fn?.();
   }
 
-  function statLabel(k: 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'): string {
-    const map = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' } as const;
-    return map[k];
-  }
-
   return (
     <div {...swapProps}>
       <div className="flex gap-2.5 items-start mb-2">
@@ -139,7 +125,7 @@ export function MonCard({
           allocation ("+N SP"). Tabular numerals so values line up. */}
       {stats && (
         <div className="grid grid-cols-6 gap-1 mb-2 text-center">
-          {(['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const).map((k) => {
+          {STAT_ORDER.map((k) => {
             const sp = mon.sps[k] ?? 0;
             const isPlus = k === naturePlus && naturePlus !== natureMinus;
             const isMinus = k === natureMinus && naturePlus !== natureMinus;
@@ -151,7 +137,7 @@ export function MonCard({
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="text-[8px] uppercase tracking-wider opacity-55 leading-none flex items-center justify-center gap-0.5">
-                  <span>{statLabel(k)}</span>
+                  <span>{STAT_LABEL[k]}</span>
                   {isPlus && <span className="text-ok">▲</span>}
                   {isMinus && <span className="text-danger">▼</span>}
                 </div>

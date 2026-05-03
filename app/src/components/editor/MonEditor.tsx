@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Generations, toID } from '@smogon/calc';
 import { toast } from 'sonner';
 
+import { GEN, toID } from '@/calc/gen';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { BuildDropdown } from '@/components/editor/BuildDropdown';
 import { EffectiveStats } from '@/components/editor/EffectiveStats';
@@ -20,8 +20,6 @@ import { monFromBuild } from '@/store/factories';
 import { validateSps } from '@/store/validators';
 import type { SavedMon } from '@/types';
 import { copyToClipboard } from '@/util/clipboard';
-
-const GEN = Generations.get(0);
 
 interface Props {
   open: boolean;

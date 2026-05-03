@@ -1,16 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { PickerShell } from '@/components/pickers/PickerShell';
-import type { StatIDExceptHP } from '@/types';
-
-const STATS: StatIDExceptHP[] = ['atk', 'def', 'spa', 'spd', 'spe'];
-const STAT_LABELS: Record<StatIDExceptHP, string> = {
-  atk: 'Atk',
-  def: 'Def',
-  spa: 'SpA',
-  spd: 'SpD',
-  spe: 'Spe',
-};
+import { STAT_LABEL, STAT_ORDER_NO_HP, type StatIDExceptHP } from '@/types';
 
 interface Props {
   open: boolean;
@@ -48,11 +39,11 @@ export function BoostPicker({ open, boosts, onClose, onSave }: Props) {
   return (
     <PickerShell open={open} onClose={onClose} title="Stat boosts">
       <div className="flex flex-col gap-2">
-        {STATS.map((stat) => {
+        {STAT_ORDER_NO_HP.map((stat) => {
           const v = draft[stat] ?? 0;
           return (
             <div key={stat} className="flex items-center gap-2">
-              <div className="w-10 text-sm font-bold uppercase opacity-70">{STAT_LABELS[stat]}</div>
+              <div className="w-10 text-sm font-bold uppercase opacity-70">{STAT_LABEL[stat]}</div>
               <button
                 onClick={() => set(stat, v - 1)}
                 disabled={v <= -6}
@@ -68,7 +59,7 @@ export function BoostPicker({ open, boosts, onClose, onSave }: Props) {
                 value={v}
                 onChange={(e) => set(stat, Number(e.target.value))}
                 className="flex-1"
-                aria-label={`${STAT_LABELS[stat]} boost`}
+                aria-label={`${STAT_LABEL[stat]} boost`}
               />
               <button
                 onClick={() => set(stat, v + 1)}

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { SectionToggle } from '@/components/builder/CoverageSection';
+import { ActionMenu, type ActionMenuItem } from '@/components/ActionMenu';
+import { SectionToggle } from '@/components/builder/SectionToggle';
 import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
-import { PickerShell } from '@/components/pickers/PickerShell';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
@@ -144,45 +144,19 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
       </div>
       )}
 
-      <PickerShell open={!!menuList} onClose={() => setMenuListId(null)} title={menuList?.name}>
-        {menuList && (
-          <div className="flex flex-col gap-1.5">
-            <MenuButton
-              onClick={() => {
-                setMenuListId(null);
-                handleRename(menuList);
-              }}
-            >
-              Rename
-            </MenuButton>
-            <MenuButton
-              onClick={() => {
-                setMenuListId(null);
-                handleDuplicate(menuList);
-              }}
-            >
-              Duplicate
-            </MenuButton>
-            {!menuList.isSeed && (
-              <MenuButton
-                testId="threat-list-delete"
-                tone="danger"
-                onClick={() => {
-                  setMenuListId(null);
-                  handleDelete(menuList);
-                }}
-              >
-                Delete
-              </MenuButton>
-            )}
-            {menuList.isSeed && (
-              <p className="text-xs opacity-55 italic px-1 mt-1">
-                Seed lists ship with the app and can't be deleted. Duplicate to make a freely-editable copy.
-              </p>
-            )}
-          </div>
-        )}
-      </PickerShell>
+      <ActionMenu
+        open={!!menuList}
+        onClose={() => setMenuListId(null)}
+        title={menuList?.name}
+        items={menuList ? buildThreatMenuItems(menuList, { setMenuListId, handleRename, handleDuplicate, handleDelete }) : []}
+        footer={
+          menuList?.isSeed ? (
+            <p className="text-xs opacity-55 italic px-1 mt-1">
+              Seed lists ship with the app and can't be deleted. Duplicate to make a freely-editable copy.
+            </p>
+          ) : null
+        }
+      />
 
       {picker && (
         <SpeciesPicker
@@ -201,13 +175,43 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
   );
 }
 
-function MenuButton({ onClick, tone, children, testId }: { onClick: () => void; tone?: 'danger'; children: React.ReactNode; testId?: string }) {
-  const cls = tone === 'danger' ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-surface border-surface-hi';
-  return (
-    <button onClick={onClick} data-testid={testId} className={`text-left px-3 py-2 rounded-lg border text-sm ${cls}`}>
-      {children}
-    </button>
-  );
+function buildThreatMenuItems(
+  list: ThreatList,
+  ctx: {
+    setMenuListId: (id: string | null) => void;
+    handleRename: (l: ThreatList) => void;
+    handleDuplicate: (l: ThreatList) => void;
+    handleDelete: (l: ThreatList) => void;
+  },
+): ActionMenuItem[] {
+  const items: ActionMenuItem[] = [
+    {
+      label: 'Rename',
+      onClick: () => {
+        ctx.setMenuListId(null);
+        ctx.handleRename(list);
+      },
+    },
+    {
+      label: 'Duplicate',
+      onClick: () => {
+        ctx.setMenuListId(null);
+        ctx.handleDuplicate(list);
+      },
+    },
+  ];
+  if (!list.isSeed) {
+    items.push({
+      label: 'Delete',
+      tone: 'danger',
+      testId: 'threat-list-delete',
+      onClick: () => {
+        ctx.setMenuListId(null);
+        ctx.handleDelete(list);
+      },
+    });
+  }
+  return items;
 }
 
 function ThreatListCard({
@@ -306,7 +310,7 @@ function FormatPill({ format }: { format: ThreatList['format'] }) {
   // orange, Any -> ok green.
   const cls =
     format === 'singles'
-      ? 'accent-2/15 text-accent-2 border-accent-2/30'
+      ? 'bg-accent-2/15 text-accent-2 border-accent-2/30'
       : format === 'doubles'
         ? 'bg-priority/15 text-priority border-priority/30'
         : 'bg-ok/15 text-ok border-ok/30';

@@ -1,6 +1,4 @@
-import { Generations, toID } from '@smogon/calc';
-
-const GEN = Generations.get(0);
+import { GEN, toID } from '@/calc/gen';
 
 /**
  * One candidate species the suggestion engine can recommend. The `types`

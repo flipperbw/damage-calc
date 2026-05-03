@@ -1,4 +1,20 @@
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, RefObject, useEffect, useRef } from 'react';
+
+interface SearchProps {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder?: string;
+  /**
+   * Whether to autoFocus the search input on mount. Defaults to true (most
+   * pickers want it focused so the user can type immediately). Set to false
+   * for callers that prefer no focus (e.g. embedded pickers reached via a
+   * touch-then-tap flow that would steal a soft-keyboard slot).
+   */
+  autoFocus?: boolean;
+  testId?: string;
+  /** Forwarded onto the search input so callers can imperatively focus/blur it. */
+  inputRef?: RefObject<HTMLInputElement>;
+}
 
 interface Props {
   open: boolean;
@@ -11,6 +27,24 @@ interface Props {
    * dialogs that don't justify a full-height sheet.
    */
   align?: 'sheet' | 'centered';
+  /**
+   * Optional search-input slot. When provided, the shell renders an
+   * autoFocus-by-default `<input>` above `children` and wraps `children`
+   * in a standard scrollable container. When omitted, the shell renders
+   * `children` directly (back-compat for non-search pickers).
+   *
+   * The shell does NOT own the search state, debounce, key handlers, or
+   * filter UI; pickers each own their own and pass `value`/`onChange`
+   * back in.
+   */
+  search?: SearchProps;
+  /**
+   * Optional content rendered between the search input and the scrollable
+   * body. Used for filter chips, sort menus, and other per-picker controls.
+   * Only rendered when `search` is also provided (filters without a search
+   * input is not a pattern any current caller uses).
+   */
+  filters?: ReactNode;
   children: ReactNode;
 }
 
@@ -34,7 +68,7 @@ function blurActive() {
   if (a instanceof HTMLElement) a.blur();
 }
 
-export function PickerShell({ open, onClose, title, children, align = 'sheet' }: Props) {
+export function PickerShell({ open, onClose, title, children, align = 'sheet', search, filters }: Props) {
   const wasOpen = useRef(false);
   useEffect(() => {
     if (wasOpen.current && !open) blurActive();
@@ -63,8 +97,37 @@ export function PickerShell({ open, onClose, title, children, align = 'sheet' }:
         onClick={(e) => e.stopPropagation()}
       >
         {title && <h3 className="text-base font-bold mb-2">{title}</h3>}
-        {children}
+        {search ? <SearchBody search={search} filters={filters}>{children}</SearchBody> : children}
       </div>
     </div>
+  );
+}
+
+/**
+ * Inner body for the search-input + scrollable list shape. Split out so the
+ * `react-hooks/refs` lint rule doesn't latch onto the `search` props bag in
+ * the parent and (incorrectly) flag every property access on it as a ref
+ * deref. Destructuring at the function boundary sidesteps the heuristic.
+ */
+function SearchBody({ search, filters, children }: { search: SearchProps; filters?: ReactNode; children: ReactNode }) {
+  const { value, onChange, placeholder, autoFocus = true, testId, inputRef } = search;
+  return (
+    <>
+      <input
+        ref={inputRef}
+        autoFocus={autoFocus}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        data-testid={testId}
+        // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
+        // Anything <16px triggers it; pinch-zoom stays available either way.
+        // mb-3 lands when there are no filters; when filters are passed
+        // they own their own top spacing via mt-* on the first row.
+        className={`w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-base ${filters ? '' : 'mb-3'}`}
+      />
+      {filters}
+      <div className="overflow-y-auto flex-1 -mx-1 px-1">{children}</div>
+    </>
   );
 }

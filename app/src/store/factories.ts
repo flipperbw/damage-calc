@@ -33,7 +33,9 @@ export function monFromBuild(species: string, buildName: string): SavedMon | nul
     item: b.item,
     ability: b.ability,
     nature: b.nature,
-    sps: b.sps,
+    // Shallow-copy so multiple mons spawned from the same build don't alias
+    // the SETDEX_CHAMPIONS object; future in-place edits stay isolated.
+    sps: { ...b.sps },
     moves: [b.moves[0] ?? '', b.moves[1] ?? '', b.moves[2] ?? '', b.moves[3] ?? ''],
     mega: '',
     boosts: {},

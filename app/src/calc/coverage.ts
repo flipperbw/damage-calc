@@ -1,36 +1,7 @@
-import { Generations, toID } from '@smogon/calc';
-
 import { typeEffectiveness } from '@/calc/adapter';
+import { GEN, toID } from '@/calc/gen';
+import { ALL_TYPES } from '@/data/poke-types';
 import type { SavedMon } from '@/types';
-
-const GEN = Generations.get(0);
-
-/**
- * The 18 standard battle types. Order matches the canonical type-chart
- * presentation. Excludes the placeholder "???" and the move-category
- * "Status" type, which carry no meaningful chart entries for coverage
- * analysis.
- */
-export const STANDARD_TYPES: readonly string[] = [
-  'Normal',
-  'Fire',
-  'Water',
-  'Electric',
-  'Grass',
-  'Ice',
-  'Fighting',
-  'Poison',
-  'Ground',
-  'Flying',
-  'Psychic',
-  'Bug',
-  'Rock',
-  'Ghost',
-  'Dragon',
-  'Dark',
-  'Steel',
-  'Fairy',
-];
 
 export interface DefensiveOverlap {
   type: string;
@@ -104,7 +75,7 @@ export function analyzeCoverage(team: readonly SavedMon[]): CoverageReport {
   // attacking-type source the team can muster. Anything below 2× is a gap.
   const attackingTypes = collectAttackingTypes(team);
   const offensiveGaps: string[] = [];
-  for (const defType of STANDARD_TYPES) {
+  for (const defType of ALL_TYPES) {
     let max = 0;
     for (const atkType of attackingTypes) {
       const mult = typeEffectiveness(atkType, [defType]);
@@ -118,7 +89,7 @@ export function analyzeCoverage(team: readonly SavedMon[]): CoverageReport {
   // ≥2× weak to A. Multipliers compound across both defender types so a
   // dual-type mon that's 2× weak on each axis surfaces as 4×.
   const overlaps: DefensiveOverlap[] = [];
-  for (const atkType of STANDARD_TYPES) {
+  for (const atkType of ALL_TYPES) {
     let count = 0;
     for (const mon of team) {
       const defTypes = speciesTypes(mon.species);

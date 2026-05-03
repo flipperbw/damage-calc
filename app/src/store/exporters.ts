@@ -1,27 +1,10 @@
-import type { SavedMon, StatID, Team } from '@/types';
-
-const STAT_LABEL: Record<StatID, string> = {
-  hp: 'HP',
-  atk: 'Atk',
-  def: 'Def',
-  spa: 'SpA',
-  spd: 'SpD',
-  spe: 'Spe',
-};
-
-const STAT_ORDER: StatID[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
-
-function speciesWithMega(mon: SavedMon): string {
-  if (!mon.mega) return mon.species;
-  if (mon.species.endsWith('-Mega') || mon.species.includes('-Mega-')) return mon.species;
-  if (mon.mega === 'mega-x') return `${mon.species}-Mega-X`;
-  if (mon.mega === 'mega-y') return `${mon.species}-Mega-Y`;
-  return `${mon.species}-Mega`;
-}
+import { megaFormeName } from '@/calc/helpers';
+import { STAT_LABEL, STAT_ORDER, type SavedMon, type Team } from '@/types';
 
 export function monToShowdownText(mon: SavedMon): string {
   const lines: string[] = [];
-  const head = mon.item ? `${speciesWithMega(mon)} @ ${mon.item}` : speciesWithMega(mon);
+  const speciesName = megaFormeName(mon.species, mon.mega);
+  const head = mon.item ? `${speciesName} @ ${mon.item}` : speciesName;
   lines.push(head);
   if (mon.ability) lines.push(`Ability: ${mon.ability}`);
   lines.push(`Level: 50`);
