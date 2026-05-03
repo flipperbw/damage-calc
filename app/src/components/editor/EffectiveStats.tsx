@@ -114,7 +114,11 @@ export function EffectiveStats({ species, nature, sps, item }: Props) {
         <div />
         <div className="text-[9px] uppercase opacity-50 text-right">Base</div>
         <div className="text-[9px] uppercase opacity-50 text-right">Stat</div>
-        {showMega && <div className="text-[9px] uppercase opacity-50 text-right">Mega</div>}
+        {showMega && (
+          <div className="text-[9px] uppercase opacity-50 text-right border-l border-accent/30 pl-1.5">
+            Mega
+          </div>
+        )}
         {rows.map(r => (
           <Cells key={r.stat} row={r} showMega={showMega} />
         ))}
@@ -123,11 +127,49 @@ export function EffectiveStats({ species, nature, sps, item }: Props) {
   );
 }
 
+/**
+ * Tier the stat magnitude into ok/neutral/warn/danger so the cell colour
+ * scans at a glance. Thresholds tuned for L50 Champions: HP scales
+ * differently (no nature mod, big base contribution) so it gets its own
+ * narrower band; everything else uses a 4-tier scale where 80–129 is
+ * "warn" (the 1-stage bands) and below 80 is "danger" (cripple territory).
+ */
+type Tier = 'ok' | 'neutral' | 'warn' | 'danger';
+
+function tierFor(stat: StatID, value: number): Tier {
+  if (stat === 'hp') {
+    if (value >= 200) return 'ok';
+    if (value >= 150) return 'neutral';
+    return 'warn';
+  }
+  if (value >= 180) return 'ok';
+  if (value >= 130) return 'neutral';
+  if (value >= 80) return 'warn';
+  return 'danger';
+}
+
+function tierClass(tier: Tier, bold: boolean): string {
+  const weight = bold ? 'font-bold' : '';
+  switch (tier) {
+    case 'ok': return `${weight} text-ok`;
+    case 'warn': return `${weight} text-warn`;
+    case 'danger': return `${weight} text-danger`;
+    case 'neutral': return `${weight} opacity-90`;
+  }
+}
+
 function Cells({ row, showMega }: { row: Row; showMega: boolean }) {
   const arrowCls =
     row.arrow === '▲' ? 'text-ok'
     : row.arrow === '▼' ? 'text-danger'
     : 'opacity-40';
+  const tier = tierFor(row.stat, row.value);
+  // The "stat" column gets the strongest emphasis — it's the user-visible
+  // post-nature, post-EV value. Bold for ok/neutral so the eye lands on
+  // high numbers; warn/danger keep their colour to signal weakness.
+  const valueCls = tierClass(tier, true);
+  const megaTier = row.megaValue !== undefined ? tierFor(row.stat, row.megaValue) : null;
+  const megaCls = megaTier ? tierClass(megaTier, true) : '';
   return (
     <>
       <div className="font-bold flex items-center gap-1 opacity-80">
@@ -135,9 +177,9 @@ function Cells({ row, showMega }: { row: Row; showMega: boolean }) {
         <span className={`text-[9px] ${arrowCls}`}>{row.arrow}</span>
       </div>
       <div className="text-right opacity-50">{row.base}</div>
-      <div className="text-right font-bold">{row.value}</div>
+      <div className={`text-right ${valueCls}`}>{row.value}</div>
       {showMega && (
-        <div className="text-right font-bold text-accent">
+        <div className={`text-right border-l border-accent/30 pl-1.5 ${megaCls}`}>
           {row.megaValue !== undefined ? row.megaValue : '—'}
         </div>
       )}

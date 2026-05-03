@@ -230,7 +230,8 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName }
 
         <SpeciesPicker open={picker === 'species'} onClose={() => setPicker(null)}
                        showRecents={false} onPick={s => patch({ species: s })} />
-        <ItemPicker open={picker === 'item'} onClose={() => setPicker(null)}
+        <ItemPicker open={picker === 'item'} species={draft.species}
+                    onClose={() => setPicker(null)}
                     onPick={item => patch({ item })} />
         <AbilityPicker open={picker === 'ability'} species={draft.species} onClose={() => setPicker(null)}
                        onPick={ability => patch({ ability })} />
