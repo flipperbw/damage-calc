@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { calculateMatchup, type MoveResult } from '../../calc/adapter';
 import { emptyField } from '../../store/factories';
 import { spriteUrl } from '../../data/sprites';
@@ -58,6 +58,25 @@ export function MatchupMatrix({ team, threatList }: Props) {
     you: SavedMon; threat: SavedMon; cell: CellInfo;
   } | null>(null);
 
+  // Sticky-row-label collapse: as the user scrolls horizontally, fade the
+  // species name down so only the sprite is left. Frees a chunk of width
+  // when the user is reading the rightmost columns and doesn't need the
+  // name anymore.
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  // 0 -> fully expanded, 1 -> fully collapsed. Tied to scrollLeft / 80px.
+  const [collapse, setCollapse] = useState(0);
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      // 0..80px scroll → 0..1 collapse fraction. Clamped at the edges.
+      const c = Math.max(0, Math.min(1, el.scrollLeft / 80));
+      setCollapse(c);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [yourMons.length, threats.length]);
+
   return (
     <section className="mb-5" data-testid="matchup-matrix">
       <div className="flex items-baseline justify-between mb-2 gap-2 flex-wrap">
@@ -80,17 +99,20 @@ export function MatchupMatrix({ team, threatList }: Props) {
           The selected threat list has no Pokémon.
         </div>
       ) : (
-        <div className="overflow-x-auto -mx-1 px-1 border border-surface-hi rounded-card">
+        <div
+          ref={scrollerRef}
+          className="overflow-x-auto border border-surface-hi rounded-card"
+        >
           <table className="border-collapse text-xs" data-testid="matrix-table">
             <thead>
               <tr>
-                {/* Sticky-left header cell needs a SOLID background so the
-                    cell values from following columns don't bleed through
-                    when scrolled. bg-surface is rgba(...,0.04) - too thin
-                    to occlude. surface-solid is the solid equivalent
-                    (panel-gradient + 0.04 white, eyeballed) so the sticky
-                    stripe matches the surrounding card surface. */}
-                <th className="sticky left-0 bg-surface-solid z-10 p-1.5 text-left text-text-mute font-medium border-r border-surface-hi" />
+                {/* Sticky-left header cell. Width animates with the row
+                    label below — they share the same min/max width so the
+                    column collapse stays aligned. */}
+                <th
+                  className="sticky left-0 bg-surface-solid z-10 p-1.5 text-left text-text-mute font-medium border-r border-surface-hi"
+                  style={{ width: collapsedWidth(collapse) }}
+                />
                 {threats.map(threat => (
                   <th
                     key={threat.id}
@@ -107,10 +129,22 @@ export function MatchupMatrix({ team, threatList }: Props) {
             <tbody>
               {yourMons.map((you, i) => (
                 <tr key={you.id}>
-                  <td className="sticky left-0 bg-surface-solid z-10 p-1.5 border-t border-r border-surface-hi">
-                    <div className="flex items-center gap-2 min-w-[120px] max-w-[160px]">
+                  <td
+                    className="sticky left-0 bg-surface-solid z-10 p-1.5 border-t border-r border-surface-hi"
+                    style={{ width: collapsedWidth(collapse) }}
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden">
                       <img src={spriteUrl(you.species)} className="w-7 h-7 object-contain shrink-0" />
-                      <span className="text-[11px] truncate">{you.species}</span>
+                      <span
+                        className="text-[11px] truncate"
+                        style={{
+                          maxWidth: `${(1 - collapse) * 110}px`,
+                          opacity: 1 - collapse,
+                          transition: 'max-width 80ms linear, opacity 80ms linear',
+                        }}
+                      >
+                        {you.species}
+                      </span>
                     </div>
                   </td>
                   {threats.map((threat, j) => {
@@ -216,6 +250,17 @@ function DetailSheet({
 
 function emptyCell(): CellInfo {
   return { pct: 0, pctLow: 0, bestMove: null, damageLow: 0, damageHigh: 0, koText: '' };
+}
+
+/**
+ * Sticky-column width interpolated by the scroll-fraction collapse value.
+ *   collapse = 0 → 150px (sprite + name comfortably fit)
+ *   collapse = 1 → 44px  (just the sprite)
+ */
+function collapsedWidth(collapse: number): string {
+  const wide = 150;
+  const narrow = 44;
+  return `${narrow + (1 - collapse) * (wide - narrow)}px`;
 }
 
 function cellStyle(pct: number): { cls: string; label: string } {

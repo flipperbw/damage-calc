@@ -64,6 +64,19 @@ function parseTab(hash: string): Tab | null {
   return VALID_TABS.includes(stripped as Tab) ? (stripped as Tab) : null;
 }
 
+const TAB_TITLES: Record<Tab, string> = {
+  battle: 'Battle',
+  teams: 'Teams',
+  builder: 'Builder',
+  settings: 'Settings',
+};
+
+function useTabPageTitle(tab: Tab) {
+  useEffect(() => {
+    document.title = `${TAB_TITLES[tab]} · Champions Calc`;
+  }, [tab]);
+}
+
 function pushHash(tab: Tab) {
   window.history.pushState(null, '', `#/${tab}`);
 }
@@ -81,6 +94,7 @@ export function App() {
   // proceeds immediately and the data trickles in.
   useEffect(() => { void preloadPkmn(); }, []);
   useTabRoute();
+  useTabPageTitle(tab);
   return (
     <ConfirmProvider>
       <div className="min-h-screen bg-bg-base bg-panel-gradient text-text">

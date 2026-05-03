@@ -102,6 +102,14 @@ function entryToMon(entry: SeedEntry): SavedMon {
 // once per session, no matter how many seed lists reference it.
 const warnedMissingSpecies = new Set<string>();
 
+/**
+ * The set of seedKeys this build currently ships. The store uses this in
+ * `ensureSeedThreatLists` to drop obsolete seeds (e.g. "megas" after that
+ * list was removed from the spec) so users on persisted state don't see
+ * stale seed lists they can't delete.
+ */
+export const CURRENT_SEED_KEYS: readonly SeedKey[] = SPECS.map(s => s.seedKey);
+
 export function buildSeedThreatLists(): ThreatList[] {
   const now = Date.now();
   const allMissing: string[] = [];

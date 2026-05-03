@@ -4,7 +4,7 @@ import type { AppState, Team, SavedMon, FieldState, Notation, Tab, Format, Edito
 import { addRecent } from './validators';
 import { migrate, CURRENT_VERSION } from './migrations';
 import { emptyField } from './factories';
-import { buildSeedThreatLists } from '../data/seed-threats';
+import { buildSeedThreatLists, CURRENT_SEED_KEYS } from '../data/seed-threats';
 import { uuid } from '../util/uuid';
 
 const PERSIST_NAME = 'champions-calc-v1';
@@ -257,8 +257,22 @@ export const useStore = create<AppState & Actions>()(
             : s.editor,
       })),
       ensureSeedThreatLists: () => set(s => {
-        if (s.threatLists.length > 0) return {};
-        return { threatLists: buildSeedThreatLists() };
+        // Drop seeds whose seedKey is no longer shipped (e.g. "megas" after
+        // we removed Top Megas from the curated specs). This makes obsolete
+        // seeds disappear automatically on app load — the user doesn't have
+        // to manually clear them. User-created (non-seed) lists are
+        // untouched.
+        const validKeys = new Set<string>(CURRENT_SEED_KEYS);
+        const pruned = s.threatLists.filter(
+          l => !l.isSeed || (l.seedKey !== undefined && validKeys.has(l.seedKey)),
+        );
+        // If, after pruning, there are no seeds at all, repopulate them.
+        const hasSeeds = pruned.some(l => l.isSeed);
+        if (!hasSeeds) {
+          return { threatLists: [...buildSeedThreatLists(), ...pruned] };
+        }
+        if (pruned.length === s.threatLists.length) return {};
+        return { threatLists: pruned };
       }),
 
       setField: (patch) => set(s => ({ field: { ...s.field, ...patch } })),

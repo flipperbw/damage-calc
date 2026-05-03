@@ -1,6 +1,58 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/*
+ * Tailwind v4 CSS-first theme. The @theme block is what `tailwind.config.ts`
+ * used to be in v3 — color / size / breakpoint tokens become utility
+ * classes (e.g. `--color-accent: #7c5cff` -> `bg-accent`, `text-accent`).
+ *
+ * Custom breakpoint: `md` is 900px (instead of the default 768px) so the
+ * desktop battle/builder layouts engage at a roomier width than tablets.
+ */
+@theme {
+  --color-bg-base: #050714;
+  --color-surface: rgba(255, 255, 255, 0.04);
+  /* Solid equivalent of `surface` rendered on top of the panel gradient.
+     Used wherever the rgba surface would let underlying content bleed
+     through (sticky table columns, opaque modals on top of complex
+     layouts). */
+  --color-surface-solid: #1a1830;
+  --color-surface-hi: rgba(255, 255, 255, 0.07);
+  --color-text: #e8ecff;
+  --color-text-mute: #888fb5;
+  --color-accent: #7c5cff;
+  --color-accent-2: #5c8cff;
+  --color-ok: #22c55e;
+  --color-warn: #fab005;
+  --color-danger: #ff6b6b;
+  --color-priority: #fb923c;
+
+  --background-image-panel-gradient: linear-gradient(165deg, #0a0e25 0%, #1c0f2e 50%, #0a0e25 100%);
+  --background-image-accent-gradient: linear-gradient(135deg, #7c5cff, #5c8cff);
+
+  --radius-card: 16px;
+
+  --font-sans: ui-sans-serif, -apple-system, system-ui, sans-serif;
+
+  --text-xxs: 10px;
+  --text-xxs--line-height: 14px;
+
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 900px;
+  --breakpoint-lg: 1280px;
+}
+
+/*
+ * v4 default border color changed from `gray-200` to `currentColor`. Restore
+ * a sensible default so untyped `border` utilities keep their old look in
+ * places we rely on the theme color (none of our app code does, but the
+ * Tailwind preflight resets borders to currentColor by default which can
+ * surprise component composition).
+ */
+@layer base {
+  *, ::before, ::after {
+    border-color: var(--color-surface-hi);
+  }
+}
 
 html, body, #root { height: 100%; }
 body {
