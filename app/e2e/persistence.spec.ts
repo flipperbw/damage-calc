@@ -1,7 +1,6 @@
-import { test, expect } from '@playwright/test';
-import {
-  freshStart, nav, createTeam, addMonToFirstSlot, activateTeam, pickOpponent,
-} from './helpers';
+import { expect, test } from '@playwright/test';
+
+import { activateTeam, addMonToFirstSlot, createTeam, freshStart, nav, pickOpponent } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await freshStart(page);
@@ -17,9 +16,7 @@ test('team persists across reload', async ({ page }) => {
   await expect(page.getByText('New team')).toBeVisible();
   // Slot still has a sprite - TeamsScreen slot imgs don't carry alt, so use
   // the sprite-bearing slot button as the marker.
-  await expect(
-    page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)'),
-  ).toHaveCount(1);
+  await expect(page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)')).toHaveCount(1);
 });
 
 test('opponent persists across reload', async ({ page }) => {

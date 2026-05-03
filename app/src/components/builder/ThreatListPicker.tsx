@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useStore } from '../../store';
-import { spriteUrl } from '../../data/sprites';
-import { useConfirm, usePrompt } from '../ConfirmDialog';
-import { PickerShell } from '../pickers/PickerShell';
-import { SpeciesPicker } from '../pickers/SpeciesPicker';
-import { defaultOpponentMon } from '../../store/factories';
-import type { ThreatList, SavedMon } from '../../types';
+
+import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
+import { PickerShell } from '@/components/pickers/PickerShell';
+import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
+import { spriteUrl } from '@/data/sprites';
+import { useStore } from '@/store';
+import { defaultOpponentMon } from '@/store/factories';
+import type { SavedMon, ThreatList } from '@/types';
 
 interface Props {
   selectedListId: string | null;
@@ -23,13 +24,13 @@ interface Props {
  * MonEditor, tap "+ Add" to append a new mon.
  */
 export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon }: Props) {
-  const lists = useStore(s => s.threatLists);
-  const createThreatList = useStore(s => s.createThreatList);
-  const renameThreatList = useStore(s => s.renameThreatList);
-  const duplicateThreatList = useStore(s => s.duplicateThreatList);
-  const deleteThreatList = useStore(s => s.deleteThreatList);
-  const upsertThreatMon = useStore(s => s.upsertThreatMon);
-  const removeThreatMon = useStore(s => s.removeThreatMon);
+  const lists = useStore((s) => s.threatLists);
+  const createThreatList = useStore((s) => s.createThreatList);
+  const renameThreatList = useStore((s) => s.renameThreatList);
+  const duplicateThreatList = useStore((s) => s.duplicateThreatList);
+  const deleteThreatList = useStore((s) => s.deleteThreatList);
+  const upsertThreatMon = useStore((s) => s.upsertThreatMon);
+  const removeThreatMon = useStore((s) => s.removeThreatMon);
 
   const confirm = useConfirm();
   const prompt = usePrompt();
@@ -75,31 +76,29 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
   }
 
   async function handleDelete(list: ThreatList) {
-    const ok = await confirm(
-      `"${list.name}" will be permanently deleted. This cannot be undone.`,
-      { title: 'Delete threat list?', danger: true, okLabel: 'Delete' },
-    );
+    const ok = await confirm(`"${list.name}" will be permanently deleted. This cannot be undone.`, {
+      title: 'Delete threat list?',
+      danger: true,
+      okLabel: 'Delete',
+    });
     if (!ok) return;
     deleteThreatList(list.id);
     if (selectedListId === list.id) {
       // Fall back to the first remaining list (after the delete).
-      const remaining = lists.filter(l => l.id !== list.id);
+      const remaining = lists.filter((l) => l.id !== list.id);
       onSelectList(remaining[0]?.id ?? '');
     }
     toast.success('Deleted');
   }
 
   async function handleRemoveMon(threatListId: string, mon: SavedMon) {
-    const ok = await confirm(
-      `${mon.species} will be removed from this list.`,
-      { title: 'Remove from list?', danger: true, okLabel: 'Remove' },
-    );
+    const ok = await confirm(`${mon.species} will be removed from this list.`, { title: 'Remove from list?', danger: true, okLabel: 'Remove' });
     if (!ok) return;
     removeThreatMon(threatListId, mon.id);
     toast.success(`${mon.species} removed`);
   }
 
-  const menuList = menuListId ? lists.find(l => l.id === menuListId) ?? null : null;
+  const menuList = menuListId ? (lists.find((l) => l.id === menuListId) ?? null) : null;
 
   return (
     <section className="mb-5" data-testid="threat-list-picker">
@@ -116,7 +115,7 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
       </div>
 
       <div className="flex flex-col gap-2">
-        {ordered.map(list => (
+        {ordered.map((list) => (
           <ThreatListCard
             key={list.id}
             list={list}
@@ -124,34 +123,46 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
             onSelect={() => onSelectList(list.id)}
             onMenu={() => setMenuListId(list.id)}
             onAddMon={() => setPicker({ threatListId: list.id })}
-            onEditMon={monId => onEditThreatMon(list.id, monId)}
-            onRemoveMon={mon => handleRemoveMon(list.id, mon)}
+            onEditMon={(monId) => onEditThreatMon(list.id, monId)}
+            onRemoveMon={(mon) => handleRemoveMon(list.id, mon)}
           />
         ))}
       </div>
 
-      <PickerShell
-        open={!!menuList}
-        onClose={() => setMenuListId(null)}
-        title={menuList?.name}
-      >
+      <PickerShell open={!!menuList} onClose={() => setMenuListId(null)} title={menuList?.name}>
         {menuList && (
           <div className="flex flex-col gap-1.5">
-            <MenuButton onClick={() => { setMenuListId(null); handleRename(menuList); }}>
+            <MenuButton
+              onClick={() => {
+                setMenuListId(null);
+                handleRename(menuList);
+              }}
+            >
               Rename
             </MenuButton>
-            <MenuButton onClick={() => { setMenuListId(null); handleDuplicate(menuList); }}>
+            <MenuButton
+              onClick={() => {
+                setMenuListId(null);
+                handleDuplicate(menuList);
+              }}
+            >
               Duplicate
             </MenuButton>
             {!menuList.isSeed && (
-              <MenuButton testId="threat-list-delete" tone="danger" onClick={() => { setMenuListId(null); handleDelete(menuList); }}>
+              <MenuButton
+                testId="threat-list-delete"
+                tone="danger"
+                onClick={() => {
+                  setMenuListId(null);
+                  handleDelete(menuList);
+                }}
+              >
                 Delete
               </MenuButton>
             )}
             {menuList.isSeed && (
               <p className="text-xs opacity-55 italic px-1 mt-1">
-                Seed lists ship with the app and can't be deleted. Duplicate to
-                make a freely-editable copy.
+                Seed lists ship with the app and can't be deleted. Duplicate to make a freely-editable copy.
               </p>
             )}
           </div>
@@ -163,7 +174,7 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
           open
           onClose={() => setPicker(null)}
           showRecents={false}
-          onPick={species => {
+          onPick={(species) => {
             const mon = defaultOpponentMon(species);
             upsertThreatMon(picker.threatListId, mon);
             setPicker(null);
@@ -175,25 +186,23 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
   );
 }
 
-function MenuButton({ onClick, tone, children, testId }: {
-  onClick: () => void; tone?: 'danger'; children: React.ReactNode; testId?: string;
-}) {
-  const cls = tone === 'danger'
-    ? 'bg-danger/10 border-danger/30 text-danger'
-    : 'bg-surface border-surface-hi';
+function MenuButton({ onClick, tone, children, testId }: { onClick: () => void; tone?: 'danger'; children: React.ReactNode; testId?: string }) {
+  const cls = tone === 'danger' ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-surface border-surface-hi';
   return (
-    <button
-      onClick={onClick}
-      data-testid={testId}
-      className={`text-left px-3 py-2 rounded-lg border text-sm ${cls}`}
-    >
+    <button onClick={onClick} data-testid={testId} className={`text-left px-3 py-2 rounded-lg border text-sm ${cls}`}>
       {children}
     </button>
   );
 }
 
 function ThreatListCard({
-  list, active, onSelect, onMenu, onAddMon, onEditMon, onRemoveMon,
+  list,
+  active,
+  onSelect,
+  onMenu,
+  onAddMon,
+  onEditMon,
+  onRemoveMon,
 }: {
   list: ThreatList;
   active: boolean;
@@ -231,24 +240,21 @@ function ThreatListCard({
           aria-label="Threat list menu"
           data-testid={`threat-list-menu-${list.id}`}
           className="w-8 h-8 rounded-lg bg-surface border border-surface-hi text-base opacity-70 hover:opacity-100 shrink-0"
-        >⋯</button>
+        >
+          ⋯
+        </button>
       </div>
 
       {active && (
         <div className="mt-3">
           <div className="flex flex-wrap gap-1.5">
-            {list.mons.map(mon => (
+            {list.mons.map((mon) => (
               <div
                 key={mon.id}
                 data-testid={`threat-mon-${mon.species}`}
                 className="relative bg-bg-base/40 border border-surface-hi rounded-lg p-1.5 flex flex-col items-center gap-0.5"
               >
-                <button
-                  type="button"
-                  onClick={() => onEditMon(mon.id)}
-                  aria-label={`Edit ${mon.species}`}
-                  className="flex flex-col items-center"
-                >
+                <button type="button" onClick={() => onEditMon(mon.id)} aria-label={`Edit ${mon.species}`} className="flex flex-col items-center">
                   <img src={spriteUrl(mon.species)} className="w-10 h-10 object-contain" />
                   <span className="text-[10px] truncate max-w-[64px]">{mon.species}</span>
                 </button>
@@ -257,7 +263,9 @@ function ThreatListCard({
                   onClick={() => onRemoveMon(mon)}
                   aria-label={`Remove ${mon.species}`}
                   className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-bg-base border border-surface-hi text-text-mute text-[10px] hover:text-danger hover:border-danger/40"
-                >×</button>
+                >
+                  ×
+                </button>
               </div>
             ))}
             <button
@@ -266,7 +274,9 @@ function ThreatListCard({
               data-testid="threat-mon-add"
               aria-label="Add Pokémon to threat list"
               className="w-[60px] h-[60px] flex items-center justify-center rounded-lg border border-dashed border-accent/30 text-accent text-xl"
-            >+</button>
+            >
+              +
+            </button>
           </div>
         </div>
       )}
@@ -280,15 +290,11 @@ function FormatPill({ format }: { format: ThreatList['format'] }) {
   // single bicolor smear: Singles -> warn yellow, Doubles -> priority
   // orange, Any -> ok green.
   const cls =
-    format === 'singles' ? 'accent-2/15 text-accent-2 border-accent-2/30'
-    : format === 'doubles' ? 'bg-priority/15 text-priority border-priority/30'
-    : 'bg-ok/15 text-ok border-ok/30';
-  const label = format === 'singles' ? 'Singles'
-    : format === 'doubles' ? 'Doubles'
-    : 'Any';
-  return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded border uppercase tracking-wider font-semibold ${cls}`}>
-      {label}
-    </span>
-  );
+    format === 'singles'
+      ? 'accent-2/15 text-accent-2 border-accent-2/30'
+      : format === 'doubles'
+        ? 'bg-priority/15 text-priority border-priority/30'
+        : 'bg-ok/15 text-ok border-ok/30';
+  const label = format === 'singles' ? 'Singles' : format === 'doubles' ? 'Doubles' : 'Any';
+  return <span className={`text-[10px] px-1.5 py-0.5 rounded border uppercase tracking-wider font-semibold ${cls}`}>{label}</span>;
 }

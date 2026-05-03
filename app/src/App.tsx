@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
 import { Toaster } from 'sonner';
-import { useStore } from './store';
-import { Nav } from './components/Nav';
-import { BattleScreen } from './screens/BattleScreen';
-import { TeamsScreen } from './screens/TeamsScreen';
-import { BuilderScreen } from './screens/BuilderScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
-import { ConfirmProvider } from './components/ConfirmDialog';
-import { preloadPkmn } from './data/pkmn';
-import type { Tab } from './types';
+
+import { ConfirmProvider } from '@/components/ConfirmDialog';
+import { Nav } from '@/components/Nav';
+import { preloadPkmn } from '@/data/pkmn';
+import { BattleScreen } from '@/screens/BattleScreen';
+import { BuilderScreen } from '@/screens/BuilderScreen';
+import { SettingsScreen } from '@/screens/SettingsScreen';
+import { TeamsScreen } from '@/screens/TeamsScreen';
+import { useStore } from '@/store';
+import type { Tab } from '@/types';
 
 const VALID_TABS: readonly Tab[] = ['battle', 'teams', 'builder', 'settings'];
 
@@ -26,8 +27,8 @@ const VALID_TABS: readonly Tab[] = ['battle', 'teams', 'builder', 'settings'];
  * persisted store value is the fallback otherwise.
  */
 function useTabRoute() {
-  const tab = useStore(s => s.tab);
-  const setTab = useStore(s => s.setTab);
+  const tab = useStore((s) => s.tab);
+  const setTab = useStore((s) => s.setTab);
 
   // Initial sync from URL → store.
   useEffect(() => {
@@ -86,13 +87,15 @@ function replaceHash(tab: Tab) {
 }
 
 export function App() {
-  const tab = useStore(s => s.tab);
+  const tab = useStore((s) => s.tab);
   // Fire-and-forget preload of @pkmn/data so the move picker's learnset
   // filter and the move detail sheet's prose are warm by the time the
   // user opens them. The dynamic import + learnset chunk together weigh
   // ~3.5 MB raw / ~600 KB gzipped, so we don't await - initial render
   // proceeds immediately and the data trickles in.
-  useEffect(() => { void preloadPkmn(); }, []);
+  useEffect(() => {
+    void preloadPkmn();
+  }, []);
   useTabRoute();
   useTabPageTitle(tab);
   return (
@@ -106,12 +109,7 @@ export function App() {
           {tab === 'settings' && <SettingsScreen />}
         </main>
       </div>
-      <Toaster
-        position="bottom-left"
-        theme="dark"
-        richColors
-        closeButton={false}
-      />
+      <Toaster position="bottom-left" theme="dark" richColors closeButton={false} />
     </ConfirmProvider>
   );
 }

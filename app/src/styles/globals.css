@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /*
  * Tailwind v4 CSS-first theme. The @theme block is what `tailwind.config.ts`
@@ -49,16 +49,26 @@
  * surprise component composition).
  */
 @layer base {
-  *, ::before, ::after {
+  *,
+  ::before,
+  ::after {
     border-color: var(--color-surface-hi);
   }
 }
 
-html, body, #root { height: 100%; }
+html,
+body,
+#root {
+  height: 100%;
+}
 body {
   background: #050714;
   color: #e8ecff;
-  font-family: ui-sans-serif, -apple-system, system-ui, sans-serif;
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    system-ui,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

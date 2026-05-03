@@ -1,4 +1,4 @@
-import { colorForType } from '../data/types-palette';
+import { colorForType } from '@/data/types-palette';
 
 interface Props {
   type: string;
@@ -18,10 +18,7 @@ export function TypeBadge({ type, size = 'sm', fixedWidth = false }: Props) {
   const fixed = fixedWidth ? (size === 'md' ? 'w-[68px]' : 'w-[58px]') : '';
   const align = fixedWidth ? 'inline-flex items-center justify-center' : 'inline-block';
   return (
-    <span
-      className={`${px} ${fixed} ${align} font-bold uppercase tracking-wider rounded text-white`}
-      style={{ background: colorForType(type) }}
-    >
+    <span className={`${px} ${fixed} ${align} font-bold uppercase tracking-wider rounded text-white`} style={{ background: colorForType(type) }}>
       {type}
     </span>
   );

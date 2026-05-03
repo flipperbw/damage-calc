@@ -1,6 +1,7 @@
 import { Generations, toID } from '@smogon/calc';
-import type { SavedMon } from '../types';
-import { typeEffectiveness } from './adapter';
+
+import { typeEffectiveness } from '@/calc/adapter';
+import type { SavedMon } from '@/types';
 
 const GEN = Generations.get(0);
 
@@ -131,7 +132,7 @@ export function analyzeCoverage(team: readonly SavedMon[]): CoverageReport {
   }
   // Sort by count desc, ties alphabetically - gives the UI a stable, useful
   // ordering without a second pass.
-  overlaps.sort((a, b) => (b.count - a.count) || a.type.localeCompare(b.type));
+  overlaps.sort((a, b) => b.count - a.count || a.type.localeCompare(b.type));
 
   return { offensiveGaps, defensiveOverlaps: overlaps };
 }

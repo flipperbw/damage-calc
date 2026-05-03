@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Generations, toID } from '@smogon/calc';
-import { TypeBadge } from '../TypeBadge';
-import { MovePicker } from '../pickers/MovePicker';
+
+import { MovePicker } from '@/components/pickers/MovePicker';
+import { TypeBadge } from '@/components/TypeBadge';
 
 const GEN = Generations.get(0);
 
@@ -26,10 +27,20 @@ export function MoveSlots({ moves, onChange, species, isForOpponent }: Props) {
   return (
     <div>
       {moves.map((m, i) => (
-        <div key={i} onClick={() => setEditing(i)}
-             className="flex justify-between items-center bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-1.5 cursor-pointer">
+        <div
+          key={i}
+          onClick={() => setEditing(i)}
+          className="flex justify-between items-center bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-1.5 cursor-pointer"
+        >
           <div className="flex items-center gap-2">
-            {m ? <><TypeBadge type={moveTypeOf(m)} /><b>{m}</b></> : <span className="text-text-mute">- empty -</span>}
+            {m ? (
+              <>
+                <TypeBadge type={moveTypeOf(m)} />
+                <b>{m}</b>
+              </>
+            ) : (
+              <span className="text-text-mute">- empty -</span>
+            )}
           </div>
           <span className="opacity-40">▾</span>
         </div>

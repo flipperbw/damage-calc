@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Generations } from '@smogon/calc';
-import { useStore } from '../../store';
-import { spriteUrl } from '../../data/sprites';
-import { PickerShell } from './PickerShell';
+
+import { PickerShell } from '@/components/pickers/PickerShell';
+import { spriteUrl } from '@/data/sprites';
+import { useStore } from '@/store';
 
 interface Props {
   open: boolean;
@@ -34,12 +35,12 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
   useEffect(() => {
     if (open) setQuery('');
   }, [open]);
-  const recents = useStore(s => s.recentOpponents);
+  const recents = useStore((s) => s.recentOpponents);
   const all = useMemo(() => allSpeciesNames(), []);
   const filtered = useMemo(() => {
     if (!query) return all;
     const q = query.toLowerCase();
-    return all.filter(n => n.toLowerCase().includes(q));
+    return all.filter((n) => n.toLowerCase().includes(q));
   }, [all, query]);
 
   const showRecentsHeader = showRecents && !query && recents.length > 0;
@@ -49,7 +50,7 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
       <input
         autoFocus
         value={query}
-        onChange={e => setQuery(e.target.value)}
+        onChange={(e) => setQuery(e.target.value)}
         placeholder="Search Pokémon"
         // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
         // Anything <16px triggers it; pinch-zoom stays available either way.
@@ -59,16 +60,28 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
         {showRecentsHeader && (
           <>
             <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5">Recent</div>
-            {recents.map(r => (
-              <Row key={r.id} species={r.mon.species}
-                   onPick={() => { onPick(r.mon.species); onClose(); }} />
+            {recents.map((r) => (
+              <Row
+                key={r.id}
+                species={r.mon.species}
+                onPick={() => {
+                  onPick(r.mon.species);
+                  onClose();
+                }}
+              />
             ))}
             <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mt-3 mb-1.5">All</div>
           </>
         )}
-        {filtered.map(name => (
-          <Row key={name} species={name}
-               onPick={() => { onPick(name); onClose(); }} />
+        {filtered.map((name) => (
+          <Row
+            key={name}
+            species={name}
+            onPick={() => {
+              onPick(name);
+              onClose();
+            }}
+          />
         ))}
       </div>
     </PickerShell>
@@ -77,8 +90,7 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
 
 function Row({ species, onPick }: { species: string; onPick: () => void }) {
   return (
-    <button type="button" onClick={onPick}
-            className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface text-left">
+    <button type="button" onClick={onPick} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface text-left">
       <img src={spriteUrl(species)} alt="" className="w-8 h-8 rounded" />
       <span className="font-medium">{species}</span>
     </button>

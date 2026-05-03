@@ -1,14 +1,7 @@
-import {
-  Generations,
-  Pokemon,
-  Move,
-  Field,
-  calculate,
-  toID,
-  TYPE_CHART,
-} from '@smogon/calc';
-import type { SavedMon, FieldState, SideState, StatusName } from '../types';
-import { priorityOverride } from '../data/pkmn';
+import { calculate, Field, Generations, Move, Pokemon, toID, TYPE_CHART } from '@smogon/calc';
+
+import { priorityOverride } from '@/data/pkmn';
+import type { FieldState, SavedMon, SideState, StatusName } from '@/types';
 
 const STATUS_TO_CALC: Record<Exclude<StatusName, 'Healthy'>, 'psn' | 'tox' | 'brn' | 'par' | 'slp' | 'frz'> = {
   Poisoned: 'psn',
@@ -26,9 +19,9 @@ export interface MoveResult {
   type: string;
   category: string;
   priority: number;
-  damageRange: [number, number];     // raw HP damage
-  percentRange: [number, number];    // % of defender max HP, integer
-  koChanceText: string;              // e.g. "guaranteed OHKO", "44.5% chance to 2HKO"
+  damageRange: [number, number]; // raw HP damage
+  percentRange: [number, number]; // % of defender max HP, integer
+  koChanceText: string; // e.g. "guaranteed OHKO", "44.5% chance to 2HKO"
   isStatus: boolean;
   /**
    * Type-effectiveness multiplier of this move's type vs the defender's
@@ -75,11 +68,7 @@ function speciesForCalc(mon: SavedMon): string {
   if (mon.species.endsWith('-Mega') || mon.species.includes('-Mega-')) {
     return mon.species;
   }
-  const suffix =
-    mon.mega === 'mega' ? '-Mega'
-    : mon.mega === 'mega-x' ? '-Mega-X'
-    : mon.mega === 'mega-y' ? '-Mega-Y'
-    : '';
+  const suffix = mon.mega === 'mega' ? '-Mega' : mon.mega === 'mega-x' ? '-Mega-X' : mon.mega === 'mega-y' ? '-Mega-Y' : '';
   if (!suffix) return mon.species;
   const candidate = `${mon.species}${suffix}`;
   if (GEN.species.get(toID(candidate) as any)) return candidate;
@@ -93,12 +82,9 @@ function buildPokemon(mon: SavedMon) {
     item: mon.item || undefined,
     ability: mon.ability || undefined,
     nature: mon.nature,
-    evs: mon.sps,                  // Champions: sps map onto evs (verified in spike)
+    evs: mon.sps, // Champions: sps map onto evs (verified in spike)
     boosts: mon.boosts,
-    status:
-      !mon.status || mon.status === 'Healthy'
-        ? ''
-        : STATUS_TO_CALC[mon.status],
+    status: !mon.status || mon.status === 'Healthy' ? '' : STATUS_TO_CALC[mon.status],
     curHP: mon.currentHp,
   });
 }
@@ -154,32 +140,23 @@ export function typeEffectiveness(moveType: string, defenderTypes: readonly stri
   return mult;
 }
 
-function buildMoveResult(
-  moveName: string,
-  attacker: Pokemon,
-  defender: Pokemon,
-  field: Field,
-): MoveResult {
+function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon, field: Field): MoveResult {
   if (!moveName) {
     return emptyMoveResult();
   }
   const move = new Move(GEN, moveName);
   const result = calculate(GEN, attacker, defender, move, field);
-  const range = result.range();             // [min, max] raw damage
+  const range = result.range(); // [min, max] raw damage
   const maxHp = defender.maxHP();
   const isStatus = move.category === 'Status' || range[1] === 0;
-  const percent: [number, number] = isStatus
-    ? [0, 0]
-    : [Math.floor((range[0] / maxHp) * 100), Math.floor((range[1] / maxHp) * 100)];
+  const percent: [number, number] = isStatus ? [0, 0] : [Math.floor((range[0] / maxHp) * 100), Math.floor((range[1] / maxHp) * 100)];
   let koText = '';
   try {
     koText = isStatus ? '' : result.kochance().text;
   } catch {
     koText = '';
   }
-  const effectiveness = move.category === 'Status'
-    ? 1
-    : typeEffectiveness(move.type as string, defender.species.types as readonly string[]);
+  const effectiveness = move.category === 'Status' ? 1 : typeEffectiveness(move.type as string, defender.species.types as readonly string[]);
   // Calc's Champions (gen-0) move data omits priority for several
   // Champions-legal moves (Trick Room, Roar, Whirlwind, …), reporting 0
   // where the real priority is non-zero. When @pkmn/data has a non-zero
@@ -214,11 +191,7 @@ function emptyMoveResult(): MoveResult {
   };
 }
 
-export function calculateMatchup(
-  you: SavedMon,
-  opp: SavedMon,
-  field: FieldState,
-): MatchupResult {
+export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState): MatchupResult {
   const yourSide = buildField(field);
   // Field is asymmetric - attacker/defender perspective swaps. Build twice.
   const oppSide = buildField({ ...field, yourSide: field.oppSide, oppSide: field.yourSide });
@@ -226,12 +199,8 @@ export function calculateMatchup(
   const attacker = buildPokemon(you);
   const defender = buildPokemon(opp);
 
-  const attackerMoves = you.moves.map(m =>
-    buildMoveResult(m, attacker.clone(), defender.clone(), yourSide),
-  );
-  const defenderMoves = opp.moves.map(m =>
-    buildMoveResult(m, defender.clone(), attacker.clone(), oppSide),
-  );
+  const attackerMoves = you.moves.map((m) => buildMoveResult(m, attacker.clone(), defender.clone(), yourSide));
+  const defenderMoves = opp.moves.map((m) => buildMoveResult(m, defender.clone(), attacker.clone(), oppSide));
 
   const attackerSpe = attacker.stats.spe;
   const defenderSpe = defender.stats.spe;

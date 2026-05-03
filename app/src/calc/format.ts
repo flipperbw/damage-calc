@@ -1,4 +1,4 @@
-import type { SavedMon } from '../types';
+import type { SavedMon } from '@/types';
 
 export type KoKind = 'ohko' | 'thko' | 'chance' | 'multi';
 export interface KoTag {
@@ -47,10 +47,7 @@ export interface EffectivenessBadge {
  * Map a type-effectiveness multiplier to a renderable badge. Status moves
  * and neutral (1x) hits return null so the row doesn't accumulate noise.
  */
-export function effectivenessBadge(
-  multiplier: number,
-  isStatus: boolean,
-): EffectivenessBadge | null {
+export function effectivenessBadge(multiplier: number, isStatus: boolean): EffectivenessBadge | null {
   if (isStatus) return null;
   if (multiplier === 1) return null;
   if (multiplier === 0) return { label: 'Immune', cls: 'bg-black/40 text-white/40 italic' };

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Generations, toID } from '@smogon/calc';
-import { PickerShell } from './pickers/PickerShell';
-import { TypeBadge } from './TypeBadge';
-import { effectivenessBadge, koTagFromText, priorityFlag } from '../calc/format';
-import { moveDescription, priorityOverride, type DescPair } from '../data/pkmn';
-import type { MoveResult } from '../calc/adapter';
+
+import type { MoveResult } from '@/calc/adapter';
+import { effectivenessBadge, koTagFromText, priorityFlag } from '@/calc/format';
+import { PickerShell } from '@/components/pickers/PickerShell';
+import { TypeBadge } from '@/components/TypeBadge';
+import { moveDescription, priorityOverride, type DescPair } from '@/data/pkmn';
 
 const GEN = Generations.get(0);
 
@@ -23,11 +24,7 @@ interface Props {
  * from the Move record, plus the live matchup numbers when provided.
  */
 /** Loading state for the @pkmn/data prose fetch. */
-type ProseState =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'ready'; pair: DescPair }
-  | { kind: 'error' };
+type ProseState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ready'; pair: DescPair } | { kind: 'error' };
 
 export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
   const move = useMemo(() => {
@@ -48,9 +45,15 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
     let cancelled = false;
     setProse({ kind: 'loading' });
     moveDescription(moveName)
-      .then(pair => { if (!cancelled) setProse({ kind: 'ready', pair }); })
-      .catch(() => { if (!cancelled) setProse({ kind: 'error' }); });
-    return () => { cancelled = true; };
+      .then((pair) => {
+        if (!cancelled) setProse({ kind: 'ready', pair });
+      })
+      .catch(() => {
+        if (!cancelled) setProse({ kind: 'error' });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, moveName]);
 
   if (!open || !moveName || !move) return null;
@@ -104,11 +107,15 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
         <div className="flex items-center gap-2 mb-3">
           <TypeBadge type={String(move.type)} size="md" />
           <h3 className="text-lg font-bold flex-1">{move.name}</h3>
-          <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded ${
-            category === 'Physical' ? 'bg-danger/15 text-danger border border-danger/30'
-            : category === 'Special' ? 'bg-accent/15 text-accent border border-accent/30'
-            : 'bg-surface border border-surface-hi opacity-70'
-          }`}>
+          <span
+            className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded ${
+              category === 'Physical'
+                ? 'bg-danger/15 text-danger border border-danger/30'
+                : category === 'Special'
+                  ? 'bg-accent/15 text-accent border border-accent/30'
+                  : 'bg-surface border border-surface-hi opacity-70'
+            }`}
+          >
             {category}
           </span>
         </div>
@@ -133,22 +140,16 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {ko && (
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                  ko.kind === 'ohko' ? 'bg-danger text-white'
-                  : ko.kind === 'thko' ? 'bg-warn text-black'
-                  : 'bg-black/40 text-white'
-                }`}>
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                    ko.kind === 'ohko' ? 'bg-danger text-white' : ko.kind === 'thko' ? 'bg-warn text-black' : 'bg-black/40 text-white'
+                  }`}
+                >
                   {ko.label}
                 </span>
               )}
-              {eff && (
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${eff.cls}`}>
-                  {eff.label}
-                </span>
-              )}
-              {result.koChanceText && (
-                <span className="text-xs opacity-65">{result.koChanceText}</span>
-              )}
+              {eff && <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${eff.cls}`}>{eff.label}</span>}
+              {result.koChanceText && <span className="text-xs opacity-65">{result.koChanceText}</span>}
             </div>
           </div>
         )}
@@ -177,11 +178,8 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
           <div className="mb-3">
             <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Flags</div>
             <div className="flex flex-wrap gap-1.5">
-              {flagChips.map(c => (
-                <span
-                  key={c.key}
-                  className="text-[11px] px-2 py-0.5 rounded-lg bg-surface border border-surface-hi"
-                >
+              {flagChips.map((c) => (
+                <span key={c.key} className="text-[11px] px-2 py-0.5 rounded-lg bg-surface border border-surface-hi">
                   {c.label}
                 </span>
               ))}
@@ -213,12 +211,8 @@ function ProseSection({ state }: { state: ProseState }) {
   if (!short && !full) return null;
   return (
     <div className="mb-3" data-testid="move-prose">
-      {short && (
-        <div className="text-sm font-medium opacity-90 mb-1">{short}</div>
-      )}
-      {full && (
-        <p className="text-sm opacity-75 leading-snug">{full}</p>
-      )}
+      {short && <div className="text-sm font-medium opacity-90 mb-1">{short}</div>}
+      {full && <p className="text-sm opacity-75 leading-snug">{full}</p>}
     </div>
   );
 }
@@ -269,12 +263,19 @@ function describeSecondary(s: any): string | null {
 
 function statusVerb(status: string): string {
   switch (status) {
-    case 'brn': return 'burn';
-    case 'par': return 'paralyze';
-    case 'psn': return 'poison';
-    case 'tox': return 'badly poison';
-    case 'slp': return 'put to sleep';
-    case 'frz': return 'freeze';
-    default: return `inflict ${status}`;
+    case 'brn':
+      return 'burn';
+    case 'par':
+      return 'paralyze';
+    case 'psn':
+      return 'poison';
+    case 'tox':
+      return 'badly poison';
+    case 'slp':
+      return 'put to sleep';
+    case 'frz':
+      return 'freeze';
+    default:
+      return `inflict ${status}`;
   }
 }

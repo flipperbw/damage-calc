@@ -1,7 +1,6 @@
-import { test, expect } from '@playwright/test';
-import {
-  freshStart, nav, createTeam, addMonToFirstSlot, activateTeam, pickOpponent,
-} from './helpers';
+import { expect, test } from '@playwright/test';
+
+import { activateTeam, addMonToFirstSlot, createTeam, freshStart, nav, pickOpponent } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await freshStart(page);

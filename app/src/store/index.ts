@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Team, SavedMon, FieldState, Notation, Tab, Format, EditorTarget, ThreatList } from '../types';
-import { addRecent } from './validators';
-import { migrate, CURRENT_VERSION } from './migrations';
-import { emptyField } from './factories';
-import { buildSeedThreatLists, CURRENT_SEED_KEYS } from '../data/seed-threats';
-import { uuid } from '../util/uuid';
+
+import { buildSeedThreatLists, CURRENT_SEED_KEYS } from '@/data/seed-threats';
+import { emptyField } from '@/store/factories';
+import { CURRENT_VERSION, migrate } from '@/store/migrations';
+import { addRecent } from '@/store/validators';
+import type { AppState, EditorTarget, FieldState, Format, Notation, SavedMon, Tab, Team, ThreatList } from '@/types';
+import { uuid } from '@/util/uuid';
 
 const PERSIST_NAME = 'champions-calc-v1';
 
@@ -26,7 +27,7 @@ export const PERSISTED_KEYS = [
   'notation',
   'editor',
 ] as const;
-export type PersistedKey = typeof PERSISTED_KEYS[number];
+export type PersistedKey = (typeof PERSISTED_KEYS)[number];
 
 interface Actions {
   // Teams
@@ -98,17 +99,22 @@ export const useStore = create<AppState & Actions>()(
       createTeam: ({ name, format }) => {
         const id = uuid();
         const t: Team = {
-          id, name, format, mons: [],
-          createdAt: Date.now(), updatedAt: Date.now(),
+          id,
+          name,
+          format,
+          mons: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
         };
-        set(s => ({ teams: [...s.teams, t], activeTeamId: id, activeMonIndex: 0 }));
+        set((s) => ({ teams: [...s.teams, t], activeTeamId: id, activeMonIndex: 0 }));
         return id;
       },
-      renameTeam: (id, name) => set(s => ({
-        teams: s.teams.map(t => t.id === id ? { ...t, name, updatedAt: Date.now() } : t),
-      })),
+      renameTeam: (id, name) =>
+        set((s) => ({
+          teams: s.teams.map((t) => (t.id === id ? { ...t, name, updatedAt: Date.now() } : t)),
+        })),
       duplicateTeam: (id) => {
-        const original = _get().teams.find(t => t.id === id);
+        const original = _get().teams.find((t) => t.id === id);
         if (!original) return null;
         const newId = uuid();
         const now = Date.now();
@@ -116,87 +122,78 @@ export const useStore = create<AppState & Actions>()(
           id: newId,
           name: `${original.name} (copy)`,
           format: original.format,
-          mons: original.mons.map(m => ({ ...m, id: uuid() })),
+          mons: original.mons.map((m) => ({ ...m, id: uuid() })),
           createdAt: now,
           updatedAt: now,
         };
-        set(s => ({ teams: [...s.teams, copy] }));
+        set((s) => ({ teams: [...s.teams, copy] }));
         return newId;
       },
-      deleteTeam: (id) => set(s => ({
-        teams: s.teams.filter(t => t.id !== id),
-        activeTeamId: s.activeTeamId === id ? null : s.activeTeamId,
-        // Avoid leaving the editor pointed at a team we just deleted.
-        editor:
-          s.editor && s.editor.kind === 'team-mon' && s.editor.teamId === id
-            ? null
-            : s.editor,
-      })),
+      deleteTeam: (id) =>
+        set((s) => ({
+          teams: s.teams.filter((t) => t.id !== id),
+          activeTeamId: s.activeTeamId === id ? null : s.activeTeamId,
+          // Avoid leaving the editor pointed at a team we just deleted.
+          editor: s.editor && s.editor.kind === 'team-mon' && s.editor.teamId === id ? null : s.editor,
+        })),
       setActiveTeam: (id) => set({ activeTeamId: id, activeMonIndex: 0 }),
       setActiveMonIndex: (i) => set({ activeMonIndex: i }),
-      upsertMon: (teamId, mon) => set(s => ({
-        teams: s.teams.map(t => {
-          if (t.id !== teamId) return t;
-          const idx = t.mons.findIndex(m => m.id === mon.id);
-          const mons = idx >= 0
-            ? t.mons.map(m => m.id === mon.id ? mon : m)
-            : [...t.mons, mon];
-          return { ...t, mons, updatedAt: Date.now() };
-        }),
-      })),
-      removeMon: (teamId, monId) => set(s => ({
-        teams: s.teams.map(t => t.id === teamId
-          ? { ...t, mons: t.mons.filter(m => m.id !== monId), updatedAt: Date.now() }
-          : t,
-        ),
-        // Clear an editor that was pointing at the mon we just removed -
-        // otherwise the editor reopens on a vapor target after reload.
-        editor:
-          s.editor && s.editor.kind === 'team-mon'
-            && s.editor.teamId === teamId
-            && s.editor.monId === monId
-            ? null
-            : s.editor,
-      })),
+      upsertMon: (teamId, mon) =>
+        set((s) => ({
+          teams: s.teams.map((t) => {
+            if (t.id !== teamId) return t;
+            const idx = t.mons.findIndex((m) => m.id === mon.id);
+            const mons = idx >= 0 ? t.mons.map((m) => (m.id === mon.id ? mon : m)) : [...t.mons, mon];
+            return { ...t, mons, updatedAt: Date.now() };
+          }),
+        })),
+      removeMon: (teamId, monId) =>
+        set((s) => ({
+          teams: s.teams.map((t) => (t.id === teamId ? { ...t, mons: t.mons.filter((m) => m.id !== monId), updatedAt: Date.now() } : t)),
+          // Clear an editor that was pointing at the mon we just removed -
+          // otherwise the editor reopens on a vapor target after reload.
+          editor: s.editor && s.editor.kind === 'team-mon' && s.editor.teamId === teamId && s.editor.monId === monId ? null : s.editor,
+        })),
 
-      setOpponent: (mon) => set(s => {
-        // Replace opponent entirely. Bump recents only when this represents a
-        // new species selection (not a no-op or HP/Mega tweak).
-        const prev = s.opponent;
-        const isSpeciesChange =
-          mon !== null && (prev === null || mon.species !== prev.species);
-        return {
-          opponent: mon,
-          recentOpponents: isSpeciesChange
-            ? addRecent(s.recentOpponents, mon, Date.now())
-            : s.recentOpponents,
-        };
-      }),
-      updateOpponent: (patch) => set(s => (
-        s.opponent ? { opponent: { ...s.opponent, ...patch } } : {}
-      )),
-      clearRecent: (id) => set(s => ({
-        recentOpponents: s.recentOpponents.filter(r => r.id !== id),
-      })),
+      setOpponent: (mon) =>
+        set((s) => {
+          // Replace opponent entirely. Bump recents only when this represents a
+          // new species selection (not a no-op or HP/Mega tweak).
+          const prev = s.opponent;
+          const isSpeciesChange = mon !== null && (prev === null || mon.species !== prev.species);
+          return {
+            opponent: mon,
+            recentOpponents: isSpeciesChange ? addRecent(s.recentOpponents, mon, Date.now()) : s.recentOpponents,
+          };
+        }),
+      updateOpponent: (patch) => set((s) => (s.opponent ? { opponent: { ...s.opponent, ...patch } } : {})),
+      clearRecent: (id) =>
+        set((s) => ({
+          recentOpponents: s.recentOpponents.filter((r) => r.id !== id),
+        })),
       clearAllRecents: () => set({ recentOpponents: [] }),
 
       createThreatList: ({ name, format }) => {
         const id = uuid();
         const now = Date.now();
         const list: ThreatList = {
-          id, name, format, mons: [], isSeed: false,
-          createdAt: now, updatedAt: now,
+          id,
+          name,
+          format,
+          mons: [],
+          isSeed: false,
+          createdAt: now,
+          updatedAt: now,
         };
-        set(s => ({ threatLists: [...s.threatLists, list] }));
+        set((s) => ({ threatLists: [...s.threatLists, list] }));
         return id;
       },
-      renameThreatList: (id, name) => set(s => ({
-        threatLists: s.threatLists.map(l =>
-          l.id === id ? { ...l, name, updatedAt: Date.now() } : l,
-        ),
-      })),
+      renameThreatList: (id, name) =>
+        set((s) => ({
+          threatLists: s.threatLists.map((l) => (l.id === id ? { ...l, name, updatedAt: Date.now() } : l)),
+        })),
       duplicateThreatList: (id) => {
-        const original = _get().threatLists.find(l => l.id === id);
+        const original = _get().threatLists.find((l) => l.id === id);
         if (!original) return null;
         const newId = uuid();
         const now = Date.now();
@@ -206,76 +203,66 @@ export const useStore = create<AppState & Actions>()(
           id: newId,
           name: `${original.name} (copy)`,
           format: original.format,
-          mons: original.mons.map(m => ({ ...m, id: uuid() })),
+          mons: original.mons.map((m) => ({ ...m, id: uuid() })),
           isSeed: false,
           createdAt: now,
           updatedAt: now,
         };
-        set(s => ({ threatLists: [...s.threatLists, copy] }));
+        set((s) => ({ threatLists: [...s.threatLists, copy] }));
         return newId;
       },
       deleteThreatList: (id) => {
-        const list = _get().threatLists.find(l => l.id === id);
+        const list = _get().threatLists.find((l) => l.id === id);
         if (!list) return;
         if (list.isSeed) {
           // eslint-disable-next-line no-console
           console.warn(`Refusing to delete seed threat list "${list.name}" (id ${id}).`);
           return;
         }
-        set(s => ({
-          threatLists: s.threatLists.filter(l => l.id !== id),
+        set((s) => ({
+          threatLists: s.threatLists.filter((l) => l.id !== id),
           // Clear an editor pointing at a mon in the threat list we just
           // deleted - same hygiene rule as deleteTeam.
-          editor:
-            s.editor && s.editor.kind === 'threat-mon' && s.editor.threatListId === id
-              ? null
-              : s.editor,
+          editor: s.editor && s.editor.kind === 'threat-mon' && s.editor.threatListId === id ? null : s.editor,
         }));
       },
-      upsertThreatMon: (threatListId, mon) => set(s => ({
-        threatLists: s.threatLists.map(l => {
-          if (l.id !== threatListId) return l;
-          const idx = l.mons.findIndex(m => m.id === mon.id);
-          const mons = idx >= 0
-            ? l.mons.map(m => m.id === mon.id ? mon : m)
-            : [...l.mons, mon];
-          return { ...l, mons, updatedAt: Date.now() };
+      upsertThreatMon: (threatListId, mon) =>
+        set((s) => ({
+          threatLists: s.threatLists.map((l) => {
+            if (l.id !== threatListId) return l;
+            const idx = l.mons.findIndex((m) => m.id === mon.id);
+            const mons = idx >= 0 ? l.mons.map((m) => (m.id === mon.id ? mon : m)) : [...l.mons, mon];
+            return { ...l, mons, updatedAt: Date.now() };
+          }),
+        })),
+      removeThreatMon: (threatListId, monId) =>
+        set((s) => ({
+          threatLists: s.threatLists.map((l) =>
+            l.id === threatListId ? { ...l, mons: l.mons.filter((m) => m.id !== monId), updatedAt: Date.now() } : l,
+          ),
+          // Clear an editor that was pointing at the threat-mon we just
+          // removed - mirrors the team-mon hygiene above.
+          editor: s.editor && s.editor.kind === 'threat-mon' && s.editor.threatListId === threatListId && s.editor.monId === monId ? null : s.editor,
+        })),
+      ensureSeedThreatLists: () =>
+        set((s) => {
+          // Drop seeds whose seedKey is no longer shipped (e.g. "megas" after
+          // we removed Top Megas from the curated specs). This makes obsolete
+          // seeds disappear automatically on app load — the user doesn't have
+          // to manually clear them. User-created (non-seed) lists are
+          // untouched.
+          const validKeys = new Set<string>(CURRENT_SEED_KEYS);
+          const pruned = s.threatLists.filter((l) => !l.isSeed || (l.seedKey !== undefined && validKeys.has(l.seedKey)));
+          // If, after pruning, there are no seeds at all, repopulate them.
+          const hasSeeds = pruned.some((l) => l.isSeed);
+          if (!hasSeeds) {
+            return { threatLists: [...buildSeedThreatLists(), ...pruned] };
+          }
+          if (pruned.length === s.threatLists.length) return {};
+          return { threatLists: pruned };
         }),
-      })),
-      removeThreatMon: (threatListId, monId) => set(s => ({
-        threatLists: s.threatLists.map(l => l.id === threatListId
-          ? { ...l, mons: l.mons.filter(m => m.id !== monId), updatedAt: Date.now() }
-          : l,
-        ),
-        // Clear an editor that was pointing at the threat-mon we just
-        // removed - mirrors the team-mon hygiene above.
-        editor:
-          s.editor && s.editor.kind === 'threat-mon'
-            && s.editor.threatListId === threatListId
-            && s.editor.monId === monId
-            ? null
-            : s.editor,
-      })),
-      ensureSeedThreatLists: () => set(s => {
-        // Drop seeds whose seedKey is no longer shipped (e.g. "megas" after
-        // we removed Top Megas from the curated specs). This makes obsolete
-        // seeds disappear automatically on app load — the user doesn't have
-        // to manually clear them. User-created (non-seed) lists are
-        // untouched.
-        const validKeys = new Set<string>(CURRENT_SEED_KEYS);
-        const pruned = s.threatLists.filter(
-          l => !l.isSeed || (l.seedKey !== undefined && validKeys.has(l.seedKey)),
-        );
-        // If, after pruning, there are no seeds at all, repopulate them.
-        const hasSeeds = pruned.some(l => l.isSeed);
-        if (!hasSeeds) {
-          return { threatLists: [...buildSeedThreatLists(), ...pruned] };
-        }
-        if (pruned.length === s.threatLists.length) return {};
-        return { threatLists: pruned };
-      }),
 
-      setField: (patch) => set(s => ({ field: { ...s.field, ...patch } })),
+      setField: (patch) => set((s) => ({ field: { ...s.field, ...patch } })),
 
       setTab: (tab) => set({ tab }),
       setNotation: (notation) => set({ notation }),
@@ -302,10 +289,7 @@ export const useStore = create<AppState & Actions>()(
             const raw = JSON.stringify({ version, state: persistedState });
             localStorage.setItem(quarantineKey, raw);
             // eslint-disable-next-line no-console
-            console.error(
-              `Persist migration failed; quarantined previous state to "${quarantineKey}". Starting fresh.`,
-              err,
-            );
+            console.error(`Persist migration failed; quarantined previous state to "${quarantineKey}". Starting fresh.`, err);
           } catch (storageErr) {
             // eslint-disable-next-line no-console
             console.error('Failed to quarantine persisted state', storageErr);

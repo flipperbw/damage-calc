@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { monToShowdownText, teamToShowdownText } from './exporters';
-import type { SavedMon, Team } from '../types';
+import { describe, expect, it } from 'vitest';
+
+import { monToShowdownText, teamToShowdownText } from '@/store/exporters';
+import type { SavedMon, Team } from '@/types';
 
 function mon(overrides: Partial<SavedMon> = {}): SavedMon {
   return {
@@ -55,7 +56,9 @@ describe('monToShowdownText', () => {
   });
 
   it('uses -Mega-X / -Mega-Y for x/y mega forms', () => {
-    const x = monToShowdownText(mon({ species: 'Charizard', item: 'Charizardite X', ability: 'Tough Claws', mega: 'mega-x', moves: ['', '', '', ''] }));
+    const x = monToShowdownText(
+      mon({ species: 'Charizard', item: 'Charizardite X', ability: 'Tough Claws', mega: 'mega-x', moves: ['', '', '', ''] }),
+    );
     const y = monToShowdownText(mon({ species: 'Charizard', item: 'Charizardite Y', ability: 'Drought', mega: 'mega-y', moves: ['', '', '', ''] }));
     expect(x.split('\n')[0]).toBe('Charizard-Mega-X @ Charizardite X');
     expect(y.split('\n')[0]).toBe('Charizard-Mega-Y @ Charizardite Y');
@@ -68,7 +71,7 @@ describe('monToShowdownText', () => {
 
   it('omits empty move slots', () => {
     const text = monToShowdownText(mon({ moves: ['Earthquake', '', 'Outrage', ''] }));
-    const moveLines = text.split('\n').filter(l => l.startsWith('- '));
+    const moveLines = text.split('\n').filter((l) => l.startsWith('- '));
     expect(moveLines).toEqual(['- Earthquake', '- Outrage']);
   });
 
@@ -86,10 +89,7 @@ describe('teamToShowdownText', () => {
       format: 'singles',
       createdAt: 0,
       updatedAt: 0,
-      mons: [
-        mon({ species: 'Garchomp', moves: ['Earthquake', '', '', ''] }),
-        mon({ species: 'Salamence', moves: ['Dragon Claw', '', '', ''] }),
-      ],
+      mons: [mon({ species: 'Garchomp', moves: ['Earthquake', '', '', ''] }), mon({ species: 'Salamence', moves: ['Dragon Claw', '', '', ''] })],
     };
     const text = teamToShowdownText(team);
     expect(text.startsWith('=== My Team ===\n\n')).toBe(true);
@@ -101,8 +101,12 @@ describe('teamToShowdownText', () => {
 
   it('reports an empty team explicitly', () => {
     const team: Team = {
-      id: 't', name: 'Empty', format: 'singles',
-      createdAt: 0, updatedAt: 0, mons: [],
+      id: 't',
+      name: 'Empty',
+      format: 'singles',
+      createdAt: 0,
+      updatedAt: 0,
+      mons: [],
     };
     expect(teamToShowdownText(team)).toBe('=== Empty ===\n(empty team)');
   });

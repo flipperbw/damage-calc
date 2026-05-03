@@ -8,9 +8,11 @@ interface Props {
 
 export function StatChip({ icon, label, tone = 'default', editable, onClick }: Props) {
   const toneClass =
-    tone === 'warn'  ? 'bg-warn/10 border-warn/30 text-warn'
-  : tone === 'boost' ? 'bg-ok/10 border-ok/30 text-ok'
-  : 'bg-surface border-surface-hi text-text';
+    tone === 'warn'
+      ? 'bg-warn/10 border-warn/30 text-warn'
+      : tone === 'boost'
+        ? 'bg-ok/10 border-ok/30 text-ok'
+        : 'bg-surface border-surface-hi text-text';
   return (
     <button
       type="button"

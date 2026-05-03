@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { freshStart, nav, createTeam } from './helpers';
+import { expect, test } from '@playwright/test';
+
+import { createTeam, freshStart, nav } from './helpers';
 
 /**
  * Helper: open a fresh editor on Garchomp on a brand-new team. Used by most
@@ -12,7 +13,10 @@ async function openGarchompEditor(page: import('@playwright/test').Page) {
   await page.getByTestId('team-slot-empty-0').first().click();
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill('Garchomp');
-  await shell.getByRole('button', { name: /^Garchomp$/ }).first().click();
+  await shell
+    .getByRole('button', { name: /^Garchomp$/ })
+    .first()
+    .click();
 }
 
 test('curated build auto-fills item / ability / nature / moves', async ({ page }) => {
@@ -20,7 +24,10 @@ test('curated build auto-fills item / ability / nature / moves', async ({ page }
 
   // Build dropdown shows "Custom" until applied.
   await page.getByRole('button', { name: /^Custom/ }).click();
-  await page.getByRole('button', { name: /Mixed Mega/ }).first().click();
+  await page
+    .getByRole('button', { name: /Mixed Mega/ })
+    .first()
+    .click();
 
   // The first build "SM OU Mixed Mega" uses Garchompite + Rough Skin + Hasty.
   // Fields render the chosen values.
@@ -107,7 +114,10 @@ test('move picker: Pikachu Learnable list excludes Earthquake until "Show all mo
   await page.getByTestId('team-slot-empty-0').first().click();
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill('Pikachu');
-  await shell.getByRole('button', { name: /^Pikachu$/ }).first().click();
+  await shell
+    .getByRole('button', { name: /^Pikachu$/ })
+    .first()
+    .click();
 
   // Open the move picker on the first slot.
   await page.getByText('- empty -').first().click();
@@ -154,13 +164,11 @@ test('SP grid: per-stat cap is 32 and total cap is 66', async ({ page }) => {
     // Click atk + 27 more times in quick succession with microtask yields
     // so each onClick sees the prior state (React flushes between).
     return new Promise<void>(async (resolve) => {
-      const btn = document.querySelector(
-        'button[aria-label="atk +"]',
-      ) as HTMLButtonElement | null;
+      const btn = document.querySelector('button[aria-label="atk +"]') as HTMLButtonElement | null;
       if (!btn) return resolve();
       for (let i = 0; i < 27; i++) {
         btn.click();
-        await new Promise(r => setTimeout(r, 0));
+        await new Promise((r) => setTimeout(r, 0));
       }
       resolve();
     });
@@ -169,13 +177,11 @@ test('SP grid: per-stat cap is 32 and total cap is 66', async ({ page }) => {
 
   await page.evaluate(() => {
     return new Promise<void>(async (resolve) => {
-      const btn = document.querySelector(
-        'button[aria-label="spe +"]',
-      ) as HTMLButtonElement | null;
+      const btn = document.querySelector('button[aria-label="spe +"]') as HTMLButtonElement | null;
       if (!btn) return resolve();
       for (let i = 0; i < 32; i++) {
         btn.click();
-        await new Promise(r => setTimeout(r, 0));
+        await new Promise((r) => setTimeout(r, 0));
       }
       resolve();
     });
@@ -197,9 +203,7 @@ test('Copy button copies showdown text and surfaces a toast', async ({ page }) =
   // ignores the permissions API (no-op rejection); we still attempt the read
   // and fall through to toast assertion when readText isn't available.
   try {
-    await page
-      .context()
-      .grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   } catch {
     // webkit doesn't support these permissions strings; not fatal - we'll
     // verify the toast text instead of round-tripping through the clipboard.
@@ -207,7 +211,10 @@ test('Copy button copies showdown text and surfaces a toast', async ({ page }) =
 
   await openGarchompEditor(page);
   await page.getByRole('button', { name: /^Custom/ }).click();
-  await page.getByRole('button', { name: /Mixed Mega/ }).first().click();
+  await page
+    .getByRole('button', { name: /Mixed Mega/ })
+    .first()
+    .click();
 
   await page.getByTestId('copy-mon').click();
 
@@ -226,7 +233,10 @@ test('Mega toggle is gated on held mega stone - Garchomp + Garchompite shows it'
 
   // Apply Garchompite via the curated build.
   await page.getByRole('button', { name: /^Custom/ }).click();
-  await page.getByRole('button', { name: /Mixed Mega/ }).first().click();
+  await page
+    .getByRole('button', { name: /Mixed Mega/ })
+    .first()
+    .click();
 
   // Now the toggle appears.
   await expect(page.getByRole('button', { name: /Mega Evolve/ })).toBeVisible();

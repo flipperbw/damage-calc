@@ -4,7 +4,7 @@ function spriteSlug(species: string): string {
   return species
     .toLowerCase()
     .replace(/[\s.'’]+/g, '')
-    .replace(/-mega(-x|-y)?$/, m => m.toLowerCase());
+    .replace(/-mega(-x|-y)?$/, (m) => m.toLowerCase());
 }
 
 export function spriteUrl(species: string): string {

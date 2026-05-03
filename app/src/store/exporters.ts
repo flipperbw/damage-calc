@@ -1,7 +1,12 @@
-import type { SavedMon, Team, StatID } from '../types';
+import type { SavedMon, StatID, Team } from '@/types';
 
 const STAT_LABEL: Record<StatID, string> = {
-  hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe',
+  hp: 'HP',
+  atk: 'Atk',
+  def: 'Def',
+  spa: 'SpA',
+  spd: 'SpD',
+  spe: 'Spe',
 };
 
 const STAT_ORDER: StatID[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
@@ -21,9 +26,7 @@ export function monToShowdownText(mon: SavedMon): string {
   if (mon.ability) lines.push(`Ability: ${mon.ability}`);
   lines.push(`Level: 50`);
   // SP allocation; emit as EVs in PS-style line if any non-zero stats.
-  const evParts = STAT_ORDER
-    .filter(s => (mon.sps[s] ?? 0) > 0)
-    .map(s => `${mon.sps[s]} ${STAT_LABEL[s]}`);
+  const evParts = STAT_ORDER.filter((s) => (mon.sps[s] ?? 0) > 0).map((s) => `${mon.sps[s]} ${STAT_LABEL[s]}`);
   if (evParts.length > 0) lines.push(`EVs: ${evParts.join(' / ')}`);
   if (mon.nature) lines.push(`${mon.nature} Nature`);
   for (const move of mon.moves) {

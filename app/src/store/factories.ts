@@ -1,6 +1,6 @@
-import type { SavedMon, FieldState } from '../types';
-import { getBuildsForSpecies, getBuild } from '../data/setdex-champions';
-import { uuid } from '../util/uuid';
+import { getBuild, getBuildsForSpecies } from '@/data/setdex-champions';
+import type { FieldState, SavedMon } from '@/types';
+import { uuid } from '@/util/uuid';
 
 export function emptyMon(species: string): SavedMon {
   return {

@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { freshStart, nav } from './helpers';
 
 /**
@@ -10,8 +11,8 @@ import { freshStart, nav } from './helpers';
  * inside the visible rect AND meet Apple's ≥44×44px hit-target guideline.
  */
 
-const FAKE_TOP_INSET = 47;     // iPhone 13 status bar height-ish
-const FAKE_BOTTOM_INSET = 34;  // home indicator
+const FAKE_TOP_INSET = 47; // iPhone 13 status bar height-ish
+const FAKE_BOTTOM_INSET = 34; // home indicator
 const MIN_TARGET = 44;
 
 async function injectFakeSafeArea(page: import('@playwright/test').Page) {

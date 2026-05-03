@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { Generations, toID } from '@smogon/calc';
-import type { SavedMon, StatID, StatIDExceptHP, StatusName, MegaState } from '../types';
-import type { ComputedStats } from '../calc/adapter';
-import { spriteUrl } from '../data/sprites';
-import { TypeBadge } from './TypeBadge';
-import { StatChip } from './StatChip';
-import { HpBar } from './HpBar';
-import { MegaToggle } from './MegaToggle';
-import { StatusPicker } from './pickers/StatusPicker';
-import { BoostPicker } from './pickers/BoostPicker';
-import { AbilityPicker } from './pickers/AbilityPicker';
-import { AbilityDetailSheet } from './AbilityDetailSheet';
+
+import type { ComputedStats } from '@/calc/adapter';
+import { AbilityDetailSheet } from '@/components/AbilityDetailSheet';
+import { HpBar } from '@/components/HpBar';
+import { MegaToggle } from '@/components/MegaToggle';
+import { AbilityPicker } from '@/components/pickers/AbilityPicker';
+import { BoostPicker } from '@/components/pickers/BoostPicker';
+import { StatusPicker } from '@/components/pickers/StatusPicker';
+import { StatChip } from '@/components/StatChip';
+import { TypeBadge } from '@/components/TypeBadge';
+import { spriteUrl } from '@/data/sprites';
+import type { MegaState, SavedMon, StatID, StatIDExceptHP, StatusName } from '@/types';
 
 const GEN_FOR_NATURE = Generations.get(0);
 
@@ -49,8 +50,17 @@ interface Props {
 }
 
 export function MonCard({
-  mon, maxHp, stats, side, onEdit, onChangeHp, onChangeMega,
-  onChangeStatus, onChangeBoosts, onChangeAbility, onSwap,
+  mon,
+  maxHp,
+  stats,
+  side,
+  onEdit,
+  onChangeHp,
+  onChangeMega,
+  onChangeStatus,
+  onChangeBoosts,
+  onChangeAbility,
+  onSwap,
 }: Props) {
   const sp = GEN.species.get(toID(mon.species) as any);
   const types = sp?.types ?? [];
@@ -60,8 +70,7 @@ export function MonCard({
   const [abilityDetailOpen, setAbilityDetailOpen] = useState(false);
 
   const hasStatus = mon.status && mon.status !== 'Healthy';
-  const hasBoosts =
-    Object.values(mon.boosts).some(v => typeof v === 'number' && v !== 0);
+  const hasBoosts = Object.values(mon.boosts).some((v) => typeof v === 'number' && v !== 0);
 
   // The outer card surface is interactive: opponent-side opens the swap
   // picker; your-side opens the editor. Inner controls (sprite/name/chips)
@@ -102,28 +111,25 @@ export function MonCard({
   return (
     <div {...swapProps}>
       <div className="flex gap-2.5 items-start mb-2">
-        <button
-          onClick={e => stop(e, onEdit)}
-          data-testid={`edit-sprite-${side}`}
-        >
+        <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-sprite-${side}`}>
           <img src={spriteUrl(mon.species)} alt={mon.species} className="w-13 h-13 rounded-xl" />
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start gap-2">
-            <button
-              onClick={e => stop(e, onEdit)}
-              data-testid={`edit-name-${side}`}
-              className="font-bold text-base text-left truncate"
-            >{mon.species}</button>
+            <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-name-${side}`} className="font-bold text-base text-left truncate">
+              {mon.species}
+            </button>
             {/* Top-right cluster: Mega toggle (when species supports it AND
                 the held item is a mega stone) sits above the small L50 label. */}
-            <div className="flex flex-col items-end gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col items-end gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
               <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
               <span className="text-[10px] opacity-50">L50</span>
             </div>
           </div>
           <div className="flex gap-1 mt-1">
-            {types.map(t => <TypeBadge key={t} type={t as string} />)}
+            {types.map((t) => (
+              <TypeBadge key={t} type={t as string} />
+            ))}
           </div>
         </div>
       </div>
@@ -133,20 +139,16 @@ export function MonCard({
           allocation ("+N SP"). Tabular numerals so values line up. */}
       {stats && (
         <div className="grid grid-cols-6 gap-1 mb-2 text-center">
-          {(['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const).map(k => {
+          {(['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const).map((k) => {
             const sp = mon.sps[k] ?? 0;
             const isPlus = k === naturePlus && naturePlus !== natureMinus;
             const isMinus = k === natureMinus && naturePlus !== natureMinus;
-            const valCls =
-              isPlus ? 'text-ok'
-              : isMinus ? 'text-danger'
-              : sp > 0 ? 'text-accent'
-              : '';
+            const valCls = isPlus ? 'text-ok' : isMinus ? 'text-danger' : sp > 0 ? 'text-accent' : '';
             return (
               <div
                 key={k}
                 className={`rounded-md py-1 px-0.5 ${sp > 0 ? 'bg-accent/[0.07]' : 'bg-white/[0.03]'}`}
-                onClick={e => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
               >
                 <div className="text-[8px] uppercase tracking-wider opacity-55 leading-none flex items-center justify-center gap-0.5">
                   <span>{statLabel(k)}</span>
@@ -168,39 +170,22 @@ export function MonCard({
         a swap target - chips, HpBar, and MegaToggle each route to their own
         handlers, not the swap.
       */}
-      <div onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
-        <HpBar
-          current={mon.currentHp}
-          max={maxHp}
-          showRaw={side === 'you'}
-          onChange={onChangeHp}
-        />
+      <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+        <HpBar current={mon.currentHp} max={maxHp} showRaw={side === 'you'} onChange={onChangeHp} />
 
         <div className="flex gap-1.5 mt-2 flex-wrap">
           {mon.ability && (
             // Tapping the ability chip opens the read-only detail sheet -
             // not the editor. The sheet's "Change ability" button (rendered
             // only when onChangeAbility is wired) routes to AbilityPicker.
-            <StatChip
-              icon="🩸"
-              label={mon.ability}
-              editable={!!onChangeAbility}
-              onClick={() => setAbilityDetailOpen(true)}
-            />
+            <StatChip icon="🩸" label={mon.ability} editable={!!onChangeAbility} onClick={() => setAbilityDetailOpen(true)} />
           )}
-          {mon.item && (
-            <StatChip icon="🎒" label={mon.item} editable={side === 'opp'} onClick={onEdit} />
-          )}
+          {mon.item && <StatChip icon="🎒" label={mon.item} editable={side === 'opp'} onClick={onEdit} />}
           <StatChip icon="🌿" label={mon.nature} editable={side === 'opp'} onClick={onEdit} />
 
           {/* Status: chip when set, "Status" pill when not. */}
           {hasStatus ? (
-            <StatChip
-              label={mon.status!}
-              tone="warn"
-              editable={!!onChangeStatus}
-              onClick={onChangeStatus ? () => setPicker('status') : undefined}
-            />
+            <StatChip label={mon.status!} tone="warn" editable={!!onChangeStatus} onClick={onChangeStatus ? () => setPicker('status') : undefined} />
           ) : onChangeStatus ? (
             <StatChip label="+ Status" onClick={() => setPicker('status')} />
           ) : null}
@@ -217,9 +202,7 @@ export function MonCard({
               />
             ) : null,
           )}
-          {!hasBoosts && onChangeBoosts && (
-            <StatChip label="+ Boost" onClick={() => setPicker('boosts')} />
-          )}
+          {!hasBoosts && onChangeBoosts && <StatChip label="+ Boost" onClick={() => setPicker('boosts')} />}
         </div>
       </div>
 
@@ -228,17 +211,10 @@ export function MonCard({
           open={picker === 'status'}
           current={mon.status}
           onClose={() => setPicker(null)}
-          onPick={status => onChangeStatus(status === 'Healthy' ? undefined : status)}
+          onPick={(status) => onChangeStatus(status === 'Healthy' ? undefined : status)}
         />
       )}
-      {onChangeBoosts && (
-        <BoostPicker
-          open={picker === 'boosts'}
-          boosts={mon.boosts}
-          onClose={() => setPicker(null)}
-          onSave={onChangeBoosts}
-        />
-      )}
+      {onChangeBoosts && <BoostPicker open={picker === 'boosts'} boosts={mon.boosts} onClose={() => setPicker(null)} onSave={onChangeBoosts} />}
       <AbilityDetailSheet
         open={abilityDetailOpen}
         abilityName={mon.ability ?? null}
@@ -251,7 +227,10 @@ export function MonCard({
           open={picker === 'ability'}
           species={mon.species}
           onClose={() => setPicker(null)}
-          onPick={a => { onChangeAbility(a); setPicker(null); }}
+          onPick={(a) => {
+            onChangeAbility(a);
+            setPicker(null);
+          }}
         />
       )}
     </div>

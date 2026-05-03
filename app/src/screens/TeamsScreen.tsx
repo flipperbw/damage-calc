@@ -1,28 +1,29 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useStore } from '../store';
-import { spriteUrl } from '../data/sprites';
-import { MonEditor } from '../components/editor/MonEditor';
-import { SpeciesPicker } from '../components/pickers/SpeciesPicker';
-import { PickerShell } from '../components/pickers/PickerShell';
-import { useConfirm, usePrompt } from '../components/ConfirmDialog';
-import { emptyMon } from '../store/factories';
-import { teamToShowdownText } from '../store/exporters';
-import { copyToClipboard } from '../util/clipboard';
-import type { SavedMon, Team } from '../types';
+
+import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
+import { MonEditor } from '@/components/editor/MonEditor';
+import { PickerShell } from '@/components/pickers/PickerShell';
+import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
+import { spriteUrl } from '@/data/sprites';
+import { useStore } from '@/store';
+import { teamToShowdownText } from '@/store/exporters';
+import { emptyMon } from '@/store/factories';
+import type { SavedMon, Team } from '@/types';
+import { copyToClipboard } from '@/util/clipboard';
 
 export function TeamsScreen() {
-  const teams = useStore(s => s.teams);
-  const activeId = useStore(s => s.activeTeamId);
-  const createTeam = useStore(s => s.createTeam);
-  const setActiveTeam = useStore(s => s.setActiveTeam);
-  const upsertMon = useStore(s => s.upsertMon);
-  const removeMon = useStore(s => s.removeMon);
-  const renameTeam = useStore(s => s.renameTeam);
-  const duplicateTeam = useStore(s => s.duplicateTeam);
-  const deleteTeam = useStore(s => s.deleteTeam);
-  const recents = useStore(s => s.recentOpponents);
-  const clearRecent = useStore(s => s.clearRecent);
+  const teams = useStore((s) => s.teams);
+  const activeId = useStore((s) => s.activeTeamId);
+  const createTeam = useStore((s) => s.createTeam);
+  const setActiveTeam = useStore((s) => s.setActiveTeam);
+  const upsertMon = useStore((s) => s.upsertMon);
+  const removeMon = useStore((s) => s.removeMon);
+  const renameTeam = useStore((s) => s.renameTeam);
+  const duplicateTeam = useStore((s) => s.duplicateTeam);
+  const deleteTeam = useStore((s) => s.deleteTeam);
+  const recents = useStore((s) => s.recentOpponents);
+  const clearRecent = useStore((s) => s.clearRecent);
 
   const confirm = useConfirm();
   const prompt = usePrompt();
@@ -31,15 +32,15 @@ export function TeamsScreen() {
   // Editor target lives in the store so it survives iOS unloading the tab.
   // We resolve teamId/monId back to a live SavedMon below; if the target
   // has gone stale (team or mon removed) the editor stays closed.
-  const editor = useStore(s => s.editor);
-  const setEditor = useStore(s => s.setEditor);
+  const editor = useStore((s) => s.editor);
+  const setEditor = useStore((s) => s.setEditor);
   const [menuTeamId, setMenuTeamId] = useState<string | null>(null);
 
   const editorTeamMon = (() => {
     if (!editor || editor.kind !== 'team-mon') return null;
-    const t = teams.find(x => x.id === editor.teamId);
+    const t = teams.find((x) => x.id === editor.teamId);
     if (!t) return null;
-    const m = t.mons.find(x => x.id === editor.monId);
+    const m = t.mons.find((x) => x.id === editor.monId);
     if (!m) return null;
     return { team: t, mon: m };
   })();
@@ -62,10 +63,11 @@ export function TeamsScreen() {
   }
 
   async function handleDelete(team: Team) {
-    const ok = await confirm(
-      `"${team.name}" will be permanently deleted. This cannot be undone.`,
-      { title: 'Delete team?', danger: true, okLabel: 'Delete' },
-    );
+    const ok = await confirm(`"${team.name}" will be permanently deleted. This cannot be undone.`, {
+      title: 'Delete team?',
+      danger: true,
+      okLabel: 'Delete',
+    });
     if (ok) {
       deleteTeam(team.id);
       toast.success('Team deleted');
@@ -84,7 +86,7 @@ export function TeamsScreen() {
     }
   }
 
-  const menuTeam = menuTeamId ? teams.find(t => t.id === menuTeamId) : null;
+  const menuTeam = menuTeamId ? teams.find((t) => t.id === menuTeamId) : null;
 
   function handleCreateTeam() {
     createTeam({ name: 'New team', format: 'singles' });
@@ -111,12 +113,15 @@ export function TeamsScreen() {
         </button>
       </div>
 
-      {teams.map(t => (
+      {teams.map((t) => (
         <TeamCard
           key={t.id}
           team={t}
           active={t.id === activeId}
-          onActivate={() => { setActiveTeam(t.id); useStore.getState().setTab('battle'); }}
+          onActivate={() => {
+            setActiveTeam(t.id);
+            useStore.getState().setTab('battle');
+          }}
           onMenu={() => setMenuTeamId(t.id)}
           onSlot={(i) => {
             const mon = t.mons[i];
@@ -142,7 +147,7 @@ export function TeamsScreen() {
         <div className="mt-6">
           <div className="text-xxs uppercase tracking-wider opacity-50 px-1 mb-2">Recent opponents</div>
           <div className="rounded-card border border-surface-hi divide-y divide-surface-hi overflow-hidden">
-            {recents.map(r => (
+            {recents.map((r) => (
               <div
                 key={r.id}
                 data-testid={`recent-${r.mon.species}`}
@@ -160,46 +165,84 @@ export function TeamsScreen() {
                   onClick={() => clearRecent(r.id)}
                   aria-label={`Remove ${r.mon.species} from recents`}
                   className="w-7 h-7 flex items-center justify-center rounded text-text-mute hover:text-danger hover:bg-danger/10"
-                >×</button>
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {picker && <SpeciesPicker
-        open onClose={() => setPicker(null)} showRecents={false}
-        onPick={species => {
-          const mon = emptyMon(species);
-          upsertMon(picker.teamId, mon);
-          setPicker(null);
-          setEditor({ kind: 'team-mon', teamId: picker.teamId, monId: mon.id });
-        }} />}
+      {picker && (
+        <SpeciesPicker
+          open
+          onClose={() => setPicker(null)}
+          showRecents={false}
+          onPick={(species) => {
+            const mon = emptyMon(species);
+            upsertMon(picker.teamId, mon);
+            setPicker(null);
+            setEditor({ kind: 'team-mon', teamId: picker.teamId, monId: mon.id });
+          }}
+        />
+      )}
 
-      {editorTeamMon && <MonEditor
-        open initial={editorTeamMon.mon}
-        teamName={editorTeamMon.team.name}
-        onClose={() => setEditor(null)}
-        onSave={mon => { upsertMon(editorTeamMon.team.id, mon); setEditor(null); }}
-        onDelete={() => {
-          // The confirm now lives inside MonEditor (so iOS doesn't lose the
-          // gesture chain through a window.confirm). We just commit the
-          // delete here. removeMon also clears the editor pointer.
-          removeMon(editorTeamMon.team.id, editorTeamMon.mon.id);
-        }}
-      />}
+      {editorTeamMon && (
+        <MonEditor
+          open
+          initial={editorTeamMon.mon}
+          teamName={editorTeamMon.team.name}
+          onClose={() => setEditor(null)}
+          onSave={(mon) => {
+            upsertMon(editorTeamMon.team.id, mon);
+            setEditor(null);
+          }}
+          onDelete={() => {
+            // The confirm now lives inside MonEditor (so iOS doesn't lose the
+            // gesture chain through a window.confirm). We just commit the
+            // delete here. removeMon also clears the editor pointer.
+            removeMon(editorTeamMon.team.id, editorTeamMon.mon.id);
+          }}
+        />
+      )}
 
-      <PickerShell
-        open={!!menuTeam}
-        onClose={() => setMenuTeamId(null)}
-        title={menuTeam?.name}
-      >
+      <PickerShell open={!!menuTeam} onClose={() => setMenuTeamId(null)} title={menuTeam?.name}>
         {menuTeam && (
           <div className="flex flex-col gap-1.5">
-            <MenuButton onClick={() => { setMenuTeamId(null); handleRename(menuTeam); }}>Rename</MenuButton>
-            <MenuButton onClick={() => { setMenuTeamId(null); handleDuplicate(menuTeam); }}>Duplicate</MenuButton>
-            <MenuButton onClick={() => { setMenuTeamId(null); handleExport(menuTeam); }}>Export (text)</MenuButton>
-            <MenuButton tone="danger" onClick={() => { setMenuTeamId(null); handleDelete(menuTeam); }}>Delete</MenuButton>
+            <MenuButton
+              onClick={() => {
+                setMenuTeamId(null);
+                handleRename(menuTeam);
+              }}
+            >
+              Rename
+            </MenuButton>
+            <MenuButton
+              onClick={() => {
+                setMenuTeamId(null);
+                handleDuplicate(menuTeam);
+              }}
+            >
+              Duplicate
+            </MenuButton>
+            <MenuButton
+              onClick={() => {
+                setMenuTeamId(null);
+                handleExport(menuTeam);
+              }}
+            >
+              Export (text)
+            </MenuButton>
+            <MenuButton
+              tone="danger"
+              onClick={() => {
+                setMenuTeamId(null);
+                handleDelete(menuTeam);
+              }}
+            >
+              Delete
+            </MenuButton>
           </div>
         )}
       </PickerShell>
@@ -207,32 +250,33 @@ export function TeamsScreen() {
   );
 }
 
-function MenuButton({ onClick, tone, children }: {
-  onClick: () => void; tone?: 'danger'; children: React.ReactNode;
-}) {
-  const cls = tone === 'danger'
-    ? 'bg-danger/10 border-danger/30 text-danger'
-    : 'bg-surface border-surface-hi';
+function MenuButton({ onClick, tone, children }: { onClick: () => void; tone?: 'danger'; children: React.ReactNode }) {
+  const cls = tone === 'danger' ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-surface border-surface-hi';
   return (
-    <button
-      onClick={onClick}
-      className={`text-left px-3 py-2 rounded-lg border text-sm ${cls}`}
-    >
+    <button onClick={onClick} className={`text-left px-3 py-2 rounded-lg border text-sm ${cls}`}>
       {children}
     </button>
   );
 }
 
-function TeamCard({ team, active, onActivate, onSlot, onMenu }: {
-  team: Team; active: boolean;
-  onActivate: () => void; onSlot: (i: number) => void; onMenu: () => void;
+function TeamCard({
+  team,
+  active,
+  onActivate,
+  onSlot,
+  onMenu,
+}: {
+  team: Team;
+  active: boolean;
+  onActivate: () => void;
+  onSlot: (i: number) => void;
+  onMenu: () => void;
 }) {
-  const slots: (SavedMon | null)[] = [
-    ...team.mons,
-    ...Array<null>(6 - team.mons.length).fill(null),
-  ];
+  const slots: (SavedMon | null)[] = [...team.mons, ...Array<null>(6 - team.mons.length).fill(null)];
   return (
-    <div className={`bg-surface border rounded-card p-3 mb-2.5 ${active ? 'border-accent shadow-[0_0_24px_rgba(124,92,255,0.25)]' : 'border-surface-hi'}`}>
+    <div
+      className={`bg-surface border rounded-card p-3 mb-2.5 ${active ? 'border-accent shadow-[0_0_24px_rgba(124,92,255,0.25)]' : 'border-surface-hi'}`}
+    >
       <div className="flex justify-between items-center">
         <button onClick={onActivate} className="text-left flex-1">
           <div className="font-bold text-[15px]">{team.name}</div>
@@ -244,16 +288,20 @@ function TeamCard({ team, active, onActivate, onSlot, onMenu }: {
           onClick={onMenu}
           aria-label="Team menu"
           className="w-8 h-8 rounded-lg bg-surface border border-surface-hi text-base opacity-70 hover:opacity-100"
-        >⋯</button>
+        >
+          ⋯
+        </button>
       </div>
       <div className="flex gap-1.5 mt-2.5">
         {slots.map((mon, i) => (
-          <button key={i} onClick={() => onSlot(i)}
-                  data-testid={mon ? `team-slot-filled-${i}` : `team-slot-empty-${i}`}
-                  aria-label={mon ? `Edit ${mon.species}` : `Add Pokémon to slot ${i + 1}`}
-                  className="flex-1 aspect-square bg-surface border border-surface-hi rounded-lg flex items-center justify-center">
-            {mon ? <img src={spriteUrl(mon.species)} className="w-3/4 h-3/4 object-contain" />
-                 : <span className="opacity-30 text-xs">＋</span>}
+          <button
+            key={i}
+            onClick={() => onSlot(i)}
+            data-testid={mon ? `team-slot-filled-${i}` : `team-slot-empty-${i}`}
+            aria-label={mon ? `Edit ${mon.species}` : `Add Pokémon to slot ${i + 1}`}
+            className="flex-1 aspect-square bg-surface border border-surface-hi rounded-lg flex items-center justify-center"
+          >
+            {mon ? <img src={spriteUrl(mon.species)} className="w-3/4 h-3/4 object-contain" /> : <span className="opacity-30 text-xs">＋</span>}
           </button>
         ))}
       </div>

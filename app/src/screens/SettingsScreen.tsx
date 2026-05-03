@@ -1,7 +1,8 @@
 import { toast } from 'sonner';
-import { useStore, PERSISTED_KEYS } from '../store';
-import { useConfirm } from '../components/ConfirmDialog';
-import type { AppState } from '../types';
+
+import { useConfirm } from '@/components/ConfirmDialog';
+import { PERSISTED_KEYS, useStore } from '@/store';
+import type { AppState } from '@/types';
 
 const APP_VERSION = '0.1.0';
 const REPO_URL = 'https://github.com/smogon/damage-calc';
@@ -33,10 +34,10 @@ export function isImportShape(value: unknown): value is Partial<AppState> {
 }
 
 export function SettingsScreen() {
-  const notation = useStore(s => s.notation);
-  const setNotation = useStore(s => s.setNotation);
-  const clearAllRecents = useStore(s => s.clearAllRecents);
-  const resetAll = useStore(s => s.resetAll);
+  const notation = useStore((s) => s.notation);
+  const setNotation = useStore((s) => s.setNotation);
+  const clearAllRecents = useStore((s) => s.clearAllRecents);
+  const resetAll = useStore((s) => s.resetAll);
   const confirm = useConfirm();
 
   function exportJson() {
@@ -69,7 +70,7 @@ export function SettingsScreen() {
     }
     const slice = pickPersisted(parsed);
     // Merge into existing state, preserving action functions and transient UI.
-    useStore.setState(s => ({ ...s, ...slice }));
+    useStore.setState((s) => ({ ...s, ...slice }));
     toast.success('Import complete');
   }
 
@@ -79,10 +80,11 @@ export function SettingsScreen() {
   }
 
   async function handleResetAll() {
-    const ok = await confirm(
-      'All teams, recent opponents, and settings will be permanently deleted.',
-      { title: 'Reset everything?', danger: true, okLabel: 'Reset' },
-    );
+    const ok = await confirm('All teams, recent opponents, and settings will be permanently deleted.', {
+      title: 'Reset everything?',
+      danger: true,
+      okLabel: 'Reset',
+    });
     if (ok) {
       resetAll();
       toast.success('Reset complete');
@@ -126,8 +128,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Toggle({ value, onClick, label }: { value: boolean; onClick: () => void; label: string }) {
   return (
-    <button onClick={onClick}
-            className={`px-3 py-1.5 rounded-lg text-sm ${value ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70'}`}>
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-lg text-sm ${value ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70'}`}
+    >
       {label}
     </button>
   );
@@ -135,11 +139,15 @@ function Toggle({ value, onClick, label }: { value: boolean; onClick: () => void
 
 function Action({ label, onClick, tone }: { label: string; onClick: () => void; tone?: 'danger' }) {
   const c = tone === 'danger' ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-surface border-surface-hi';
-  return <button onClick={onClick} className={`w-full text-left px-3 py-2 rounded-lg border ${c} text-sm`}>{label}</button>;
+  return (
+    <button onClick={onClick} className={`w-full text-left px-3 py-2 rounded-lg border ${c} text-sm`}>
+      {label}
+    </button>
+  );
 }
 
 function pickFile(): Promise<File | null> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json';

@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
-import { useStore } from '../store';
-import type { FieldState } from '../types';
-import { FieldDrawer } from './FieldDrawer';
-import { emptyField } from '../store/factories';
+
+import { FieldDrawer } from '@/components/FieldDrawer';
+import { useStore } from '@/store';
+import { emptyField } from '@/store/factories';
+import type { FieldState } from '@/types';
 
 export function FieldBar() {
-  const field = useStore(s => s.field);
-  const setField = useStore(s => s.setField);
+  const field = useStore((s) => s.field);
+  const setField = useStore((s) => s.setField);
   const [open, setOpen] = useState(false);
 
   // Compact summary chips inside the Field button. We list the active flags
@@ -41,19 +42,14 @@ export function FieldBar() {
           data-testid="field-toggle"
           style={{ touchAction: 'manipulation' }}
           className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border ${
-            hasActive
-              ? 'bg-warn/10 border-warn/40 text-warn'
-              : 'bg-surface border-surface-hi opacity-80 hover:opacity-100'
+            hasActive ? 'bg-warn/10 border-warn/40 text-warn' : 'bg-surface border-surface-hi opacity-80 hover:opacity-100'
           }`}
         >
           <span className="text-base font-semibold">＋ Field</span>
           {hasActive ? (
             <div className="flex items-center gap-1 flex-wrap flex-1">
-              {activeChips.map(c => (
-                <span
-                  key={c.key}
-                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warn/20 border border-warn/40 text-warn"
-                >
+              {activeChips.map((c) => (
+                <span key={c.key} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warn/20 border border-warn/40 text-warn">
                   {c.label}
                 </span>
               ))}
@@ -81,7 +77,10 @@ export function FieldBar() {
   );
 }
 
-interface ActiveChip { key: string; label: string }
+interface ActiveChip {
+  key: string;
+  label: string;
+}
 
 function collectActive(field: FieldState): ActiveChip[] {
   const out: ActiveChip[] = [];
@@ -100,7 +99,7 @@ function collectActive(field: FieldState): ActiveChip[] {
   return out;
 }
 
-function countSideFlags(s: import('../types').SideState): number {
+function countSideFlags(s: import('@/types').SideState): number {
   let n = 0;
   if (s.stealthRock) n++;
   if (s.spikes && s.spikes > 0) n++;

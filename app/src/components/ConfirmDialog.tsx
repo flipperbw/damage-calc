@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
-import { PickerShell } from './pickers/PickerShell';
+
+import { PickerShell } from '@/components/pickers/PickerShell';
 
 /**
  * In-app confirm/prompt dialogs that replace `window.confirm` / `window.prompt` /
@@ -57,35 +58,32 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const settledRef = useRef(false);
 
   const confirm = useCallback((body: string, opts?: ConfirmOpts) => {
-    return new Promise<boolean>(resolve => {
+    return new Promise<boolean>((resolve) => {
       settledRef.current = false;
       setConfirmState({ body, ...opts, resolve });
     });
   }, []);
 
   const prompt = useCallback((body: string, opts?: PromptOpts) => {
-    return new Promise<string | null>(resolve => {
+    return new Promise<string | null>((resolve) => {
       settledRef.current = false;
       setPromptValue(opts?.defaultValue ?? '');
       setPromptState({ body, ...opts, resolve });
     });
   }, []);
 
-  const alert = useCallback(
-    (body: string, opts?: { title?: string; okLabel?: string }) => {
-      return new Promise<void>(resolve => {
-        settledRef.current = false;
-        setConfirmState({
-          body,
-          title: opts?.title,
-          okLabel: opts?.okLabel ?? 'OK',
-          cancelLabel: '',
-          resolve: () => resolve(),
-        });
+  const alert = useCallback((body: string, opts?: { title?: string; okLabel?: string }) => {
+    return new Promise<void>((resolve) => {
+      settledRef.current = false;
+      setConfirmState({
+        body,
+        title: opts?.title,
+        okLabel: opts?.okLabel ?? 'OK',
+        cancelLabel: '',
+        resolve: () => resolve(),
       });
-    },
-    [],
-  );
+    });
+  }, []);
 
   function closeConfirm(ok: boolean) {
     if (!confirmState || settledRef.current) return;
@@ -105,12 +103,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <ConfirmContext.Provider value={{ confirm, prompt, alert }}>
       {children}
 
-      <PickerShell
-        open={!!confirmState}
-        onClose={() => closeConfirm(false)}
-        title={confirmState?.title}
-        align="centered"
-      >
+      <PickerShell open={!!confirmState} onClose={() => closeConfirm(false)} title={confirmState?.title} align="centered">
         {confirmState && (
           <div data-testid="confirm-dialog" className="flex flex-col gap-3">
             <div className="text-sm whitespace-pre-line">{confirmState.body}</div>
@@ -130,9 +123,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 data-testid="confirm-ok"
                 onClick={() => closeConfirm(true)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold ${
-                  confirmState.danger
-                    ? 'bg-danger/20 border border-danger/40 text-danger'
-                    : 'bg-accent text-white'
+                  confirmState.danger ? 'bg-danger/20 border border-danger/40 text-danger' : 'bg-accent text-white'
                 }`}
               >
                 {confirmState.okLabel ?? (confirmState.danger ? 'Remove' : 'OK')}
@@ -142,30 +133,23 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         )}
       </PickerShell>
 
-      <PickerShell
-        open={!!promptState}
-        onClose={() => closePrompt(null)}
-        title={promptState?.title}
-        align="centered"
-      >
+      <PickerShell open={!!promptState} onClose={() => closePrompt(null)} title={promptState?.title} align="centered">
         {promptState && (
           <form
             data-testid="prompt-dialog"
             className="flex flex-col gap-3"
-            onSubmit={e => {
+            onSubmit={(e) => {
               e.preventDefault();
               closePrompt(promptValue);
             }}
           >
-            {promptState.body && (
-              <div className="text-sm whitespace-pre-line">{promptState.body}</div>
-            )}
+            {promptState.body && <div className="text-sm whitespace-pre-line">{promptState.body}</div>}
             <input
               type="text"
               data-testid="prompt-input"
               autoFocus
               value={promptValue}
-              onChange={e => setPromptValue(e.target.value)}
+              onChange={(e) => setPromptValue(e.target.value)}
               placeholder={promptState.placeholder}
               className="w-full px-3 py-2 rounded-lg bg-surface border border-surface-hi text-base"
             />
@@ -178,11 +162,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               >
                 {promptState.cancelLabel ?? 'Cancel'}
               </button>
-              <button
-                type="submit"
-                data-testid="prompt-ok"
-                className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold"
-              >
+              <button type="submit" data-testid="prompt-ok" className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold">
                 {promptState.okLabel ?? 'OK'}
               </button>
             </div>

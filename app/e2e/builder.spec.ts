@@ -1,12 +1,6 @@
-import { test, expect, type Page } from '@playwright/test';
-import {
-  freshStart,
-  freshStartWithSeeds,
-  nav,
-  createTeam,
-  addMonToFirstSlot,
-  activateTeam,
-} from './helpers';
+import { expect, test, type Page } from '@playwright/test';
+
+import { activateTeam, addMonToFirstSlot, createTeam, freshStart, freshStartWithSeeds, nav } from './helpers';
 
 /**
  * E2E tests for the Builder feature (Phase 2). Covers:
@@ -30,7 +24,10 @@ async function addMonToSlot(page: Page, slotIndex: number, species: string) {
   await page.getByTestId(`team-slot-empty-${slotIndex}`).first().click();
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill(species);
-  await shell.getByRole('button', { name: new RegExp(`^${species}$`) }).first().click();
+  await shell
+    .getByRole('button', { name: new RegExp(`^${species}$`) })
+    .first()
+    .click();
   // No build - just save with default fields. The coverage analyzer is pure
   // type-chart, so STAB types alone drive the readout regardless of moves.
   await page.getByRole('button', { name: 'Save' }).click();
@@ -124,9 +121,7 @@ test('Suggestions section: empty state for an empty team', async ({ page }) => {
   await nav(page, 'Builder');
 
   await expect(page.getByTestId('suggestions-empty')).toBeVisible();
-  await expect(page.getByTestId('suggestions-empty')).toContainText(
-    /Build a team first/i,
-  );
+  await expect(page.getByTestId('suggestions-empty')).toContainText(/Build a team first/i);
 });
 
 test('Threat list picker shows all four seeded lists by name', async ({ page }) => {
@@ -141,11 +136,7 @@ test('Threat list picker shows all four seeded lists by name', async ({ page }) 
 
   // Each seed list ships with a unique name (matched verbatim against the
   // migration test in store/migrations.test.ts).
-  for (const name of [
-    'Top Threats - Singles',
-    'Top Threats - Doubles / VGC',
-    'Most-Used',
-  ]) {
+  for (const name of ['Top Threats - Singles', 'Top Threats - Doubles / VGC', 'Most-Used']) {
     await expect(picker.getByText(name, { exact: true })).toBeVisible();
   }
 });
@@ -207,7 +198,10 @@ test('Threat list edit: changing a mon item persists across reload', async ({ pa
   // Activate "Most-Used" so its mons are visible in the inline roster, then
   // tap Garchomp (the third entry) to open MonEditor.
   await page.getByText('Most-Used', { exact: true }).click();
-  await page.getByTestId('threat-mon-Garchomp').getByRole('button', { name: /Edit Garchomp/ }).click();
+  await page
+    .getByTestId('threat-mon-Garchomp')
+    .getByRole('button', { name: /Edit Garchomp/ })
+    .click();
 
   // Change item via the field-item picker. Leftovers is in the Champions
   // item list (used by editor.spec.ts elsewhere) and isn't a mega stone, so
@@ -223,7 +217,10 @@ test('Threat list edit: changing a mon item persists across reload', async ({ pa
   await page.reload();
   // Re-open the same list (default is Top Threats - Singles after reload).
   await page.getByText('Most-Used', { exact: true }).click();
-  await page.getByTestId('threat-mon-Garchomp').getByRole('button', { name: /Edit Garchomp/ }).click();
+  await page
+    .getByTestId('threat-mon-Garchomp')
+    .getByRole('button', { name: /Edit Garchomp/ })
+    .click();
   await expect(page.getByTestId('field-item')).toContainText('Leftovers');
 });
 
@@ -243,9 +240,7 @@ test('Create new threat list, add a mon, persists across reload', async ({ page 
 
   // The new list is selected (auto-active per createThreatList wiring) so its
   // inline roster shows. Tap "+ Add" to open the species picker.
-  const newCard = page
-    .locator('[data-testid="threat-list-card-active"]')
-    .filter({ hasText: 'Locals' });
+  const newCard = page.locator('[data-testid="threat-list-card-active"]').filter({ hasText: 'Locals' });
   await expect(newCard).toBeVisible();
   await newCard.getByTestId('threat-mon-add').click();
 
@@ -253,7 +248,10 @@ test('Create new threat list, add a mon, persists across reload', async ({ page 
   // close it without changes via the back button.
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill('Garchomp');
-  await shell.getByRole('button', { name: /^Garchomp$/ }).first().click();
+  await shell
+    .getByRole('button', { name: /^Garchomp$/ })
+    .first()
+    .click();
   // MonEditor opened - close it. (It saves on Save button only; the back
   // arrow just closes without persisting unsaved tweaks. The mon was already
   // upserted by upsertThreatMon before the editor opened.)
@@ -264,10 +262,7 @@ test('Create new threat list, add a mon, persists across reload', async ({ page 
   // The user list defaults to NOT being active after reload - pick by name.
   await page.getByText('Locals', { exact: true }).click();
   await expect(
-    page
-      .locator('[data-testid="threat-list-card-active"]')
-      .filter({ hasText: 'Locals' })
-      .getByTestId('threat-mon-Garchomp'),
+    page.locator('[data-testid="threat-list-card-active"]').filter({ hasText: 'Locals' }).getByTestId('threat-mon-Garchomp'),
   ).toBeVisible();
 });
 
@@ -281,9 +276,7 @@ test('Delete is hidden on seed lists and works on user lists', async ({ page }) 
   // Open the menu on the seeded "Most-Used" list. The Delete button should
   // NOT render at all (the component hides it for isSeed). The seed-list hint
   // text confirms we're on a seed.
-  const seedCard = page
-    .locator('[data-testid^="threat-list-card"]')
-    .filter({ hasText: 'Most-Used' });
+  const seedCard = page.locator('[data-testid^="threat-list-card"]').filter({ hasText: 'Most-Used' });
   await seedCard.getByRole('button', { name: 'Threat list menu' }).click();
   await expect(page.getByText(/Seed lists ship with the app/)).toBeVisible();
   await expect(page.getByTestId('threat-list-delete')).toHaveCount(0);
@@ -298,9 +291,7 @@ test('Delete is hidden on seed lists and works on user lists', async ({ page }) 
   await page.getByTestId('prompt-input').fill('Trash me');
   await page.getByTestId('prompt-ok').click();
 
-  const userCard = page
-    .locator('[data-testid^="threat-list-card"]')
-    .filter({ hasText: 'Trash me' });
+  const userCard = page.locator('[data-testid^="threat-list-card"]').filter({ hasText: 'Trash me' });
   await expect(userCard).toBeVisible();
   await userCard.getByRole('button', { name: 'Threat list menu' }).click();
   await page.getByTestId('threat-list-delete').click();
@@ -309,9 +300,7 @@ test('Delete is hidden on seed lists and works on user lists', async ({ page }) 
   await expect(page.getByTestId('confirm-dialog')).toBeVisible();
   await page.getByTestId('confirm-ok').click();
 
-  await expect(
-    page.locator('[data-testid^="threat-list-card"]').filter({ hasText: 'Trash me' }),
-  ).toHaveCount(0);
+  await expect(page.locator('[data-testid^="threat-list-card"]').filter({ hasText: 'Trash me' })).toHaveCount(0);
 });
 
 test('Builder tab on mobile has ≥44×44 hit target and reaches the screen', async ({ page, isMobile }) => {

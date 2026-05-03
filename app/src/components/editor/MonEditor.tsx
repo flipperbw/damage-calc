@@ -1,22 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
-import type { SavedMon } from '../../types';
-import { spriteUrl } from '../../data/sprites';
-import { SpeciesPicker } from '../pickers/SpeciesPicker';
-import { ItemPicker } from '../pickers/ItemPicker';
-import { AbilityPicker } from '../pickers/AbilityPicker';
-import { NaturePicker } from '../pickers/NaturePicker';
-import { BuildDropdown } from './BuildDropdown';
-import { SpGrid } from './SpGrid';
-import { MoveSlots } from './MoveSlots';
-import { EffectiveStats } from './EffectiveStats';
-import { MegaToggle } from '../MegaToggle';
-import { TypeBadge } from '../TypeBadge';
+import { useEffect, useRef, useState } from 'react';
 import { Generations, toID } from '@smogon/calc';
-import { validateSps } from '../../store/validators';
-import { monToShowdownText } from '../../store/exporters';
-import { copyToClipboard } from '../../util/clipboard';
-import { useConfirm } from '../ConfirmDialog';
+import { toast } from 'sonner';
+
+import { useConfirm } from '@/components/ConfirmDialog';
+import { BuildDropdown } from '@/components/editor/BuildDropdown';
+import { EffectiveStats } from '@/components/editor/EffectiveStats';
+import { MoveSlots } from '@/components/editor/MoveSlots';
+import { SpGrid } from '@/components/editor/SpGrid';
+import { MegaToggle } from '@/components/MegaToggle';
+import { AbilityPicker } from '@/components/pickers/AbilityPicker';
+import { ItemPicker } from '@/components/pickers/ItemPicker';
+import { NaturePicker } from '@/components/pickers/NaturePicker';
+import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
+import { TypeBadge } from '@/components/TypeBadge';
+import { spriteUrl } from '@/data/sprites';
+import { monToShowdownText } from '@/store/exporters';
+import { validateSps } from '@/store/validators';
+import type { SavedMon } from '@/types';
+import { copyToClipboard } from '@/util/clipboard';
 
 const GEN = Generations.get(0);
 
@@ -60,10 +61,14 @@ function usePressHandlers(action: () => void) {
   function fire() {
     if (firedRef.current) return;
     firedRef.current = true;
-    try { action(); } finally {
+    try {
+      action();
+    } finally {
       // Microtask reset is enough - the click event after pointerup is
       // dispatched in the same task and would observe firedRef===true.
-      setTimeout(() => { firedRef.current = false; }, 250);
+      setTimeout(() => {
+        firedRef.current = false;
+      }, 250);
     }
   }
   return {
@@ -107,10 +112,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
   async function handleDelete() {
     if (!onDelete) return;
     const where = teamName ? ` from ${teamName}` : '';
-    const ok = await confirm(
-      `${draft.species} will be removed${where}.`,
-      { title: 'Remove from team?', danger: true, okLabel: 'Remove' },
-    );
+    const ok = await confirm(`${draft.species} will be removed${where}.`, { title: 'Remove from team?', danger: true, okLabel: 'Remove' });
     if (!ok) return;
     onDelete();
     toast.success(`${draft.species} removed`);
@@ -126,7 +128,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
   const valid = validateSps(draft.sps).ok;
 
   function patch(p: Partial<SavedMon>) {
-    setDraft(prev => {
+    setDraft((prev) => {
       const next = { ...prev, ...p };
       // Any change to fields backed by a curated build clears buildName.
       if ('item' in p || 'ability' in p || 'nature' in p || 'sps' in p || 'moves' in p) {
@@ -138,7 +140,10 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
 
   return (
     <div className="fixed inset-0 z-30 bg-black/60 flex items-end md:items-center md:justify-end" onClick={onClose}>
-      <div className="w-full md:w-[420px] md:h-screen bg-bg-base bg-panel-gradient border border-surface-hi rounded-t-card md:rounded-none p-4 max-h-[90vh] md:max-h-screen overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div
+        className="w-full md:w-[420px] md:h-screen bg-bg-base bg-panel-gradient border border-surface-hi rounded-t-card md:rounded-none p-4 max-h-[90vh] md:max-h-screen overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
           <button
             type="button"
@@ -146,15 +151,15 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
             aria-label="Close editor"
             style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer"
-          >←</button>
+          >
+            ←
+          </button>
           <span className="font-bold">Edit Pokémon</span>
           <div className="flex items-center gap-1">
             {copied && (
-              <span
-                data-testid="copy-confirmation"
-                className="text-ok text-sm font-semibold mr-1"
-                aria-live="polite"
-              >✓ Copied</span>
+              <span data-testid="copy-confirmation" className="text-ok text-sm font-semibold mr-1" aria-live="polite">
+                ✓ Copied
+              </span>
             )}
             <button
               type="button"
@@ -187,19 +192,28 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
             <img src={spriteUrl(draft.species)} className="w-16 h-16 rounded" />
           </button>
           <div className="flex-1">
-            <div className="font-extrabold text-lg cursor-pointer" onClick={() => setPicker('species')}>{draft.species}</div>
-            <div className="flex gap-1 mt-1">{types.map(t => <TypeBadge key={t} type={t as string} />)}</div>
-            <div className="mt-2"><MegaToggle mega={draft.mega} species={draft.species}
-                                              item={draft.item}
-                                              onChange={mega => patch({ mega })} /></div>
+            <div className="font-extrabold text-lg cursor-pointer" onClick={() => setPicker('species')}>
+              {draft.species}
+            </div>
+            <div className="flex gap-1 mt-1">
+              {types.map((t) => (
+                <TypeBadge key={t} type={t as string} />
+              ))}
+            </div>
+            <div className="mt-2">
+              <MegaToggle mega={draft.mega} species={draft.species} item={draft.item} onChange={(mega) => patch({ mega })} />
+            </div>
           </div>
         </div>
 
         {/* Build dropdown */}
         <div className="mb-3">
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1">Build</div>
-          <BuildDropdown species={draft.species} selectedName={draft.buildName}
-                         onApply={(p, name) => setDraft(d => ({ ...d, ...p, buildName: name }))} />
+          <BuildDropdown
+            species={draft.species}
+            selectedName={draft.buildName}
+            onApply={(p, name) => setDraft((d) => ({ ...d, ...p, buildName: name }))}
+          />
         </div>
 
         {/* Item / Ability / Nature */}
@@ -209,42 +223,33 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
 
         {/* SP grid */}
         <div className="my-4">
-          <SpGrid sps={draft.sps} onChange={sps => patch({ sps })} />
+          <SpGrid sps={draft.sps} onChange={(sps) => patch({ sps })} />
         </div>
 
         {/* Effective stats - also shows the post-mega column when item is a mega stone */}
         <div className="mb-4">
-          <EffectiveStats
-            species={draft.species}
-            nature={draft.nature}
-            sps={draft.sps}
-            item={draft.item}
-          />
+          <EffectiveStats species={draft.species} nature={draft.nature} sps={draft.sps} item={draft.item} />
         </div>
 
         {/* Moves */}
         <div className="mb-4">
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1">Moves</div>
-          <MoveSlots species={draft.species} moves={draft.moves}
-                     isForOpponent={isForOpponent}
-                     onChange={moves => patch({ moves })} />
+          <MoveSlots species={draft.species} moves={draft.moves} isForOpponent={isForOpponent} onChange={(moves) => patch({ moves })} />
         </div>
 
         {/* Save */}
-        <button disabled={!valid} onClick={() => onSave(draft)}
-                className={`w-full py-3 rounded-card font-bold text-base ${valid ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}>
+        <button
+          disabled={!valid}
+          onClick={() => onSave(draft)}
+          className={`w-full py-3 rounded-card font-bold text-base ${valid ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
+        >
           Save
         </button>
 
-        <SpeciesPicker open={picker === 'species'} onClose={() => setPicker(null)}
-                       showRecents={false} onPick={s => patch({ species: s })} />
-        <ItemPicker open={picker === 'item'} species={draft.species}
-                    onClose={() => setPicker(null)}
-                    onPick={item => patch({ item })} />
-        <AbilityPicker open={picker === 'ability'} species={draft.species} onClose={() => setPicker(null)}
-                       onPick={ability => patch({ ability })} />
-        <NaturePicker open={picker === 'nature'} onClose={() => setPicker(null)}
-                      onPick={nature => patch({ nature })} />
+        <SpeciesPicker open={picker === 'species'} onClose={() => setPicker(null)} showRecents={false} onPick={(s) => patch({ species: s })} />
+        <ItemPicker open={picker === 'item'} species={draft.species} onClose={() => setPicker(null)} onPick={(item) => patch({ item })} />
+        <AbilityPicker open={picker === 'ability'} species={draft.species} onClose={() => setPicker(null)} onPick={(ability) => patch({ ability })} />
+        <NaturePicker open={picker === 'nature'} onClose={() => setPicker(null)} onPick={(nature) => patch({ nature })} />
       </div>
     </div>
   );
@@ -259,7 +264,8 @@ function Field({ label, value, onClick }: { label: string; value: string; onClic
         data-testid={`field-${label.toLowerCase()}`}
         className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-sm flex justify-between items-center"
       >
-        <span>{value}</span><span className="opacity-40">▾</span>
+        <span>{value}</span>
+        <span className="opacity-40">▾</span>
       </button>
     </div>
   );

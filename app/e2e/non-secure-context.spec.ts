@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { freshStart, nav, createTeam, addMonToFirstSlot } from './helpers';
+import { expect, test } from '@playwright/test';
+
+import { addMonToFirstSlot, createTeam, freshStart, nav } from './helpers';
 
 /**
  * Regression: when the dev server is reached over LAN from a phone (e.g.

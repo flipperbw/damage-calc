@@ -1,10 +1,16 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from './index';
-import type { SavedMon } from '../types';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { useStore } from '@/store';
+import type { SavedMon } from '@/types';
 
 const mon = (species: string, over: Partial<SavedMon> = {}): SavedMon => ({
-  id: species, species, nature: 'Hardy',
-  sps: {}, moves: ['', '', '', ''], mega: '', boosts: {},
+  id: species,
+  species,
+  nature: 'Hardy',
+  sps: {},
+  moves: ['', '', '', ''],
+  mega: '',
+  boosts: {},
   ...over,
 });
 
@@ -42,12 +48,12 @@ describe('store: teams', () => {
     expect(newId).toBeTruthy();
     const s = useStore.getState();
     expect(s.teams).toHaveLength(2);
-    const copy = s.teams.find(t => t.id === newId)!;
+    const copy = s.teams.find((t) => t.id === newId)!;
     expect(copy.name).toBe('Orig (copy)');
     expect(copy.mons).toHaveLength(1);
     expect(copy.mons[0].species).toBe('Skarmory');
     // Different mon id from the original.
-    const orig = s.teams.find(t => t.id === id)!;
+    const orig = s.teams.find((t) => t.id === id)!;
     expect(copy.mons[0].id).not.toBe(orig.mons[0].id);
   });
 
@@ -173,7 +179,7 @@ describe('store: threat lists', () => {
     useStore.setState({ threatLists: [] });
   });
 
-  it('starts empty after this suite\'s beforeEach (CRUD baseline)', () => {
+  it("starts empty after this suite's beforeEach (CRUD baseline)", () => {
     expect(useStore.getState().threatLists).toEqual([]);
   });
 
@@ -192,7 +198,7 @@ describe('store: threat lists', () => {
     const id = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
     const before = useStore.getState().threatLists[0].updatedAt;
     // Force a perceptible time delta so updatedAt actually changes.
-    await new Promise(r => setTimeout(r, 2));
+    await new Promise((r) => setTimeout(r, 2));
     useStore.getState().renameThreatList(id, 'Renamed');
     const after = useStore.getState().threatLists[0];
     expect(after.name).toBe('Renamed');
@@ -202,20 +208,30 @@ describe('store: threat lists', () => {
   it('duplicateThreatList copies mons with new ids and clears isSeed', () => {
     // Inject a seed list manually.
     const seed = {
-      id: 'seed-1', name: 'Seed', format: 'any' as const,
-      mons: [{
-        id: 'orig-mon', species: 'Garchomp', nature: 'Hardy',
-        sps: {}, moves: ['', '', '', ''] as [string, string, string, string],
-        mega: '' as const, boosts: {},
-      }],
-      isSeed: true, createdAt: 0, updatedAt: 0,
+      id: 'seed-1',
+      name: 'Seed',
+      format: 'any' as const,
+      mons: [
+        {
+          id: 'orig-mon',
+          species: 'Garchomp',
+          nature: 'Hardy',
+          sps: {},
+          moves: ['', '', '', ''] as [string, string, string, string],
+          mega: '' as const,
+          boosts: {},
+        },
+      ],
+      isSeed: true,
+      createdAt: 0,
+      updatedAt: 0,
     };
     useStore.setState({ threatLists: [seed] });
     const newId = useStore.getState().duplicateThreatList('seed-1');
     expect(newId).toBeTruthy();
     const lists = useStore.getState().threatLists;
     expect(lists).toHaveLength(2);
-    const copy = lists.find(l => l.id === newId)!;
+    const copy = lists.find((l) => l.id === newId)!;
     expect(copy.name).toBe('Seed (copy)');
     expect(copy.isSeed).toBe(false);
     expect(copy.mons).toHaveLength(1);
@@ -235,8 +251,13 @@ describe('store: threat lists', () => {
 
   it('deleteThreatList refuses to remove a seed list', () => {
     const seed = {
-      id: 'seed-1', name: 'Seed', format: 'any' as const,
-      mons: [], isSeed: true, createdAt: 0, updatedAt: 0,
+      id: 'seed-1',
+      name: 'Seed',
+      format: 'any' as const,
+      mons: [],
+      isSeed: true,
+      createdAt: 0,
+      updatedAt: 0,
     };
     useStore.setState({ threatLists: [seed] });
     useStore.getState().deleteThreatList('seed-1');
@@ -261,8 +282,13 @@ describe('store: threat lists', () => {
   it('removeThreatMon drops the mon from the list (allows leaving 0 mons even on seeds)', () => {
     const seedMon: SavedMon = mon('Garchomp');
     const seed = {
-      id: 'seed-1', name: 'Seed', format: 'any' as const,
-      mons: [seedMon], isSeed: true, createdAt: 0, updatedAt: 0,
+      id: 'seed-1',
+      name: 'Seed',
+      format: 'any' as const,
+      mons: [seedMon],
+      isSeed: true,
+      createdAt: 0,
+      updatedAt: 0,
     };
     useStore.setState({ threatLists: [seed] });
     useStore.getState().removeThreatMon('seed-1', seedMon.id);
@@ -281,7 +307,9 @@ describe('store: threat lists', () => {
     const m = mon('Garchomp');
     useStore.getState().upsertThreatMon(id, m);
     useStore.getState().setEditor({
-      kind: 'threat-mon', threatListId: id, monId: m.id,
+      kind: 'threat-mon',
+      threatListId: id,
+      monId: m.id,
     });
     useStore.getState().removeThreatMon(id, m.id);
     expect(useStore.getState().editor).toBeNull();
@@ -294,11 +322,15 @@ describe('store: threat lists', () => {
     useStore.getState().upsertThreatMon(id, m1);
     useStore.getState().upsertThreatMon(id, m2);
     useStore.getState().setEditor({
-      kind: 'threat-mon', threatListId: id, monId: m1.id,
+      kind: 'threat-mon',
+      threatListId: id,
+      monId: m1.id,
     });
     useStore.getState().removeThreatMon(id, m2.id);
     expect(useStore.getState().editor).toEqual({
-      kind: 'threat-mon', threatListId: id, monId: m1.id,
+      kind: 'threat-mon',
+      threatListId: id,
+      monId: m1.id,
     });
   });
 
@@ -307,7 +339,9 @@ describe('store: threat lists', () => {
     const m = mon('Garchomp');
     useStore.getState().upsertThreatMon(id, m);
     useStore.getState().setEditor({
-      kind: 'threat-mon', threatListId: id, monId: m.id,
+      kind: 'threat-mon',
+      threatListId: id,
+      monId: m.id,
     });
     useStore.getState().deleteThreatList(id);
     expect(useStore.getState().editor).toBeNull();
@@ -319,11 +353,15 @@ describe('store: threat lists', () => {
     useStore.getState().upsertMon(teamId, teamMon);
     const listId = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
     useStore.getState().setEditor({
-      kind: 'team-mon', teamId, monId: teamMon.id,
+      kind: 'team-mon',
+      teamId,
+      monId: teamMon.id,
     });
     useStore.getState().deleteThreatList(listId);
     expect(useStore.getState().editor).toEqual({
-      kind: 'team-mon', teamId, monId: teamMon.id,
+      kind: 'team-mon',
+      teamId,
+      monId: teamMon.id,
     });
   });
 });

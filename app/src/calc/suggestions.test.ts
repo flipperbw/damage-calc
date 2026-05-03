@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { suggestAdditions } from './suggestions';
-import { TOP_POOL } from '../data/top-pool';
-import type { SavedMon } from '../types';
-import type { TopPoolEntry } from '../data/top-pool';
+import { describe, expect, it } from 'vitest';
+
+import { suggestAdditions } from '@/calc/suggestions';
+import { TOP_POOL, type TopPoolEntry } from '@/data/top-pool';
+import type { SavedMon } from '@/types';
 
 function mon(species: string): SavedMon {
   return {
@@ -52,7 +52,7 @@ describe('suggestAdditions', () => {
     // Ferrothorn (Grass/Steel) covers Grass-gap and resists Electric/Grass.
     // Clefable (Fairy) covers Dragon-gap. Both should rank high enough to
     // be in the result set.
-    const names = out.map(s => s.species);
+    const names = out.map((s) => s.species);
     expect(names).toContain('Ferrothorn');
     expect(names).toContain('Clefable');
 
@@ -68,20 +68,20 @@ describe('suggestAdditions', () => {
 
     // Ferrothorn vs an all-Water team is paradigmatic: it covers Grass
     // (offensive gap) AND resists Electric / Grass (defensive overlap).
-    const ferro = out.find(s => s.species === 'Ferrothorn')!;
+    const ferro = out.find((s) => s.species === 'Ferrothorn')!;
     expect(ferro).toBeTruthy();
-    const kinds = new Set(ferro.reasons.map(r => r.kind));
+    const kinds = new Set(ferro.reasons.map((r) => r.kind));
     expect(kinds.has('offensive-gap')).toBe(true);
     expect(kinds.has('defensive-overlap')).toBe(true);
     // Should mention Grass somewhere in the reason texts.
-    const texts = ferro.reasons.map(r => r.text).join(' ');
+    const texts = ferro.reasons.map((r) => r.text).join(' ');
     expect(texts).toMatch(/Grass/);
   });
 
   it('skips candidates that are already on the team', () => {
     const team = [mon('Garchomp'), mon('Vaporeon'), mon('Milotic')];
     const out = suggestAdditions(team, [], SMALL_POOL);
-    expect(out.find(s => s.species === 'Garchomp')).toBeUndefined();
+    expect(out.find((s) => s.species === 'Garchomp')).toBeUndefined();
   });
 
   it('mega forme on the team blocks the base species (and vice versa)', () => {
@@ -93,7 +93,7 @@ describe('suggestAdditions', () => {
     ];
     const team: SavedMon[] = [{ ...mon('Charizard'), mega: 'mega-y' }];
     const out = suggestAdditions(team, [], pool);
-    expect(out.find(s => s.species === 'Charizard')).toBeUndefined();
+    expect(out.find((s) => s.species === 'Charizard')).toBeUndefined();
 
     // Reverse direction: pool has the mega forme name, team has the base.
     const pool2: TopPoolEntry[] = [
@@ -102,11 +102,11 @@ describe('suggestAdditions', () => {
     ];
     const team2: SavedMon[] = [mon('Charizard')];
     const out2 = suggestAdditions(team2, [], pool2);
-    expect(out2.find(s => s.species === 'Charizard-Mega-Y')).toBeUndefined();
+    expect(out2.find((s) => s.species === 'Charizard-Mega-Y')).toBeUndefined();
   });
 
   it('returns an empty array when every pool entry is on the team', () => {
-    const team = SMALL_POOL.map(e => mon(e.species));
+    const team = SMALL_POOL.map((e) => mon(e.species));
     const out = suggestAdditions(team, [], SMALL_POOL);
     expect(out).toEqual([]);
   });
@@ -131,15 +131,11 @@ describe('suggestAdditions', () => {
     // Expected: +1 with "2× Charizard" reason.
     const team: SavedMon[] = []; // empty so only threat scoring contributes
     const threats = [mon('Charizard')];
-    const pool: TopPoolEntry[] = [
-      { species: 'Garchomp', types: ['Dragon', 'Ground'] },
-    ];
+    const pool: TopPoolEntry[] = [{ species: 'Garchomp', types: ['Dragon', 'Ground'] }];
     const out = suggestAdditions(team, threats, pool);
     expect(out).toHaveLength(1);
     expect(out[0].score).toBe(1);
-    expect(out[0].reasons).toEqual([
-      { kind: 'threat-favorable', text: '2× Charizard' },
-    ]);
+    expect(out[0].reasons).toEqual([{ kind: 'threat-favorable', text: '2× Charizard' }]);
   });
 
   it('sorts ties alphabetically by species', () => {
@@ -151,7 +147,7 @@ describe('suggestAdditions', () => {
     ];
     const team = [mon('Vaporeon'), mon('Politoed'), mon('Milotic')];
     const out = suggestAdditions(team, [], pool);
-    expect(out.map(s => s.species)).toEqual(['Manectric', 'Zebstrika']);
+    expect(out.map((s) => s.species)).toEqual(['Manectric', 'Zebstrika']);
   });
 
   it('default topPool argument falls back to TOP_POOL', () => {

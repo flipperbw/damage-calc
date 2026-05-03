@@ -1,7 +1,8 @@
 import { Generations, toID } from '@smogon/calc';
-import type { SavedMon, StatID } from '../types';
-import { uuid } from '../util/uuid';
-import { getLearnableMoveIds } from '../data/pkmn';
+
+import { getLearnableMoveIds } from '@/data/pkmn';
+import type { SavedMon, StatID } from '@/types';
+import { uuid } from '@/util/uuid';
 
 const GEN = Generations.get(0);
 
@@ -22,11 +23,11 @@ const GEN = Generations.get(0);
 const FAST_THRESHOLD = 90;
 
 const NATURE_TABLE: Record<string, Record<string, string>> = {
-  atk: { def: 'Lonely',  spa: 'Adamant', spd: 'Naughty', spe: 'Brave'   },
-  def: { atk: 'Bold',    spa: 'Impish',  spd: 'Lax',     spe: 'Relaxed' },
-  spa: { atk: 'Modest',  def: 'Mild',    spd: 'Rash',    spe: 'Quiet'   },
-  spd: { atk: 'Calm',    def: 'Gentle',  spa: 'Careful', spe: 'Sassy'   },
-  spe: { atk: 'Timid',   def: 'Hasty',   spa: 'Jolly',   spd: 'Naive'   },
+  atk: { def: 'Lonely', spa: 'Adamant', spd: 'Naughty', spe: 'Brave' },
+  def: { atk: 'Bold', spa: 'Impish', spd: 'Lax', spe: 'Relaxed' },
+  spa: { atk: 'Modest', def: 'Mild', spd: 'Rash', spe: 'Quiet' },
+  spd: { atk: 'Calm', def: 'Gentle', spa: 'Careful', spe: 'Sassy' },
+  spe: { atk: 'Timid', def: 'Hasty', spa: 'Jolly', spd: 'Naive' },
 };
 
 function natureFor(plus: StatID, minus: StatID): string {
@@ -87,9 +88,7 @@ export async function synthesizeBuild(species: string): Promise<SavedMon | null>
     return b.bp - a.bp;
   });
   const top = candidates.slice(0, 4);
-  const moves: [string, string, string, string] = [
-    top[0]?.name ?? '', top[1]?.name ?? '', top[2]?.name ?? '', top[3]?.name ?? '',
-  ];
+  const moves: [string, string, string, string] = [top[0]?.name ?? '', top[1]?.name ?? '', top[2]?.name ?? '', top[3]?.name ?? ''];
 
   const abilities = sp.abilities ?? {};
   const ability = (Object.values(abilities)[0] as string | undefined) ?? undefined;

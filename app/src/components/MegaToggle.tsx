@@ -1,5 +1,6 @@
 import { Generations, MEGA_STONES, toID } from '@smogon/calc';
-import type { MegaState } from '../types';
+
+import type { MegaState } from '@/types';
 
 const GEN = Generations.get(0);
 
@@ -54,9 +55,15 @@ export function MegaToggle({ mega, onChange, species, item }: Props) {
   if (opts.hasX && opts.hasY) {
     return (
       <div className="inline-flex rounded-lg border border-surface-hi overflow-hidden text-xs font-bold uppercase tracking-wider">
-        <SegBtn active={mega === ''} onClick={() => onChange('')}>Off</SegBtn>
-        <SegBtn active={mega === 'mega-x'} onClick={() => onChange('mega-x')}>Mega X</SegBtn>
-        <SegBtn active={mega === 'mega-y'} onClick={() => onChange('mega-y')}>Mega Y</SegBtn>
+        <SegBtn active={mega === ''} onClick={() => onChange('')}>
+          Off
+        </SegBtn>
+        <SegBtn active={mega === 'mega-x'} onClick={() => onChange('mega-x')}>
+          Mega X
+        </SegBtn>
+        <SegBtn active={mega === 'mega-y'} onClick={() => onChange('mega-y')}>
+          Mega Y
+        </SegBtn>
       </div>
     );
   }
@@ -77,16 +84,9 @@ export function MegaToggle({ mega, onChange, species, item }: Props) {
   return null;
 }
 
-function SegBtn({ active, onClick, children }: {
-  active: boolean; onClick: () => void; children: React.ReactNode;
-}) {
+function SegBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      className={`px-2.5 py-1.5 ${
-        active ? 'bg-accent-gradient text-white' : 'bg-surface opacity-70'
-      }`}
-    >
+    <button onClick={onClick} className={`px-2.5 py-1.5 ${active ? 'bg-accent-gradient text-white' : 'bg-surface opacity-70'}`}>
       {children}
     </button>
   );

@@ -1,11 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { analyzeCoverage, STANDARD_TYPES } from './coverage';
-import type { SavedMon } from '../types';
+import { describe, expect, it } from 'vitest';
 
-function mon(
-  species: string,
-  moves: [string, string, string, string] = ['', '', '', ''],
-): SavedMon {
+import { analyzeCoverage, STANDARD_TYPES } from '@/calc/coverage';
+import type { SavedMon } from '@/types';
+
+function mon(species: string, moves: [string, string, string, string] = ['', '', '', '']): SavedMon {
   return {
     id: species.toLowerCase(),
     species,
@@ -30,12 +28,12 @@ describe('analyzeCoverage', () => {
     // threshold.
     const team = [mon('Vaporeon'), mon('Politoed'), mon('Milotic')];
     const r = analyzeCoverage(team);
-    const overlapTypes = r.defensiveOverlaps.map(o => o.type);
+    const overlapTypes = r.defensiveOverlaps.map((o) => o.type);
     expect(overlapTypes).toContain('Electric');
     expect(overlapTypes).toContain('Grass');
     // All three mons are weak - count must be 3 for both.
-    expect(r.defensiveOverlaps.find(o => o.type === 'Electric')?.count).toBe(3);
-    expect(r.defensiveOverlaps.find(o => o.type === 'Grass')?.count).toBe(3);
+    expect(r.defensiveOverlaps.find((o) => o.type === 'Electric')?.count).toBe(3);
+    expect(r.defensiveOverlaps.find((o) => o.type === 'Grass')?.count).toBe(3);
   });
 
   it('all-Water (no moves) team has Grass / Dragon / Water as offensive gaps', () => {
@@ -90,11 +88,7 @@ describe('analyzeCoverage', () => {
 
     // Adding a Dragon-type move (Outrage) anywhere on the team should
     // close the Dragon gap.
-    const withDragonMove = [
-      mon('Skarmory', ['Outrage', '', '', '']),
-      mon('Excadrill'),
-      mon('Steelix'),
-    ];
+    const withDragonMove = [mon('Skarmory', ['Outrage', '', '', '']), mon('Excadrill'), mon('Steelix')];
     const withReport = analyzeCoverage(withDragonMove);
     expect(withReport.offensiveGaps).not.toContain('Dragon');
   });
@@ -102,11 +96,7 @@ describe('analyzeCoverage', () => {
   it('a Steel move closes the Fairy/Ice/Rock gap on a Water team', () => {
     // All-Water team has gaps for things Water doesn't SE. Adding any
     // mon with a Steel move (Iron Head) closes Fairy/Ice/Rock.
-    const team = [
-      mon('Vaporeon', ['Iron Head', '', '', '']),
-      mon('Politoed'),
-      mon('Milotic'),
-    ];
+    const team = [mon('Vaporeon', ['Iron Head', '', '', '']), mon('Politoed'), mon('Milotic')];
     const r = analyzeCoverage(team);
     expect(r.offensiveGaps).not.toContain('Fairy');
     expect(r.offensiveGaps).not.toContain('Ice');
@@ -134,18 +124,13 @@ describe('analyzeCoverage', () => {
     // Excadrill (Steel 2× × Ground 1 = 2×) yes, Empoleon (Steel 2×
     // × Water 1 = 2×) yes, Sharpedo (Dark 2× × Water 1 = 2×) yes.
     // Three mons → Fighting overlap count 3. Good.
-    const team = [
-      mon('Skarmory'),
-      mon('Excadrill'),
-      mon('Empoleon'),
-      mon('Sharpedo'),
-    ];
+    const team = [mon('Skarmory'), mon('Excadrill'), mon('Empoleon'), mon('Sharpedo')];
     const r = analyzeCoverage(team);
     // Sanity: counts must be monotonically non-increasing.
     for (let i = 1; i < r.defensiveOverlaps.length; i++) {
       expect(r.defensiveOverlaps[i - 1].count >= r.defensiveOverlaps[i].count).toBe(true);
     }
     // Fighting hits 3 of these - should be present.
-    expect(r.defensiveOverlaps.map(o => o.type)).toContain('Fighting');
+    expect(r.defensiveOverlaps.map((o) => o.type)).toContain('Fighting');
   });
 });

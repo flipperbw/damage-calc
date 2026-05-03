@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Generations, toID } from '@smogon/calc';
-import { PickerShell } from './PickerShell';
-import { abilityDescription } from '../../data/pkmn';
+
+import { PickerShell } from '@/components/pickers/PickerShell';
+import { abilityDescription } from '@/data/pkmn';
 
 interface Props {
   open: boolean;
@@ -19,7 +20,7 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
     // not display name, so toID() is required.
     if (species) {
       const sp = GEN.species.get(toID(species) as any);
-      const arr = sp?.abilities ? Object.values(sp.abilities).filter(Boolean) as string[] : [];
+      const arr = sp?.abilities ? (Object.values(sp.abilities).filter(Boolean) as string[]) : [];
       if (arr.length) return arr;
     }
     const all: string[] = [];
@@ -29,7 +30,7 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
   const filtered = useMemo(() => {
     if (!query) return all;
     const q = query.toLowerCase();
-    return all.filter(n => n.toLowerCase().includes(q));
+    return all.filter((n) => n.toLowerCase().includes(q));
   }, [all, query]);
 
   // Lazy-loaded shortDesc cache. We only fetch once per ability name across
@@ -42,38 +43,50 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
     // Fetch only the visible (filtered) rows we don't already have. Calls
     // are cheap once @pkmn/data is warm - they're sync object lookups in
     // the wrapper - so we can fire them all in parallel.
-    const missing = filtered.filter(n => descs[n] === undefined);
+    const missing = filtered.filter((n) => descs[n] === undefined);
     if (missing.length === 0) return;
-    void Promise.all(missing.map(async n => {
-      const d = await abilityDescription(n);
-      return [n, d.short ?? null] as const;
-    })).then(pairs => {
+    void Promise.all(
+      missing.map(async (n) => {
+        const d = await abilityDescription(n);
+        return [n, d.short ?? null] as const;
+      }),
+    ).then((pairs) => {
       if (cancelled) return;
-      setDescs(prev => {
+      setDescs((prev) => {
         const next = { ...prev };
         for (const [n, s] of pairs) next[n] = s;
         return next;
       });
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open, filtered, descs]);
 
   return (
     <PickerShell open={open} onClose={onClose} title="Pick an ability">
-      <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
-             placeholder="Search abilities"
-             // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
-             className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-3 text-base" />
+      <input
+        autoFocus
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search abilities"
+        // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
+        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-3 text-base"
+      />
       <div className="overflow-y-auto flex-1 -mx-1 px-1">
-        {filtered.map(name => {
+        {filtered.map((name) => {
           const short = descs[name];
           return (
-            <button key={name} onClick={() => { onPick(name); onClose(); }}
-                    className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface">
+            <button
+              key={name}
+              onClick={() => {
+                onPick(name);
+                onClose();
+              }}
+              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface"
+            >
               <div className="text-sm font-medium">{name}</div>
-              {short && (
-                <div className="text-xxs opacity-60 leading-snug truncate">{short}</div>
-              )}
+              {short && <div className="text-xxs opacity-60 leading-snug truncate">{short}</div>}
             </button>
           );
         })}

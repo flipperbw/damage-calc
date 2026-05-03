@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { SETDEX_CHAMPIONS, getBuildsForSpecies, getBuild } from './setdex-champions';
-import type { ChampionsBuild } from './setdex-champions';
+import { describe, expect, it } from 'vitest';
+
+import { getBuild, getBuildsForSpecies, SETDEX_CHAMPIONS, type ChampionsBuild } from '@/data/setdex-champions';
 
 describe('SETDEX_CHAMPIONS', () => {
   it('contains Charizard with multiple builds', () => {
@@ -10,8 +10,7 @@ describe('SETDEX_CHAMPIONS', () => {
   });
 
   it('builds have the expected shape', () => {
-    const build: ChampionsBuild | undefined =
-      SETDEX_CHAMPIONS['Charizard']?.['SM OU Dragon Dance'];
+    const build: ChampionsBuild | undefined = SETDEX_CHAMPIONS['Charizard']?.['SM OU Dragon Dance'];
     expect(build).toBeDefined();
     expect(build!.item).toBe('Charizardite X');
     expect(build!.moves).toContain('Dragon Dance');

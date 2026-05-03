@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { SpGrid } from './SpGrid';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+import { SpGrid } from '@/components/editor/SpGrid';
 
 describe('SpGrid', () => {
   it('shows current allocation total', () => {

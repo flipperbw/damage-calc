@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { freshStart, nav, createTeam } from './helpers';
+import { expect, test } from '@playwright/test';
+
+import { createTeam, freshStart, nav } from './helpers';
 
 /**
  * Regression test for the iOS auto-zoom-on-input bug. Real iOS Safari/Brave
@@ -34,7 +35,10 @@ test('species picker close path leaves visualViewport scale at 1', async ({ page
   await input.fill('Garchomp');
 
   // Pick a result - this calls onPick + onClose, unmounting the picker.
-  await shell.getByRole('button', { name: /^Garchomp$/ }).first().click();
+  await shell
+    .getByRole('button', { name: /^Garchomp$/ })
+    .first()
+    .click();
 
   // Picker is gone.
   await expect(shell).toHaveCount(0);

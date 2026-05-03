@@ -1,29 +1,30 @@
 import { useMemo, useState } from 'react';
-import { useStore } from '../store';
-import { calculateMatchup } from '../calc/adapter';
-import { MonCard } from '../components/MonCard';
-import { TeamCarousel } from '../components/TeamCarousel';
-import { FieldBar } from '../components/FieldBar';
-import { MoveRow } from '../components/MoveRow';
-import { SpeedDivider } from '../components/SpeedDivider';
-import { MonEditor } from '../components/editor/MonEditor';
-import { SpeciesPicker } from '../components/pickers/SpeciesPicker';
-import { defaultOpponentMon } from '../store/factories';
+
+import { calculateMatchup } from '@/calc/adapter';
+import { MonEditor } from '@/components/editor/MonEditor';
+import { FieldBar } from '@/components/FieldBar';
+import { MonCard } from '@/components/MonCard';
+import { MoveRow } from '@/components/MoveRow';
+import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
+import { SpeedDivider } from '@/components/SpeedDivider';
+import { TeamCarousel } from '@/components/TeamCarousel';
+import { useStore } from '@/store';
+import { defaultOpponentMon } from '@/store/factories';
 
 export function BattleScreen() {
-  const team = useStore(s => s.teams.find(t => t.id === s.activeTeamId));
-  const activeIndex = useStore(s => s.activeMonIndex);
-  const opponent = useStore(s => s.opponent);
-  const setOpponent = useStore(s => s.setOpponent);
-  const updateOpponent = useStore(s => s.updateOpponent);
-  const upsertMon = useStore(s => s.upsertMon);
-  const field = useStore(s => s.field);
+  const team = useStore((s) => s.teams.find((t) => t.id === s.activeTeamId));
+  const activeIndex = useStore((s) => s.activeMonIndex);
+  const opponent = useStore((s) => s.opponent);
+  const setOpponent = useStore((s) => s.setOpponent);
+  const updateOpponent = useStore((s) => s.updateOpponent);
+  const upsertMon = useStore((s) => s.upsertMon);
+  const field = useStore((s) => s.field);
   // Editor target lives in the store so it survives iOS unloading the tab.
   // The editor is rendered for the *current* `you` or `opponent` mon based
   // on the persisted target - losing the WIP draft on reload is the agreed
   // tradeoff (keystroke writes would be too noisy).
-  const editor = useStore(s => s.editor);
-  const setEditor = useStore(s => s.setEditor);
+  const editor = useStore((s) => s.editor);
+  const setEditor = useStore((s) => s.setEditor);
 
   const [oppPicker, setOppPicker] = useState(false);
 
@@ -34,7 +35,7 @@ export function BattleScreen() {
     if (!editor) return null;
     if (editor.kind === 'opponent') return opponent;
     if (editor.kind === 'team-mon' && team && editor.teamId === team.id) {
-      return team.mons.find(m => m.id === editor.monId) ?? null;
+      return team.mons.find((m) => m.id === editor.monId) ?? null;
     }
     return null;
   })();
@@ -42,10 +43,7 @@ export function BattleScreen() {
   const you = team?.mons[activeIndex];
 
   // Memo so we don't recompute when unrelated store slices change.
-  const matchup = useMemo(
-    () => (you && opponent ? calculateMatchup(you, opponent, field) : null),
-    [you, opponent, field],
-  );
+  const matchup = useMemo(() => (you && opponent ? calculateMatchup(you, opponent, field) : null), [you, opponent, field]);
 
   // Priority-flips-order warning. Fires when:
   // - You outspeed but opponent has a positive-priority move (they hit first), or
@@ -54,10 +52,10 @@ export function BattleScreen() {
     if (!matchup) return undefined;
     const { speed, attackerMoves, defenderMoves } = matchup;
     if (speed.attackerOutspeeds) {
-      const oppPrio = defenderMoves.find(m => m.priority > 0 && m.moveName);
+      const oppPrio = defenderMoves.find((m) => m.priority > 0 && m.moveName);
       if (oppPrio) return `${oppPrio.moveName} flips order`;
     } else if (speed.delta < 0) {
-      const yourPrio = attackerMoves.find(m => m.priority > 0 && m.moveName);
+      const yourPrio = attackerMoves.find((m) => m.priority > 0 && m.moveName);
       if (yourPrio) return `${yourPrio.moveName} flips order`;
     }
     return undefined;
@@ -86,11 +84,7 @@ export function BattleScreen() {
         >
           Tap to pick an opponent
         </button>
-        <SpeciesPicker
-          open={oppPicker}
-          onClose={() => setOppPicker(false)}
-          onPick={s => setOpponent(defaultOpponentMon(s))}
-        />
+        <SpeciesPicker open={oppPicker} onClose={() => setOppPicker(false)} onPick={(s) => setOpponent(defaultOpponentMon(s))} />
       </div>
     );
   }
@@ -116,15 +110,13 @@ export function BattleScreen() {
             stats={matchup.attackerStats}
             side="you"
             onEdit={() => setEditor({ kind: 'team-mon', teamId: team.id, monId: you.id })}
-            onChangeHp={hp => upsertMon(team.id, { ...you, currentHp: hp })}
-            onChangeMega={mega => upsertMon(team.id, { ...you, mega })}
-            onChangeStatus={status => upsertMon(team.id, { ...you, status })}
-            onChangeBoosts={boosts => upsertMon(team.id, { ...you, boosts })}
+            onChangeHp={(hp) => upsertMon(team.id, { ...you, currentHp: hp })}
+            onChangeMega={(mega) => upsertMon(team.id, { ...you, mega })}
+            onChangeStatus={(status) => upsertMon(team.id, { ...you, status })}
+            onChangeBoosts={(boosts) => upsertMon(team.id, { ...you, boosts })}
           />
           <div>
-            <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
-              Your moves → opponent
-            </div>
+            <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Your moves → opponent</div>
             {matchup.attackerMoves.map((r, i) => (
               <MoveRow key={i} result={r} defenderForSturdy={opponent} />
             ))}
@@ -140,16 +132,14 @@ export function BattleScreen() {
             side="opp"
             onEdit={() => setEditor({ kind: 'opponent' })}
             onSwap={() => setOppPicker(true)}
-            onChangeHp={hp => updateOpponent({ currentHp: hp })}
-            onChangeMega={mega => updateOpponent({ mega })}
-            onChangeStatus={status => updateOpponent({ status })}
-            onChangeBoosts={boosts => updateOpponent({ boosts })}
-            onChangeAbility={ability => updateOpponent({ ability })}
+            onChangeHp={(hp) => updateOpponent({ currentHp: hp })}
+            onChangeMega={(mega) => updateOpponent({ mega })}
+            onChangeStatus={(status) => updateOpponent({ status })}
+            onChangeBoosts={(boosts) => updateOpponent({ boosts })}
+            onChangeAbility={(ability) => updateOpponent({ ability })}
           />
           <div>
-            <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">
-              Their moves → you
-            </div>
+            <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Their moves → you</div>
             {matchup.defenderMoves.map((r, i) => (
               <MoveRow key={i} result={r} defenderForSturdy={you} />
             ))}
@@ -163,7 +153,7 @@ export function BattleScreen() {
           initial={editorMon}
           isForOpponent={editor.kind === 'opponent'}
           onClose={() => setEditor(null)}
-          onSave={mon => {
+          onSave={(mon) => {
             if (editor.kind === 'team-mon') upsertMon(editor.teamId, mon);
             else setOpponent(mon);
             setEditor(null);
@@ -171,11 +161,7 @@ export function BattleScreen() {
         />
       )}
 
-      <SpeciesPicker
-        open={oppPicker}
-        onClose={() => setOppPicker(false)}
-        onPick={s => setOpponent(defaultOpponentMon(s))}
-      />
+      <SpeciesPicker open={oppPicker} onClose={() => setOppPicker(false)} onPick={(s) => setOpponent(defaultOpponentMon(s))} />
     </div>
   );
 }

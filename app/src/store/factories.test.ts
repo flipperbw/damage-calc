@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { emptyMon, defaultOpponentMon, monFromBuild } from './factories';
-import { getBuildsForSpecies, getBuild } from '../data/setdex-champions';
+import { describe, expect, it } from 'vitest';
+
+import { getBuild, getBuildsForSpecies } from '@/data/setdex-champions';
+import { defaultOpponentMon, emptyMon, monFromBuild } from '@/store/factories';
 
 describe('emptyMon', () => {
   it('returns a blank mon with the given species', () => {
@@ -29,12 +30,7 @@ describe('monFromBuild', () => {
     expect(m!.ability).toBe(expected.ability);
     expect(m!.nature).toBe(expected.nature);
     expect(m!.sps).toEqual(expected.sps);
-    expect(m!.moves).toEqual([
-      expected.moves[0] ?? '',
-      expected.moves[1] ?? '',
-      expected.moves[2] ?? '',
-      expected.moves[3] ?? '',
-    ]);
+    expect(m!.moves).toEqual([expected.moves[0] ?? '', expected.moves[1] ?? '', expected.moves[2] ?? '', expected.moves[3] ?? '']);
   });
 
   it('returns null when the build does not exist', () => {
@@ -63,7 +59,7 @@ describe('defaultOpponentMon', () => {
     // If this assertion ever flakes when builds are added, we'll just
     // pick a different species - the contract under test is the fallback.
     const candidates = ['Mr. Mime', 'Sunkern', 'Unown', 'Caterpie'];
-    const noBuildSpecies = candidates.find(c => getBuildsForSpecies(c).length === 0);
+    const noBuildSpecies = candidates.find((c) => getBuildsForSpecies(c).length === 0);
     expect(noBuildSpecies).toBeDefined();
     const m = defaultOpponentMon(noBuildSpecies!);
     expect(m.species).toBe(noBuildSpecies);

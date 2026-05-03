@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { koTagFromText, priorityFlag, sturdyWarning, effectivenessBadge } from './format';
-import type { SavedMon } from '../types';
+import { describe, expect, it, vi } from 'vitest';
+
+import { effectivenessBadge, koTagFromText, priorityFlag, sturdyWarning } from '@/calc/format';
+import type { SavedMon } from '@/types';
 
 void vi;
 

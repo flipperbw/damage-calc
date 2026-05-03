@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { isImportShape } from './SettingsScreen';
+import { describe, expect, it } from 'vitest';
+
+import { isImportShape } from '@/screens/SettingsScreen';
 
 describe('isImportShape', () => {
   it('accepts an empty object', () => {
@@ -8,15 +9,17 @@ describe('isImportShape', () => {
   });
 
   it('accepts a clean persisted slice', () => {
-    expect(isImportShape({
-      teams: [],
-      activeTeamId: null,
-      activeMonIndex: 0,
-      opponent: null,
-      recentOpponents: [],
-      field: { yourSide: {}, oppSide: {} },
-      notation: 'percent',
-    })).toBe(true);
+    expect(
+      isImportShape({
+        teams: [],
+        activeTeamId: null,
+        activeMonIndex: 0,
+        opponent: null,
+        recentOpponents: [],
+        field: { yourSide: {}, oppSide: {} },
+        notation: 'percent',
+      }),
+    ).toBe(true);
   });
 
   it('rejects null/undefined/non-objects', () => {

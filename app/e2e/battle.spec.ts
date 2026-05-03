@@ -1,8 +1,6 @@
-import { test, expect, type Page } from '@playwright/test';
-import {
-  freshStart, nav, createTeam, addMonToFirstSlot, activateTeam, pickOpponent,
-  swapOpponent,
-} from './helpers';
+import { expect, test, type Page } from '@playwright/test';
+
+import { activateTeam, addMonToFirstSlot, createTeam, freshStart, nav, pickOpponent, swapOpponent } from './helpers';
 
 /**
  * Set up a 2-mon team (Garchomp + Skarmory) with a Skarmory opponent so we
@@ -17,9 +15,15 @@ async function setUpBattle(page: Page) {
   await page.getByTestId('team-slot-empty-1').first().click();
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill('Skarmory');
-  await shell.getByRole('button', { name: /^Skarmory$/ }).first().click();
+  await shell
+    .getByRole('button', { name: /^Skarmory$/ })
+    .first()
+    .click();
   await page.getByRole('button', { name: /^Custom/ }).click();
-  await page.getByRole('button', { name: /Defensive/ }).first().click();
+  await page
+    .getByRole('button', { name: /Defensive/ })
+    .first()
+    .click();
   await page.getByRole('button', { name: 'Save' }).click();
 
   await activateTeam(page, 'New team');
@@ -31,11 +35,7 @@ test('switch active team mon via the carousel', async ({ page }) => {
 
   // Both mobile and desktop carousels render in the DOM (one is hidden via
   // CSS depending on viewport). Filter by visibility to click the right one.
-  await page
-    .locator('img[alt="Skarmory"]')
-    .filter({ visible: true })
-    .first()
-    .click();
+  await page.locator('img[alt="Skarmory"]').filter({ visible: true }).first().click();
 
   await expect(page.getByTestId('edit-name-you')).toContainText('Skarmory');
 });
@@ -110,10 +110,7 @@ test('adjust a boost on the active mon', async ({ page }) => {
   // value via a native setter so React's onChange fires (fill() on type=range
   // doesn't trigger React's synthetic event reliably).
   await page.getByLabel('Atk boost').evaluate((el: HTMLInputElement) => {
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      'value',
-    )!.set!;
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
     setter.call(el, '1');
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -136,7 +133,10 @@ test('open the field drawer and set weather to Sun', async ({ page }) => {
 
   // Close the drawer by clicking the backdrop. PickerShell uses a fixed-inset
   // overlay; tapping the backdrop calls onClose.
-  await page.locator('div.fixed.inset-0').first().click({ position: { x: 5, y: 5 } });
+  await page
+    .locator('div.fixed.inset-0')
+    .first()
+    .click({ position: { x: 5, y: 5 } });
 
   // The FieldBar's button now shows the active Sun chip.
   await expect(page.getByTestId('field-toggle')).toContainText(/Sun/);

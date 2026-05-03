@@ -1,5 +1,5 @@
-import type { AppState } from '../types';
-import { buildSeedThreatLists } from '../data/seed-threats';
+import { buildSeedThreatLists } from '@/data/seed-threats';
+import type { AppState } from '@/types';
 
 export const CURRENT_VERSION = 4;
 
@@ -28,15 +28,11 @@ const MIGRATORS: Record<number, Migrator> = {
   2: (s: any) => {
     if (!s || typeof s !== 'object') return s;
     const teams = Array.isArray(s.teams)
-      ? s.teams.map((t: any) =>
-          t && typeof t === 'object' ? { ...t, mons: migrateMonArray(t.mons) } : t,
-        )
+      ? s.teams.map((t: any) => (t && typeof t === 'object' ? { ...t, mons: migrateMonArray(t.mons) } : t))
       : s.teams;
     const opponent = s.opponent ? migrateMon(s.opponent) : s.opponent;
     const recentOpponents = Array.isArray(s.recentOpponents)
-      ? s.recentOpponents.map((r: any) =>
-          r && typeof r === 'object' && r.mon ? { ...r, mon: migrateMon(r.mon) } : r,
-        )
+      ? s.recentOpponents.map((r: any) => (r && typeof r === 'object' && r.mon ? { ...r, mon: migrateMon(r.mon) } : r))
       : s.recentOpponents;
     return { ...s, teams, opponent, recentOpponents };
   },

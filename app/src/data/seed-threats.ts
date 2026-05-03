@@ -1,7 +1,8 @@
 import { Generations, toID } from '@smogon/calc';
-import type { Format, SavedMon, SeedKey, ThreatList } from '../types';
-import { defaultOpponentMon } from '../store/factories';
-import { uuid } from '../util/uuid';
+
+import { defaultOpponentMon } from '@/store/factories';
+import type { Format, SavedMon, SeedKey, ThreatList } from '@/types';
+import { uuid } from '@/util/uuid';
 
 // Champions runs on calc gen 0. Use it to verify items / formes exist before
 // applying them, so a typo or a missing-from-calc Mega item doesn't crash the
@@ -69,11 +70,7 @@ const SPECS: SeedSpec[] = [
     seedKey: 'most-used',
     name: 'Most-Used',
     format: 'any',
-    entries: [
-      { species: 'Incineroar' },
-      { species: 'Kingambit' },
-      { species: 'Garchomp' },
-    ],
+    entries: [{ species: 'Incineroar' }, { species: 'Kingambit' }, { species: 'Garchomp' }],
   },
 ];
 
@@ -93,8 +90,7 @@ function entryToMon(entry: SeedEntry): SavedMon {
   // Apply mega flag; only pin the item override if calc knows about it. If
   // the item is missing we still keep `mega` set so the UI shows the mega
   // forme - the user can add an item later if needed.
-  const item =
-    entry.item && itemExists(entry.item) ? entry.item : base.item;
+  const item = entry.item && itemExists(entry.item) ? entry.item : base.item;
   return { ...base, mega: entry.mega, item };
 }
 
@@ -108,20 +104,18 @@ const warnedMissingSpecies = new Set<string>();
  * list was removed from the spec) so users on persisted state don't see
  * stale seed lists they can't delete.
  */
-export const CURRENT_SEED_KEYS: readonly SeedKey[] = SPECS.map(s => s.seedKey);
+export const CURRENT_SEED_KEYS: readonly SeedKey[] = SPECS.map((s) => s.seedKey);
 
 export function buildSeedThreatLists(): ThreatList[] {
   const now = Date.now();
   const allMissing: string[] = [];
-  const lists = SPECS.map(spec => {
-    const validEntries = spec.entries.filter(e => {
+  const lists = SPECS.map((spec) => {
+    const validEntries = spec.entries.filter((e) => {
       if (speciesExists(e.species)) return true;
       if (!warnedMissingSpecies.has(e.species)) {
         warnedMissingSpecies.add(e.species);
         // eslint-disable-next-line no-console
-        console.error(
-          `seed-threats: dropping "${e.species}" from "${spec.name}" - species not found in calc gen 0`,
-        );
+        console.error(`seed-threats: dropping "${e.species}" from "${spec.name}" - species not found in calc gen 0`);
       }
       allMissing.push(e.species);
       return false;
@@ -140,14 +134,8 @@ export function buildSeedThreatLists(): ThreatList[] {
   // In dev, fail loudly so a refactor or stale spec doesn't silently shrink
   // a curated list. In production, fall through with the warnings above so
   // a stale build still ships something usable.
-  if (
-    allMissing.length > 0
-    && typeof import.meta !== 'undefined'
-    && (import.meta as any).env?.DEV
-  ) {
-    throw new Error(
-      `seed-threats: ${allMissing.length} entries dropped: ${allMissing.join(', ')}`,
-    );
+  if (allMissing.length > 0 && typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV) {
+    throw new Error(`seed-threats: ${allMissing.length} entries dropped: ${allMissing.join(', ')}`);
   }
   return lists;
 }

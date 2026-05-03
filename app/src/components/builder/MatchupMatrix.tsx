@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { calculateMatchup, type MoveResult } from '../../calc/adapter';
-import { emptyField } from '../../store/factories';
-import { spriteUrl } from '../../data/sprites';
-import { TypeBadge } from '../TypeBadge';
-import { PickerShell } from '../pickers/PickerShell';
-import type { SavedMon, ThreatList, Team } from '../../types';
+
+import { calculateMatchup, type MoveResult } from '@/calc/adapter';
+import { PickerShell } from '@/components/pickers/PickerShell';
+import { TypeBadge } from '@/components/TypeBadge';
+import { spriteUrl } from '@/data/sprites';
+import { emptyField } from '@/store/factories';
+import type { SavedMon, Team, ThreatList } from '@/types';
 
 interface CellInfo {
   /** Best move's max % (used for the cell label and color tier). */
@@ -48,14 +49,16 @@ export function MatchupMatrix({ team, threatList }: Props) {
   // updatedAt bumps whenever upsertMon/removeMon fires.
   const grid = useMemo<CellInfo[][]>(() => {
     if (yourMons.length === 0 || threats.length === 0) return [];
-    return yourMons.map(you => threats.map(threat => bestCellInfo(you, threat, fallbackField)));
+    return yourMons.map((you) => threats.map((threat) => bestCellInfo(you, threat, fallbackField)));
   }, [team?.id, team?.updatedAt, threatList?.id, threatList?.updatedAt, fallbackField]);
 
   // Cell tap → drill-down sheet showing the best move's full range and
   // KO chance text, plus the species names so the user knows which side
   // of the matrix they're on.
   const [detail, setDetail] = useState<{
-    you: SavedMon; threat: SavedMon; cell: CellInfo;
+    you: SavedMon;
+    threat: SavedMon;
+    cell: CellInfo;
   } | null>(null);
 
   // Sticky-row-label collapse: as the user scrolls horizontally, fade the
@@ -81,9 +84,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
     <section className="mb-5" data-testid="matchup-matrix">
       <div className="flex items-baseline justify-between mb-2 gap-2 flex-wrap">
         <h3 className="text-base font-bold">Matchup matrix</h3>
-        <span className="text-[10px] opacity-55 italic shrink-0">
-          best move's max-roll % · tap a cell for the full breakdown
-        </span>
+        <span className="text-[10px] opacity-55 italic shrink-0">best move's max-roll % · tap a cell for the full breakdown</span>
       </div>
 
       {!team || !threatList ? (
@@ -91,18 +92,11 @@ export function MatchupMatrix({ team, threatList }: Props) {
           Pick a team and a threat list to see matchups.
         </div>
       ) : yourMons.length === 0 ? (
-        <div className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
-          Your selected team has no Pokémon.
-        </div>
+        <div className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">Your selected team has no Pokémon.</div>
       ) : threats.length === 0 ? (
-        <div className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
-          The selected threat list has no Pokémon.
-        </div>
+        <div className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">The selected threat list has no Pokémon.</div>
       ) : (
-        <div
-          ref={scrollerRef}
-          className="overflow-x-auto border border-surface-hi rounded-card"
-        >
+        <div ref={scrollerRef} className="overflow-x-auto border border-surface-hi rounded-card">
           <table className="border-collapse text-xs" data-testid="matrix-table">
             <thead>
               <tr>
@@ -113,11 +107,8 @@ export function MatchupMatrix({ team, threatList }: Props) {
                   className="sticky left-0 bg-surface-solid z-10 p-1.5 text-left text-text-mute font-medium border-r border-surface-hi"
                   style={{ width: collapsedWidth(collapse) }}
                 />
-                {threats.map(threat => (
-                  <th
-                    key={threat.id}
-                    className="p-1.5 font-medium text-center min-w-[56px]"
-                  >
+                {threats.map((threat) => (
+                  <th key={threat.id} className="p-1.5 font-medium text-center min-w-[56px]">
                     <div className="flex flex-col items-center gap-0.5">
                       <img src={spriteUrl(threat.species)} className="w-7 h-7 object-contain" />
                       <span className="text-[10px] truncate max-w-[64px]">{threat.species}</span>
@@ -149,13 +140,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
                   </td>
                   {threats.map((threat, j) => {
                     const cell = grid[i]?.[j] ?? emptyCell();
-                    return (
-                      <Cell
-                        key={threat.id}
-                        cell={cell}
-                        onTap={() => setDetail({ you, threat, cell })}
-                      />
-                    );
+                    return <Cell key={threat.id} cell={cell} onTap={() => setDetail({ you, threat, cell })} />;
                   })}
                 </tr>
               ))}
@@ -164,10 +149,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
         </div>
       )}
 
-      <DetailSheet
-        info={detail}
-        onClose={() => setDetail(null)}
-      />
+      <DetailSheet info={detail} onClose={() => setDetail(null)} />
     </section>
   );
 }
@@ -189,12 +171,7 @@ function Cell({ cell, onTap }: { cell: CellInfo; onTap: () => void }) {
   );
 }
 
-function DetailSheet({
-  info, onClose,
-}: {
-  info: { you: SavedMon; threat: SavedMon; cell: CellInfo } | null;
-  onClose: () => void;
-}) {
+function DetailSheet({ info, onClose }: { info: { you: SavedMon; threat: SavedMon; cell: CellInfo } | null; onClose: () => void }) {
   if (!info) return null;
   const { you, threat, cell } = info;
   return (
@@ -215,9 +192,7 @@ function DetailSheet({
             <div className="flex items-center gap-2 mb-3">
               <TypeBadge type={cell.bestMove.type} />
               <span className="font-semibold">{cell.bestMove.moveName}</span>
-              <span className="text-[10px] uppercase tracking-wider opacity-55 ml-auto">
-                Best move
-              </span>
+              <span className="text-[10px] uppercase tracking-wider opacity-55 ml-auto">Best move</span>
             </div>
 
             <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm mb-2">
@@ -230,16 +205,12 @@ function DetailSheet({
                 {cell.damageLow}–{cell.damageHigh}
               </dd>
               <dt className="opacity-60">KO chance</dt>
-              <dd className="text-right text-[12px]">
-                {cell.koText || '-'}
-              </dd>
+              <dd className="text-right text-[12px]">{cell.koText || '-'}</dd>
             </dl>
 
             <div className="text-[10px] opacity-50 italic mt-3">
-              The matrix cell shows the upper bound (best move at max damage roll)
-              against the threat's full HP, neutral field. A 100%+ cell means
-              the move's max roll exceeds the target's HP - likely OHKO when
-              the roll lands high; the KO chance row shows the actual odds.
+              The matrix cell shows the upper bound (best move at max damage roll) against the threat's full HP, neutral field. A 100%+ cell means the
+              move's max roll exceeds the target's HP - likely OHKO when the roll lands high; the KO chance row shows the actual odds.
             </div>
           </>
         )}
@@ -269,8 +240,8 @@ function cellStyle(pct: number): { cls: string; label: string } {
     return { cls: 'bg-surface text-text-mute', label: '-' };
   }
   if (pct >= 100) return { cls: 'bg-danger/40 text-white', label: `${pct}%` };
-  if (pct >= 50)  return { cls: 'bg-warn/35 text-black', label: `${pct}%` };
-  if (pct >= 34)  return { cls: 'bg-priority/30 text-text', label: `${pct}%` };
+  if (pct >= 50) return { cls: 'bg-warn/35 text-black', label: `${pct}%` };
+  if (pct >= 34) return { cls: 'bg-priority/30 text-text', label: `${pct}%` };
   return { cls: 'bg-surface text-text-mute', label: `${pct}%` };
 }
 
@@ -280,11 +251,7 @@ function cellStyle(pct: number): { cls: string; label: string } {
  * detail sheet (range, raw damage, KO text). Returns an empty cell when
  * the attacker has no damaging moves or when the calc throws.
  */
-function bestCellInfo(
-  you: SavedMon,
-  threat: SavedMon,
-  field: ReturnType<typeof emptyField>,
-): CellInfo {
+function bestCellInfo(you: SavedMon, threat: SavedMon, field: ReturnType<typeof emptyField>): CellInfo {
   try {
     const res = calculateMatchup(you, threat, field);
     let best: MoveResult | null = null;

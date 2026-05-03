@@ -1,5 +1,4 @@
-import type { SavedMon, RecentOpponent, StatID } from '../types';
-import { SP_PER_STAT_MAX, SP_TOTAL_MAX, RECENT_OPPONENT_CAP } from '../types';
+import { RECENT_OPPONENT_CAP, SP_PER_STAT_MAX, SP_TOTAL_MAX, type RecentOpponent, type SavedMon, type StatID } from '@/types';
 
 export interface SpValidation {
   ok: boolean;
@@ -21,12 +20,8 @@ export function validateSps(sps: Partial<Record<StatID, number>>): SpValidation 
   return { ok: true, total };
 }
 
-export function addRecent(
-  existing: RecentOpponent[],
-  mon: SavedMon,
-  now: number,
-): RecentOpponent[] {
-  const idx = existing.findIndex(r => r.mon.species === mon.species);
+export function addRecent(existing: RecentOpponent[], mon: SavedMon, now: number): RecentOpponent[] {
+  const idx = existing.findIndex((r) => r.mon.species === mon.species);
   if (idx >= 0) {
     const bumped = {
       ...existing[idx],

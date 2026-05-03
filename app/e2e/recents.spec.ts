@@ -1,8 +1,6 @@
-import { test, expect } from '@playwright/test';
-import {
-  freshStart, nav, createTeam, addMonToFirstSlot, activateTeam, pickOpponent,
-  swapOpponent,
-} from './helpers';
+import { expect, test } from '@playwright/test';
+
+import { activateTeam, addMonToFirstSlot, createTeam, freshStart, nav, pickOpponent, swapOpponent } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await freshStart(page);
@@ -38,19 +36,14 @@ test('useCount increments on species change, not on HP edit', async ({ page }) =
   // Tweak HP - should NOT increment useCount.
   const oppHpSlider = page.locator('[data-testid="swap-opp"] input[aria-label="HP"]');
   await oppHpSlider.evaluate((el: HTMLInputElement) => {
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      'value',
-    )!.set!;
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
     setter.call(el, '1');
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
   await nav(page, 'Teams');
-  await expect(
-    page.getByTestId('recent-Skarmory'),
-  ).toHaveAttribute('data-use-count', '1');
+  await expect(page.getByTestId('recent-Skarmory')).toHaveAttribute('data-use-count', '1');
 
   // Swap to Clefable, then back to Skarmory - useCount should bump to 2.
   await nav(page, 'Battle');
@@ -58,7 +51,5 @@ test('useCount increments on species change, not on HP edit', async ({ page }) =
   await swapOpponent(page, 'Skarmory');
 
   await nav(page, 'Teams');
-  await expect(
-    page.getByTestId('recent-Skarmory'),
-  ).toHaveAttribute('data-use-count', '2');
+  await expect(page.getByTestId('recent-Skarmory')).toHaveAttribute('data-use-count', '2');
 });

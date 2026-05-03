@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { useStore } from '../../store';
-import { suggestAdditions, type Suggestion, type SuggestionReason } from '../../calc/suggestions';
-import { spriteUrl } from '../../data/sprites';
-import { TypeBadge } from '../TypeBadge';
-import { PickerShell } from '../pickers/PickerShell';
-import { emptyMon } from '../../store/factories';
 import { Generations, toID } from '@smogon/calc';
+import { toast } from 'sonner';
+
+import { suggestAdditions, type Suggestion, type SuggestionReason } from '@/calc/suggestions';
+import { PickerShell } from '@/components/pickers/PickerShell';
+import { TypeBadge } from '@/components/TypeBadge';
+import { spriteUrl } from '@/data/sprites';
+import { useStore } from '@/store';
+import { emptyMon } from '@/store/factories';
 
 const GEN = Generations.get(0);
 
@@ -22,11 +23,11 @@ interface Props {
  * decision for the user.
  */
 export function SuggestionsSection({ selectedTeamId }: Props) {
-  const teams = useStore(s => s.teams);
-  const threatLists = useStore(s => s.threatLists);
-  const upsertMon = useStore(s => s.upsertMon);
-  const setEditor = useStore(s => s.setEditor);
-  const team = teams.find(t => t.id === selectedTeamId) ?? null;
+  const teams = useStore((s) => s.teams);
+  const threatLists = useStore((s) => s.threatLists);
+  const upsertMon = useStore((s) => s.upsertMon);
+  const setEditor = useStore((s) => s.setEditor);
+  const team = teams.find((t) => t.id === selectedTeamId) ?? null;
   const teamFull = !!team && team.mons.length >= 6;
 
   function addSpeciesToTeam(species: string) {
@@ -43,12 +44,7 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
   // the stable seedKey rather than display name so a renamed seed still
   // resolves correctly. Falls back to any other seed, then any list.
   const reference = useMemo(() => {
-    return (
-      threatLists.find(l => l.seedKey === 'most-used')
-      ?? threatLists.find(l => l.isSeed)
-      ?? threatLists[0]
-      ?? null
-    );
+    return threatLists.find((l) => l.seedKey === 'most-used') ?? threatLists.find((l) => l.isSeed) ?? threatLists[0] ?? null;
   }, [threatLists]);
 
   const suggestions = useMemo(() => {
@@ -63,24 +59,18 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
     <section className="mb-5" data-testid="suggestions-section">
       <h3 className="text-base font-bold mb-2">Suggestions</h3>
 
-      {(!team || team.mons.length === 0) ? (
-        <div
-          data-testid="suggestions-empty"
-          className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic"
-        >
+      {!team || team.mons.length === 0 ? (
+        <div data-testid="suggestions-empty" className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
           Build a team first to see suggestions.
         </div>
       ) : suggestions.length === 0 ? (
-        <div
-          data-testid="suggestions-no-fit"
-          className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic"
-        >
+        <div data-testid="suggestions-no-fit" className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
           No candidate fits this team's gaps right now.
         </div>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-            {suggestions.map(s => (
+            {suggestions.map((s) => (
               <SuggestionCard
                 key={s.species}
                 suggestion={s}
@@ -90,9 +80,7 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
             ))}
           </div>
           <p className="text-xs opacity-50 mt-2 text-center">
-            {teamFull
-              ? `${team!.name} is full - remove a mon to add a suggestion.`
-              : 'Tap a Pokémon for details, or + to add it to your team.'}
+            {teamFull ? `${team!.name} is full - remove a mon to add a suggestion.` : 'Tap a Pokémon for details, or + to add it to your team.'}
           </p>
         </>
       )}
@@ -101,17 +89,25 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
         open={!!detail}
         suggestion={detail}
         canAdd={!teamFull}
-        onAdd={detail ? () => {
-          addSpeciesToTeam(detail.species);
-          setDetail(null);
-        } : undefined}
+        onAdd={
+          detail
+            ? () => {
+                addSpeciesToTeam(detail.species);
+                setDetail(null);
+              }
+            : undefined
+        }
         onClose={() => setDetail(null)}
       />
     </section>
   );
 }
 
-function SuggestionCard({ suggestion, onOpen, onAdd }: {
+function SuggestionCard({
+  suggestion,
+  onOpen,
+  onAdd,
+}: {
   suggestion: Suggestion;
   onOpen: () => void;
   /** When null, the team is full and the + button is hidden. */
@@ -126,8 +122,11 @@ function SuggestionCard({ suggestion, onOpen, onAdd }: {
       role="button"
       tabIndex={0}
       onClick={onOpen}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); }
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
       }}
       className="bg-surface border border-surface-hi rounded-card p-2 text-left cursor-pointer flex flex-col gap-1.5 transition-colors hover:bg-accent/[0.06] hover:border-accent/40"
     >
@@ -135,16 +134,15 @@ function SuggestionCard({ suggestion, onOpen, onAdd }: {
           line so the row never overflows on narrow mobile cards (the v1
           horizontal layout was overlapping on iPhone widths). */}
       <div className="flex items-center gap-1.5">
-        <img
-          src={spriteUrl(suggestion.species)}
-          alt={suggestion.species}
-          className="w-9 h-9 object-contain shrink-0"
-        />
+        <img src={spriteUrl(suggestion.species)} alt={suggestion.species} className="w-9 h-9 object-contain shrink-0" />
         <div className="font-semibold text-[13px] truncate flex-1 min-w-0">{suggestion.species}</div>
         {onAdd && (
           <button
             type="button"
-            onClick={e => { e.stopPropagation(); onAdd(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
             aria-label={`Add ${suggestion.species} to team`}
             data-testid={`suggestion-add-${suggestion.species}`}
             className="w-7 h-7 shrink-0 rounded-full bg-accent text-white text-base font-bold flex items-center justify-center shadow-[0_2px_8px_rgba(124,92,255,0.3)] hover:scale-105 transition-transform"
@@ -157,7 +155,7 @@ function SuggestionCard({ suggestion, onOpen, onAdd }: {
       {/* Types + score: full row of their own. Score is title-attributed so a
           hover/long-press reveals what the number means. */}
       <div className="flex items-center gap-1 flex-wrap">
-        {suggestion.types.map(t => (
+        {suggestion.types.map((t) => (
           <TypeBadge key={t} type={t} />
         ))}
         <span
@@ -180,10 +178,7 @@ function SuggestionCard({ suggestion, onOpen, onAdd }: {
 function ReasonChip({ reason }: { reason: SuggestionReason }) {
   const tone = reasonTone(reason.kind);
   return (
-    <span
-      data-kind={reason.kind}
-      className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${tone}`}
-    >
+    <span data-kind={reason.kind} className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${tone}`}>
       {reason.text}
     </span>
   );
@@ -193,13 +188,22 @@ function reasonTone(kind: SuggestionReason['kind']): string {
   // Violet for offensive coverage closes, green for defensive resists,
   // orange for "punishes a top-meta threat".
   switch (kind) {
-    case 'offensive-gap': return 'bg-accent/20 text-accent';
-    case 'defensive-overlap': return 'bg-ok/15 text-ok';
-    case 'threat-favorable': return 'bg-priority/20 text-priority';
+    case 'offensive-gap':
+      return 'bg-accent/20 text-accent';
+    case 'defensive-overlap':
+      return 'bg-ok/15 text-ok';
+    case 'threat-favorable':
+      return 'bg-priority/20 text-priority';
   }
 }
 
-function SuggestionDetailSheet({ open, suggestion, canAdd, onAdd, onClose }: {
+function SuggestionDetailSheet({
+  open,
+  suggestion,
+  canAdd,
+  onAdd,
+  onClose,
+}: {
   open: boolean;
   suggestion: Suggestion | null;
   canAdd: boolean;
@@ -217,12 +221,12 @@ function SuggestionDetailSheet({ open, suggestion, canAdd, onAdd, onClose }: {
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold">{suggestion.species}</h3>
             <div className="flex gap-1 mt-1">
-              {types.map(t => <TypeBadge key={t} type={t} size="md" />)}
+              {types.map((t) => (
+                <TypeBadge key={t} type={t} size="md" />
+              ))}
             </div>
           </div>
-          <span className="text-sm font-bold bg-accent/20 text-accent rounded px-2 py-1">
-            +{suggestion.score}
-          </span>
+          <span className="text-sm font-bold bg-accent/20 text-accent rounded px-2 py-1">+{suggestion.score}</span>
         </div>
 
         <div className="text-xxs uppercase tracking-wider opacity-55 mb-2">Why suggested</div>
@@ -243,9 +247,7 @@ function SuggestionDetailSheet({ open, suggestion, canAdd, onAdd, onClose }: {
             + Add {suggestion.species} to team
           </button>
         ) : (
-          <p className="text-xs opacity-55 italic">
-            Team is full - remove a mon to add a new one.
-          </p>
+          <p className="text-xs opacity-55 italic">Team is full - remove a mon to add a new one.</p>
         )}
       </div>
     </PickerShell>

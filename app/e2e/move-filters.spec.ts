@@ -1,5 +1,6 @@
-import { test, expect, type Page } from '@playwright/test';
-import { freshStart, nav, createTeam } from './helpers';
+import { expect, test, type Page } from '@playwright/test';
+
+import { createTeam, freshStart, nav } from './helpers';
 
 /**
  * Open the move picker on the first slot of a brand-new Garchomp. Garchomp
@@ -14,7 +15,10 @@ async function openMovePicker(page: Page) {
   await page.getByTestId('team-slot-empty-0').first().click();
   const speciesShell = page.getByTestId('picker-shell');
   await speciesShell.getByPlaceholder('Search Pokémon').fill('Garchomp');
-  await speciesShell.getByRole('button', { name: /^Garchomp$/ }).first().click();
+  await speciesShell
+    .getByRole('button', { name: /^Garchomp$/ })
+    .first()
+    .click();
   // Tap the first move slot - it shows "- empty -" until a move is set.
   await page.getByText('- empty -').first().click();
   // The picker has its own search input; wait for it before interacting.
@@ -84,7 +88,7 @@ test('BP descending sort puts highest base power first', async ({ page }) => {
   // Capture the testids of the first three rows AFTER the All/Learnable
   // header. The row markup wraps an info button + pick button in a div, so
   // we walk siblings and read the testid off any descendant `move-row-pick-*`.
-  const firstThreeAfterAll = await allHeader.evaluate(el => {
+  const firstThreeAfterAll = await allHeader.evaluate((el) => {
     const out: string[] = [];
     let cur: Element | null = el.nextElementSibling;
     while (cur && out.length < 3) {
@@ -107,7 +111,7 @@ test('BP descending sort puts highest base power first', async ({ page }) => {
   // section under BP-descending. Allow flexibility for ties / future data
   // updates by asserting at least one is present.
   const hyperTier = ['Explosion', 'Self-Destruct', 'Gigaton Hammer'];
-  const overlap = firstThreeAfterAll.filter(n => hyperTier.includes(n));
+  const overlap = firstThreeAfterAll.filter((n) => hyperTier.includes(n));
   expect(overlap.length).toBeGreaterThan(0);
 
   // And basic-tier moves should NOT be at the top.
@@ -127,7 +131,5 @@ test('clear filters resets all active selections', async ({ page }) => {
   // Count badge disappears with no active filters.
   await expect(page.getByTestId('move-filters-count')).toHaveCount(0);
   // Earthquake reappears (it was filtered out by Priority+).
-  await expect(
-    page.getByTestId('picker-shell').getByTestId('move-row-pick-Earthquake').first(),
-  ).toBeVisible();
+  await expect(page.getByTestId('picker-shell').getByTestId('move-row-pick-Earthquake').first()).toBeVisible();
 });

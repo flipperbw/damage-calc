@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { migrate, CURRENT_VERSION } from './migrations';
-import type { ThreatList } from '../types';
+import { describe, expect, it } from 'vitest';
+
+import { CURRENT_VERSION, migrate } from '@/store/migrations';
+import type { ThreatList } from '@/types';
 
 describe('migrate', () => {
   it('returns input unchanged at current version', () => {
@@ -9,8 +10,7 @@ describe('migrate', () => {
   });
 
   it('throws on a future version', () => {
-    expect(() => migrate({ version: CURRENT_VERSION + 1, state: {} } as any))
-      .toThrow(/future/i);
+    expect(() => migrate({ version: CURRENT_VERSION + 1, state: {} } as any)).toThrow(/future/i);
   });
 
   it('returns null on totally invalid input', () => {
@@ -22,17 +22,28 @@ describe('migrate', () => {
     const v1 = {
       version: 1,
       state: {
-        teams: [{
-          id: 't1', name: 'T', format: 'singles',
-          createdAt: 0, updatedAt: 0,
-          mons: [
-            { id: 'm1', species: 'Garchomp', isMega: true, nature: 'Hardy', sps: {}, moves: ['','','',''], boosts: {} },
-            { id: 'm2', species: 'Skarmory', isMega: false, nature: 'Hardy', sps: {}, moves: ['','','',''], boosts: {} },
-          ],
-        }],
-        opponent: { id: 'o1', species: 'Tyranitar', isMega: false, nature: 'Hardy', sps: {}, moves: ['','','',''], boosts: {} },
-        recentOpponents: [{ id: 'Tyranitar', useCount: 1, lastUsed: 0,
-          mon: { id: 'r1', species: 'Tyranitar', isMega: true, nature: 'Hardy', sps: {}, moves: ['','','',''], boosts: {} } }],
+        teams: [
+          {
+            id: 't1',
+            name: 'T',
+            format: 'singles',
+            createdAt: 0,
+            updatedAt: 0,
+            mons: [
+              { id: 'm1', species: 'Garchomp', isMega: true, nature: 'Hardy', sps: {}, moves: ['', '', '', ''], boosts: {} },
+              { id: 'm2', species: 'Skarmory', isMega: false, nature: 'Hardy', sps: {}, moves: ['', '', '', ''], boosts: {} },
+            ],
+          },
+        ],
+        opponent: { id: 'o1', species: 'Tyranitar', isMega: false, nature: 'Hardy', sps: {}, moves: ['', '', '', ''], boosts: {} },
+        recentOpponents: [
+          {
+            id: 'Tyranitar',
+            useCount: 1,
+            lastUsed: 0,
+            mon: { id: 'r1', species: 'Tyranitar', isMega: true, nature: 'Hardy', sps: {}, moves: ['', '', '', ''], boosts: {} },
+          },
+        ],
       },
     };
     const out = migrate(v1)!;
@@ -47,7 +58,7 @@ describe('migrate', () => {
     expect(out.state.editor).toBeNull();
     // v4 step injects the curated seed threat lists.
     expect(out.state.threatLists.length).toBeGreaterThan(0);
-    expect(out.state.threatLists.every(l => l.isSeed)).toBe(true);
+    expect(out.state.threatLists.every((l) => l.isSeed)).toBe(true);
   });
 
   it('v2 -> v3 initialises editor:null on a state that already has v2 mega field', () => {
@@ -83,7 +94,7 @@ describe('migrate', () => {
     const out = migrate(v3)!;
     expect(out.version).toBe(CURRENT_VERSION);
     expect(out.state.threatLists).toHaveLength(3);
-    const names = out.state.threatLists.map(l => l.name);
+    const names = out.state.threatLists.map((l) => l.name);
     expect(names).toContain('Top Threats - Singles');
     expect(names).toContain('Top Threats - Doubles / VGC');
     expect(names).toContain('Most-Used');
@@ -96,8 +107,13 @@ describe('migrate', () => {
 
   it('v3 -> v4 is idempotent: an existing non-empty threatLists is not re-seeded', () => {
     const existing: ThreatList = {
-      id: 'user-1', name: 'My List', format: 'singles',
-      mons: [], isSeed: false, createdAt: 0, updatedAt: 0,
+      id: 'user-1',
+      name: 'My List',
+      format: 'singles',
+      mons: [],
+      isSeed: false,
+      createdAt: 0,
+      updatedAt: 0,
     };
     const v3 = {
       version: 3,
@@ -118,9 +134,7 @@ describe('migrate', () => {
   });
 
   it('migrating an already-v4 state is a no-op', () => {
-    const seeds: ThreatList[] = [
-      { id: 's1', name: 'Seed', format: 'any', mons: [], isSeed: true, createdAt: 0, updatedAt: 0 },
-    ];
+    const seeds: ThreatList[] = [{ id: 's1', name: 'Seed', format: 'any', mons: [], isSeed: true, createdAt: 0, updatedAt: 0 }];
     const v4 = {
       version: 4,
       state: {

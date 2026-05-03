@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Generations, toID } from '@smogon/calc';
-import { PickerShell } from './PickerShell';
-import { TypeBadge } from '../TypeBadge';
-import { getKnownMovesForSpecies } from '../../data/setdex-champions';
-import {
-  getLearnableMoveIds, priorityOverride, moveBoostsUser, moveLowersTarget, usePkmnReady,
-} from '../../data/pkmn';
-import { MoveDetailSheet } from '../MoveDetailSheet';
+
+import { MoveDetailSheet } from '@/components/MoveDetailSheet';
+import { PickerShell } from '@/components/pickers/PickerShell';
+import { TypeBadge } from '@/components/TypeBadge';
+import { getLearnableMoveIds, moveBoostsUser, moveLowersTarget, priorityOverride, usePkmnReady } from '@/data/pkmn';
+import { getKnownMovesForSpecies } from '@/data/setdex-champions';
 
 interface Props {
   open: boolean;
@@ -39,9 +38,24 @@ interface MoveOption {
 
 /** All Pokémon types in display order - used for the type filter chips. */
 const ALL_TYPES = [
-  'Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice',
-  'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug',
-  'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy',
+  'Normal',
+  'Fire',
+  'Water',
+  'Electric',
+  'Grass',
+  'Ice',
+  'Fighting',
+  'Poison',
+  'Ground',
+  'Flying',
+  'Psychic',
+  'Bug',
+  'Rock',
+  'Ghost',
+  'Dragon',
+  'Dark',
+  'Steel',
+  'Fairy',
 ] as const;
 type TypeName = (typeof ALL_TYPES)[number];
 
@@ -58,8 +72,7 @@ function moveOption(name: string): MoveOption {
   const pkmnPrio = priorityOverride(name);
   const priority = calcPrio === 0 && pkmnPrio !== null ? pkmnPrio : calcPrio;
   const rawCat = m?.category as 'Physical' | 'Special' | 'Status' | undefined;
-  const category: 'Physical' | 'Special' | 'Status' =
-    rawCat ?? (bp === 0 ? 'Status' : 'Physical');
+  const category: 'Physical' | 'Special' | 'Status' = rawCat ?? (bp === 0 ? 'Status' : 'Physical');
   const isStatus = category === 'Status' || bp === 0;
   // Boost detection lives in @pkmn/data - calc's gen-0 doesn't carry stat-
   // change info on status moves. Falls back to false until preloadPkmn()
@@ -93,11 +106,7 @@ function buildAllMoves(): MoveOption[] {
 }
 
 /** Loading state for the species learnset fetch. */
-type LearnsetState =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'ready'; ids: Set<string> }
-  | { kind: 'error' };
+type LearnsetState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ready'; ids: Set<string> } | { kind: 'error' };
 
 interface FilterState {
   types: Set<TypeName>;
@@ -134,15 +143,15 @@ function activeFilterCount(f: FilterState): number {
 function applyFilters(list: MoveOption[], f: FilterState): MoveOption[] {
   let out = list;
   if (f.types.size > 0) {
-    out = out.filter(m => f.types.has(m.type as TypeName));
+    out = out.filter((m) => f.types.has(m.type as TypeName));
   }
-  if (f.priority === 'pos') out = out.filter(m => m.priority > 0);
-  else if (f.priority === 'neg') out = out.filter(m => m.priority < 0);
-  if (f.category === 'physical') out = out.filter(m => m.category === 'Physical');
-  else if (f.category === 'special') out = out.filter(m => m.category === 'Special');
-  else if (f.category === 'status') out = out.filter(m => m.category === 'Status');
-  if (f.boostsUser) out = out.filter(m => m.boostsUser);
-  if (f.lowersTarget) out = out.filter(m => m.lowersTarget);
+  if (f.priority === 'pos') out = out.filter((m) => m.priority > 0);
+  else if (f.priority === 'neg') out = out.filter((m) => m.priority < 0);
+  if (f.category === 'physical') out = out.filter((m) => m.category === 'Physical');
+  else if (f.category === 'special') out = out.filter((m) => m.category === 'Special');
+  else if (f.category === 'status') out = out.filter((m) => m.category === 'Status');
+  if (f.boostsUser) out = out.filter((m) => m.boostsUser);
+  if (f.lowersTarget) out = out.filter((m) => m.lowersTarget);
   if (f.sort === 'bp-desc') {
     // Status / 0-bp moves last, then highest BP first; tiebreak by name.
     out = [...out].sort((a, b) => {
@@ -167,15 +176,13 @@ function applyFilters(list: MoveOption[], f: FilterState): MoveOption[] {
 }
 
 function catRank(m: MoveOption, mode: 'phys' | 'spec'): number {
-  const order = mode === 'phys'
-    ? { Physical: 0, Special: 1, Status: 2 }
-    : { Special: 0, Physical: 1, Status: 2 };
+  const order = mode === 'phys' ? { Physical: 0, Special: 1, Status: 2 } : { Special: 0, Physical: 1, Status: 2 };
   return order[m.category];
 }
 
 export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Props) {
   const pkmnReady = usePkmnReady();
-  const ALL_MOVES = useMemo(buildAllMoves, [pkmnReady]);
+  const ALL_MOVES = useMemo(() => buildAllMoves(), [pkmnReady]);
   const [detailMove, setDetailMove] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   // "Show all moves" override - when on, the learnset filter is bypassed and
@@ -209,7 +216,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
     let cancelled = false;
     setLearnset({ kind: 'loading' });
     getLearnableMoveIds(species)
-      .then(ids => {
+      .then((ids) => {
         if (cancelled) return;
         // Empty set is a soft-error signal: pkmn-data didn't recognise the
         // species. Fall back to unfiltered rather than showing nothing.
@@ -219,7 +226,9 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
       .catch(() => {
         if (!cancelled) setLearnset({ kind: 'error' });
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open, species]);
 
   const common = useMemo(() => {
@@ -232,7 +241,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
     let base = common;
     if (query) {
       const q = query.toLowerCase();
-      base = base.filter(m => m.name.toLowerCase().includes(q));
+      base = base.filter((m) => m.name.toLowerCase().includes(q));
     }
     return applyFilters(base, filters);
   }, [common, query, filters]);
@@ -242,26 +251,23 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
    * species, learnset state, and the show-all override.
    */
   const filteredMain = useMemo(() => {
-    const useLearnsetFilter =
-      !!species && !showAll && learnset.kind === 'ready';
+    const useLearnsetFilter = !!species && !showAll && learnset.kind === 'ready';
     let base: MoveOption[];
     if (useLearnsetFilter) {
       const ids = (learnset as { ids: Set<string> }).ids;
-      base = ALL_MOVES.filter(m => ids.has(toID(m.name) as unknown as string));
+      base = ALL_MOVES.filter((m) => ids.has(toID(m.name) as unknown as string));
     } else {
       base = ALL_MOVES;
     }
     if (query) {
       const q = query.toLowerCase();
-      base = base.filter(m => m.name.toLowerCase().includes(q));
+      base = base.filter((m) => m.name.toLowerCase().includes(q));
     }
     return applyFilters(base, filters);
   }, [query, species, showAll, learnset, filters, ALL_MOVES]);
 
   const showCommonHeader = species && filteredCommon.length > 0;
-  const mainHeader = species && !showAll && learnset.kind === 'ready'
-    ? 'Learnable'
-    : 'All';
+  const mainHeader = species && !showAll && learnset.kind === 'ready' ? 'Learnable' : 'All';
   const isLoadingLearnset = !!species && !showAll && learnset.kind === 'loading';
   // Always render the main-list header when a species is set (Common may be
   // empty for non-curated mons, but the Learnable/All distinction still
@@ -271,7 +277,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
   const filterCount = activeFilterCount(filters);
 
   function toggleType(t: TypeName) {
-    setFilters(f => {
+    setFilters((f) => {
       const next = new Set(f.types);
       if (next.has(t)) next.delete(t);
       else next.add(t);
@@ -285,17 +291,21 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
 
   return (
     <PickerShell open={open} onClose={onClose} title="Pick a move">
-      <input autoFocus value={query} onChange={e => setQuery(e.target.value)}
-             placeholder="Search moves"
-             // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
-             className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-base" />
+      <input
+        autoFocus
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search moves"
+        // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
+        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-base"
+      />
 
       {/* Filters toggle row. The toggle stays compact when no filters are
           active; once the user enables anything, a count badge surfaces. */}
       <div className="flex items-center justify-between mt-1.5 mb-1 px-1 gap-2">
         <button
           type="button"
-          onClick={() => setFiltersOpen(v => !v)}
+          onClick={() => setFiltersOpen((v) => !v)}
           aria-expanded={filtersOpen}
           aria-controls="move-filters-panel"
           data-testid="move-filters-toggle"
@@ -325,16 +335,12 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
       </div>
 
       {filtersOpen && (
-        <div
-          id="move-filters-panel"
-          data-testid="move-filters-panel"
-          className="mb-2 px-1 pb-2 border-t border-surface-hi pt-2 space-y-2.5"
-        >
+        <div id="move-filters-panel" data-testid="move-filters-panel" className="mb-2 px-1 pb-2 border-t border-surface-hi pt-2 space-y-2.5">
           {/* Type chips */}
           <div>
             <div className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Type</div>
             <div className="flex flex-wrap gap-1">
-              {ALL_TYPES.map(t => {
+              {ALL_TYPES.map((t) => {
                 const active = filters.types.has(t);
                 return (
                   <button
@@ -345,9 +351,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
                     aria-label={`${t} type filter`}
                     data-testid={`move-filter-type-${t}`}
                     className={`text-[10px] font-bold uppercase tracking-wider rounded px-1.5 py-0.5 border ${
-                      active
-                        ? 'border-accent bg-accent/20 text-accent'
-                        : 'border-surface-hi opacity-70 hover:opacity-100'
+                      active ? 'border-accent bg-accent/20 text-accent' : 'border-surface-hi opacity-70 hover:opacity-100'
                     }`}
                   >
                     {t}
@@ -361,12 +365,14 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
           <div>
             <div className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Category</div>
             <div className="flex gap-1" role="radiogroup" aria-label="Category filter">
-              {([
-                ['any', 'Any'],
-                ['physical', 'Phys'],
-                ['special', 'Spec'],
-                ['status', 'Status'],
-              ] as const).map(([val, lbl]) => {
+              {(
+                [
+                  ['any', 'Any'],
+                  ['physical', 'Phys'],
+                  ['special', 'Spec'],
+                  ['status', 'Status'],
+                ] as const
+              ).map(([val, lbl]) => {
                 const active = filters.category === val;
                 return (
                   <button
@@ -376,11 +382,9 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
                     aria-checked={active}
                     aria-label={`${lbl} category filter`}
                     data-testid={`move-filter-cat-${val}`}
-                    onClick={() => setFilters(f => ({ ...f, category: val }))}
+                    onClick={() => setFilters((f) => ({ ...f, category: val }))}
                     className={`flex-1 text-[10px] font-bold uppercase tracking-wider rounded px-2 py-1 border ${
-                      active
-                        ? 'border-accent bg-accent/20 text-accent'
-                        : 'border-surface-hi opacity-70 hover:opacity-100'
+                      active ? 'border-accent bg-accent/20 text-accent' : 'border-surface-hi opacity-70 hover:opacity-100'
                     }`}
                   >
                     {lbl}
@@ -394,11 +398,13 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
           <div>
             <div className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Priority</div>
             <div className="flex gap-1" role="radiogroup" aria-label="Priority filter">
-              {([
-                ['any', 'Any'],
-                ['pos', 'Priority+'],
-                ['neg', 'Priority−'],
-              ] as const).map(([val, lbl]) => {
+              {(
+                [
+                  ['any', 'Any'],
+                  ['pos', 'Priority+'],
+                  ['neg', 'Priority−'],
+                ] as const
+              ).map(([val, lbl]) => {
                 const active = filters.priority === val;
                 return (
                   <button
@@ -408,11 +414,9 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
                     aria-checked={active}
                     aria-label={`${lbl} priority filter`}
                     data-testid={`move-filter-prio-${val}`}
-                    onClick={() => setFilters(f => ({ ...f, priority: val }))}
+                    onClick={() => setFilters((f) => ({ ...f, priority: val }))}
                     className={`flex-1 text-[10px] font-bold uppercase tracking-wider rounded px-2 py-1 border ${
-                      active
-                        ? 'border-accent bg-accent/20 text-accent'
-                        : 'border-surface-hi opacity-70 hover:opacity-100'
+                      active ? 'border-accent bg-accent/20 text-accent' : 'border-surface-hi opacity-70 hover:opacity-100'
                     }`}
                   >
                     {lbl}
@@ -429,28 +433,24 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
             <div className="grid grid-cols-2 gap-1">
               <button
                 type="button"
-                onClick={() => setFilters(f => ({ ...f, boostsUser: !f.boostsUser }))}
+                onClick={() => setFilters((f) => ({ ...f, boostsUser: !f.boostsUser }))}
                 aria-pressed={filters.boostsUser}
                 aria-label="Boosts user filter"
                 data-testid="move-filter-boost-user"
                 className={`text-[10px] font-bold uppercase tracking-wider rounded px-2 py-1 border ${
-                  filters.boostsUser
-                    ? 'border-ok bg-ok/15 text-ok'
-                    : 'border-surface-hi opacity-70 hover:opacity-100'
+                  filters.boostsUser ? 'border-ok bg-ok/15 text-ok' : 'border-surface-hi opacity-70 hover:opacity-100'
                 }`}
               >
                 Boosts user
               </button>
               <button
                 type="button"
-                onClick={() => setFilters(f => ({ ...f, lowersTarget: !f.lowersTarget }))}
+                onClick={() => setFilters((f) => ({ ...f, lowersTarget: !f.lowersTarget }))}
                 aria-pressed={filters.lowersTarget}
                 aria-label="Lowers target filter"
                 data-testid="move-filter-lower-target"
                 className={`text-[10px] font-bold uppercase tracking-wider rounded px-2 py-1 border ${
-                  filters.lowersTarget
-                    ? 'border-danger bg-danger/15 text-danger'
-                    : 'border-surface-hi opacity-70 hover:opacity-100'
+                  filters.lowersTarget ? 'border-danger bg-danger/15 text-danger' : 'border-surface-hi opacity-70 hover:opacity-100'
                 }`}
               >
                 Lowers target
@@ -462,13 +462,15 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
           <div>
             <div className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Sort</div>
             <div className="grid grid-cols-3 gap-1" role="radiogroup" aria-label="Sort">
-              {([
-                ['az', 'A→Z'],
-                ['bp-desc', 'BP ↓'],
-                ['prio-desc', 'Priority ↓'],
-                ['phys', 'Phys (Atk)'],
-                ['spec', 'Spec (SpA)'],
-              ] as const).map(([val, lbl]) => {
+              {(
+                [
+                  ['az', 'A→Z'],
+                  ['bp-desc', 'BP ↓'],
+                  ['prio-desc', 'Priority ↓'],
+                  ['phys', 'Phys (Atk)'],
+                  ['spec', 'Spec (SpA)'],
+                ] as const
+              ).map(([val, lbl]) => {
                 const active = filters.sort === val;
                 return (
                   <button
@@ -478,11 +480,9 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
                     aria-checked={active}
                     aria-label={`Sort: ${lbl}`}
                     data-testid={`move-sort-${val}`}
-                    onClick={() => setFilters(f => ({ ...f, sort: val }))}
+                    onClick={() => setFilters((f) => ({ ...f, sort: val }))}
                     className={`text-[10px] font-bold uppercase tracking-wider rounded px-2 py-1 border ${
-                      active
-                        ? 'border-accent bg-accent/20 text-accent'
-                        : 'border-surface-hi opacity-70 hover:opacity-100'
+                      active ? 'border-accent bg-accent/20 text-accent' : 'border-surface-hi opacity-70 hover:opacity-100'
                     }`}
                   >
                     {lbl}
@@ -504,7 +504,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
           </span>
           <button
             type="button"
-            onClick={() => setShowAll(v => !v)}
+            onClick={() => setShowAll((v) => !v)}
             className="text-xxs uppercase tracking-wider opacity-70 hover:opacity-100 underline underline-offset-2"
           >
             {showAll ? 'Show learnable only' : 'Show all moves'}
@@ -515,53 +515,58 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
         {showCommonHeader && (
           <>
             <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5">Common</div>
-            {filteredCommon.map(m => (
-              <Row key={`c-${m.name}`} option={m}
-                   onPick={() => { onPick(m.name); onClose(); }}
-                   onInfo={() => setDetailMove(m.name)} />
+            {filteredCommon.map((m) => (
+              <Row
+                key={`c-${m.name}`}
+                option={m}
+                onPick={() => {
+                  onPick(m.name);
+                  onClose();
+                }}
+                onInfo={() => setDetailMove(m.name)}
+              />
             ))}
           </>
         )}
         {showMainHeader && (
-          <div className={`text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 ${showCommonHeader ? 'mt-3' : ''}`}>
-            {mainHeader}
-          </div>
+          <div className={`text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 ${showCommonHeader ? 'mt-3' : ''}`}>{mainHeader}</div>
         )}
-        {filteredMain.map(m => (
-          <Row key={m.name} option={m}
-               onPick={() => { onPick(m.name); onClose(); }}
-               onInfo={() => setDetailMove(m.name)} />
+        {filteredMain.map((m) => (
+          <Row
+            key={m.name}
+            option={m}
+            onPick={() => {
+              onPick(m.name);
+              onClose();
+            }}
+            onInfo={() => setDetailMove(m.name)}
+          />
         ))}
       </div>
-      <MoveDetailSheet
-        open={detailMove !== null}
-        moveName={detailMove}
-        onClose={() => setDetailMove(null)}
-      />
+      <MoveDetailSheet open={detailMove !== null} moveName={detailMove} onClose={() => setDetailMove(null)} />
     </PickerShell>
   );
 }
 
-function Row({ option, onPick, onInfo }: {
-  option: MoveOption;
-  onPick: () => void;
-  onInfo: () => void;
-}) {
-  const prioLabel = option.priority === 0 ? null : (option.priority > 0 ? `+${option.priority}` : `${option.priority}`);
-  const prioCls = option.priority > 0
-    ? 'bg-priority/20 text-priority border-priority/40'
-    : 'bg-warn/15 text-warn border-warn/40';
+function Row({ option, onPick, onInfo }: { option: MoveOption; onPick: () => void; onInfo: () => void }) {
+  const prioLabel = option.priority === 0 ? null : option.priority > 0 ? `+${option.priority}` : `${option.priority}`;
+  const prioCls = option.priority > 0 ? 'bg-priority/20 text-priority border-priority/40' : 'bg-warn/15 text-warn border-warn/40';
   const catCls =
-    option.category === 'Physical' ? 'bg-danger/15 text-danger border-danger/30'
-    : option.category === 'Special' ? 'bg-accent/15 text-accent border-accent/30'
-    : 'bg-white/5 text-text-mute border-surface-hi';
+    option.category === 'Physical'
+      ? 'bg-danger/15 text-danger border-danger/30'
+      : option.category === 'Special'
+        ? 'bg-accent/15 text-accent border-accent/30'
+        : 'bg-white/5 text-text-mute border-surface-hi';
   const catLabel = option.category === 'Physical' ? 'Phys' : option.category === 'Special' ? 'Spec' : 'Stat';
   return (
     <div className="w-full flex items-center gap-1.5 px-1 py-1 rounded-lg hover:bg-surface">
       {/* Info icon (leftmost) - opens MoveDetailSheet without picking. */}
       <button
         type="button"
-        onClick={e => { e.stopPropagation(); onInfo(); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onInfo();
+        }}
         aria-label={`${option.name} details`}
         title={`${option.name} details`}
         data-testid={`move-row-info-${option.name}`}
@@ -585,12 +590,8 @@ function Row({ option, onPick, onInfo }: {
             {prioLabel}
           </span>
         )}
-        {!option.isStatus && option.bp > 0 && (
-          <span className="text-[10px] tabular-nums opacity-60">BP {option.bp}</span>
-        )}
-        <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border ${catCls}`}>
-          {catLabel}
-        </span>
+        {!option.isStatus && option.bp > 0 && <span className="text-[10px] tabular-nums opacity-60">BP {option.bp}</span>}
+        <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border ${catCls}`}>{catLabel}</span>
       </button>
     </div>
   );

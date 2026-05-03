@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { useStore } from '../../store';
-import { analyzeCoverage } from '../../calc/coverage';
-import { TypeBadge } from '../TypeBadge';
-import { spriteUrl } from '../../data/sprites';
-import { SpeciesPicker } from '../pickers/SpeciesPicker';
-import { emptyMon } from '../../store/factories';
+
+import { analyzeCoverage } from '@/calc/coverage';
+import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
+import { TypeBadge } from '@/components/TypeBadge';
+import { spriteUrl } from '@/data/sprites';
+import { useStore } from '@/store';
+import { emptyMon } from '@/store/factories';
 
 interface Props {
   /** Currently-selected team id. Owned by the parent so it stays in sync with the matchup matrix. */
@@ -17,17 +18,14 @@ interface Props {
  * blocks on desktop (offensive gaps / defensive overlaps), stacked on mobile.
  */
 export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
-  const teams = useStore(s => s.teams);
-  const upsertMon = useStore(s => s.upsertMon);
-  const setEditor = useStore(s => s.setEditor);
-  const team = teams.find(t => t.id === selectedTeamId) ?? null;
+  const teams = useStore((s) => s.teams);
+  const upsertMon = useStore((s) => s.upsertMon);
+  const setEditor = useStore((s) => s.setEditor);
+  const team = teams.find((t) => t.id === selectedTeamId) ?? null;
 
   // analyzeCoverage is pure but reads species/move data via calc. Memo so
   // unrelated re-renders (e.g. picker open/close) don't redo the chart math.
-  const report = useMemo(
-    () => analyzeCoverage(team?.mons ?? []),
-    [team?.id, team?.updatedAt],
-  );
+  const report = useMemo(() => analyzeCoverage(team?.mons ?? []), [team?.id, team?.updatedAt]);
 
   // Slot index the user tapped while empty - opens the SpeciesPicker. Once a
   // species is picked, we add a new mon to the team and immediately open the
@@ -60,11 +58,11 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
         ) : (
           <select
             value={selectedTeamId ?? ''}
-            onChange={e => onSelectTeam(e.target.value)}
+            onChange={(e) => onSelectTeam(e.target.value)}
             data-testid="coverage-team-select"
             className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-sm text-text"
           >
-            {teams.map(t => (
+            {teams.map((t) => (
               <option key={t.id} value={t.id} className="bg-bg-base">
                 {t.name} ({t.mons.length})
               </option>
@@ -110,26 +108,17 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
         </div>
       )}
 
-      {team && team.mons.length === 0 && (
-        <div className="text-sm opacity-60 italic mb-3">
-          Tap a slot above to add your first Pokémon.
-        </div>
-      )}
+      {team && team.mons.length === 0 && <div className="text-sm opacity-60 italic mb-3">Tap a slot above to add your first Pokémon.</div>}
 
       {team && team.mons.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <CoverageBlock title="Offensive gaps" data-testid="offensive-gaps">
             {report.offensiveGaps.length === 0 ? (
-              <p className="text-sm opacity-60">
-                No offensive gaps - you can hit everything.
-              </p>
+              <p className="text-sm opacity-60">No offensive gaps - you can hit everything.</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {report.offensiveGaps.map(t => (
-                  <span
-                    key={t}
-                    data-testid={`offensive-gap-${t}`}
-                  >
+                {report.offensiveGaps.map((t) => (
+                  <span key={t} data-testid={`offensive-gap-${t}`}>
                     <TypeBadge type={t} size="md" />
                   </span>
                 ))}
@@ -142,13 +131,8 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
               <p className="text-sm opacity-60">No shared weaknesses.</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {report.defensiveOverlaps.map(o => (
-                  <span
-                    key={o.type}
-                    data-testid={`defensive-overlap-${o.type}`}
-                    data-count={o.count}
-                    className="inline-flex items-center gap-1.5"
-                  >
+                {report.defensiveOverlaps.map((o) => (
+                  <span key={o.type} data-testid={`defensive-overlap-${o.type}`} data-count={o.count} className="inline-flex items-center gap-1.5">
                     <TypeBadge type={o.type} size="md" />
                     <span className="text-xs opacity-65">×{o.count} mons</span>
                   </span>
@@ -159,18 +143,15 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
         </div>
       )}
 
-      <SpeciesPicker
-        open={pickingSlot !== null}
-        onClose={() => setPickingSlot(null)}
-        onPick={addMon}
-        showRecents={false}
-      />
+      <SpeciesPicker open={pickingSlot !== null} onClose={() => setPickingSlot(null)} onPick={addMon} showRecents={false} />
     </section>
   );
 }
 
 function CoverageBlock({
-  title, children, ...rest
+  title,
+  children,
+  ...rest
 }: {
   title: string;
   children: React.ReactNode;

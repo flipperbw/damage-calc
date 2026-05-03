@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { copyToClipboard } from './clipboard';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { copyToClipboard } from '@/util/clipboard';
 
 // jsdom doesn't define document.execCommand by default. We assign a stub
 // before each test and restore the original (or undefined) after.

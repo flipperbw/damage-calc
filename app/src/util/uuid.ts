@@ -9,8 +9,7 @@
  * Format: RFC 4122 v4 UUID (e.g. "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d").
  */
 export function uuid(): string {
-  const c: Crypto | undefined =
-    typeof globalThis !== 'undefined' ? globalThis.crypto : undefined;
+  const c: Crypto | undefined = typeof globalThis !== 'undefined' ? globalThis.crypto : undefined;
 
   if (c && typeof c.randomUUID === 'function') {
     return c.randomUUID();
@@ -30,9 +29,13 @@ export function uuid(): string {
   for (const b of bytes) hex.push(b.toString(16).padStart(2, '0'));
   return (
     hex.slice(0, 4).join('') +
-    '-' + hex.slice(4, 6).join('') +
-    '-' + hex.slice(6, 8).join('') +
-    '-' + hex.slice(8, 10).join('') +
-    '-' + hex.slice(10, 16).join('')
+    '-' +
+    hex.slice(4, 6).join('') +
+    '-' +
+    hex.slice(6, 8).join('') +
+    '-' +
+    hex.slice(8, 10).join('') +
+    '-' +
+    hex.slice(10, 16).join('')
   );
 }

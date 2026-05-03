@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { EffectiveStats, megaFormeFromItem, isMegaStone } from './EffectiveStats';
+import { describe, expect, it } from 'vitest';
+
+import { EffectiveStats, isMegaStone, megaFormeFromItem } from '@/components/editor/EffectiveStats';
 
 describe('megaFormeFromItem', () => {
   it('returns -Mega-X for Charizard with Charizardite X', () => {
@@ -45,9 +46,7 @@ describe('EffectiveStats panel', () => {
   });
 
   it('shows the Mega column when item is a mega stone', () => {
-    const { container } = render(
-      <EffectiveStats species="Garchomp" nature="Adamant" sps={{ atk: 32 }} item="Garchompite" />,
-    );
+    const { container } = render(<EffectiveStats species="Garchomp" nature="Adamant" sps={{ atk: 32 }} item="Garchompite" />);
     expect(screen.getByText('Mega')).toBeInTheDocument();
     // Garchomp-Mega base atk = 170 (verified). +Adamant +32 sp:
     // floor(1.1 * (170 + 32 + 20)) = floor(1.1 * 222) = floor(244.2) = 244.
@@ -55,9 +54,7 @@ describe('EffectiveStats panel', () => {
   });
 
   it('hides the Mega column for non-mega items', () => {
-    render(
-      <EffectiveStats species="Garchomp" nature="Adamant" sps={{ atk: 32 }} item="Leftovers" />,
-    );
+    render(<EffectiveStats species="Garchomp" nature="Adamant" sps={{ atk: 32 }} item="Leftovers" />);
     expect(screen.queryByText('Mega')).toBeNull();
   });
 });

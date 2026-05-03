@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { Generations, calcStat, MEGA_STONES, toID } from '@smogon/calc';
-import type { StatID } from '../../types';
+import { calcStat, Generations, MEGA_STONES, toID } from '@smogon/calc';
+
+import type { StatID } from '@/types';
 
 const GEN = Generations.get(0);
 
 const STATS: { id: StatID; label: string }[] = [
-  { id: 'hp',  label: 'HP'  },
+  { id: 'hp', label: 'HP' },
   { id: 'atk', label: 'Atk' },
   { id: 'def', label: 'Def' },
   { id: 'spa', label: 'SpA' },
@@ -87,9 +88,7 @@ export function EffectiveStats({ species, nature, sps, item }: Props) {
       // Champions: gen 0; level passed but unused in the formula.
       const value = baseStats ? calcStat(GEN, id, base, 31, sp, 50, nature) : 0;
       const megaBase = megaBaseStats?.[id];
-      const megaValue = megaBaseStats != null
-        ? calcStat(GEN, id, megaBase!, 31, sp, 50, nature)
-        : undefined;
+      const megaValue = megaBaseStats != null ? calcStat(GEN, id, megaBase!, 31, sp, 50, nature) : undefined;
       return {
         stat: id,
         label,
@@ -102,7 +101,7 @@ export function EffectiveStats({ species, nature, sps, item }: Props) {
     });
   }, [species, nature, sps, item]);
 
-  const showMega = rows.some(r => r.megaValue !== undefined);
+  const showMega = rows.some((r) => r.megaValue !== undefined);
 
   return (
     <div>
@@ -114,12 +113,8 @@ export function EffectiveStats({ species, nature, sps, item }: Props) {
         <div />
         <div className="text-[10px] uppercase opacity-50 text-right">Base</div>
         <div className="text-[10px] uppercase opacity-50 text-right">Stat</div>
-        {showMega && (
-          <div className="text-[10px] uppercase opacity-50 text-right border-l border-accent/40 pl-2">
-            Mega
-          </div>
-        )}
-        {rows.map(r => (
+        {showMega && <div className="text-[10px] uppercase opacity-50 text-right border-l border-accent/40 pl-2">Mega</div>}
+        {rows.map((r) => (
           <Cells key={r.stat} row={r} showMega={showMega} />
         ))}
       </div>
@@ -151,18 +146,19 @@ function tierFor(stat: StatID, value: number): Tier {
 function tierClass(tier: Tier, bold: boolean): string {
   const weight = bold ? 'font-bold' : '';
   switch (tier) {
-    case 'ok': return `${weight} text-ok`;
-    case 'warn': return `${weight} text-warn`;
-    case 'danger': return `${weight} text-danger`;
-    case 'neutral': return `${weight} opacity-90`;
+    case 'ok':
+      return `${weight} text-ok`;
+    case 'warn':
+      return `${weight} text-warn`;
+    case 'danger':
+      return `${weight} text-danger`;
+    case 'neutral':
+      return `${weight} opacity-90`;
   }
 }
 
 function Cells({ row, showMega }: { row: Row; showMega: boolean }) {
-  const arrowCls =
-    row.arrow === '▲' ? 'text-ok'
-    : row.arrow === '▼' ? 'text-danger'
-    : 'opacity-40';
+  const arrowCls = row.arrow === '▲' ? 'text-ok' : row.arrow === '▼' ? 'text-danger' : 'opacity-40';
   const tier = tierFor(row.stat, row.value);
   // The "stat" column gets the strongest emphasis - it's the user-visible
   // post-nature, post-EV value. Bold for ok/neutral so the eye lands on
@@ -178,11 +174,7 @@ function Cells({ row, showMega }: { row: Row; showMega: boolean }) {
       </div>
       <div className="text-right opacity-45">{row.base}</div>
       <div className={`text-right ${valueCls}`}>{row.value}</div>
-      {showMega && (
-        <div className={`text-right border-l border-accent/40 pl-2 ${megaCls}`}>
-          {row.megaValue !== undefined ? row.megaValue : '-'}
-        </div>
-      )}
+      {showMega && <div className={`text-right border-l border-accent/40 pl-2 ${megaCls}`}>{row.megaValue !== undefined ? row.megaValue : '-'}</div>}
     </>
   );
 }

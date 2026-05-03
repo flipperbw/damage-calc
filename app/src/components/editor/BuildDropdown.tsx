@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { getBuildsForSpecies } from '../../data/setdex-champions';
-import { monFromBuild } from '../../store/factories';
-import { synthesizeBuild, summarizeSynth } from '../../store/synthesize';
-import type { SavedMon } from '../../types';
+
+import { getBuildsForSpecies } from '@/data/setdex-champions';
+import { monFromBuild } from '@/store/factories';
+import { summarizeSynth, synthesizeBuild } from '@/store/synthesize';
+import type { SavedMon } from '@/types';
 
 interface Props {
   species: string;
@@ -21,14 +22,17 @@ export function BuildDropdown({ species, selectedName, onApply }: Props) {
   function pick(name: string) {
     const built = monFromBuild(species, name);
     if (!built) return;
-    onApply({
-      buildName: name,
-      item: built.item,
-      ability: built.ability,
-      nature: built.nature,
-      sps: built.sps,
-      moves: built.moves,
-    }, name);
+    onApply(
+      {
+        buildName: name,
+        item: built.item,
+        ability: built.ability,
+        nature: built.nature,
+        sps: built.sps,
+        moves: built.moves,
+      },
+      name,
+    );
     setOpen(false);
   }
 
@@ -38,14 +42,17 @@ export function BuildDropdown({ species, selectedName, onApply }: Props) {
     try {
       const built = await synthesizeBuild(species);
       if (!built) return;
-      onApply({
-        buildName: AUTO_BUILD_NAME,
-        item: undefined,
-        ability: built.ability,
-        nature: built.nature,
-        sps: built.sps,
-        moves: built.moves,
-      }, AUTO_BUILD_NAME);
+      onApply(
+        {
+          buildName: AUTO_BUILD_NAME,
+          item: undefined,
+          ability: built.ability,
+          nature: built.nature,
+          sps: built.sps,
+          moves: built.moves,
+        },
+        AUTO_BUILD_NAME,
+      );
       setOpen(false);
     } finally {
       setBusy(false);
@@ -57,8 +64,10 @@ export function BuildDropdown({ species, selectedName, onApply }: Props) {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen(o => !o)}
-              className="w-full bg-accent/10 border border-accent/30 rounded-lg px-3 py-2.5 text-sm flex justify-between items-center text-accent">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full bg-accent/10 border border-accent/30 rounded-lg px-3 py-2.5 text-sm flex justify-between items-center text-accent"
+      >
         <span>{selectedName ?? 'Custom'}</span>
         <span className="opacity-60">{totalCount} builds ▾</span>
       </button>
@@ -73,16 +82,14 @@ export function BuildDropdown({ species, selectedName, onApply }: Props) {
             >
               <span className="font-semibold">{busy ? 'Building…' : AUTO_BUILD_NAME}</span>
               <span className="text-[10px] opacity-60">
-                {summary.nature} · {summary.bestAtk === 'atk' ? 'Phys' : 'Spec'}{summary.isFast ? ' · fast' : ''}
+                {summary.nature} · {summary.bestAtk === 'atk' ? 'Phys' : 'Spec'}
+                {summary.isFast ? ' · fast' : ''}
               </span>
             </button>
           )}
-          {builds.length === 0 && !summary && (
-            <div className="px-2 py-2 text-xs opacity-60">No builds for {species}</div>
-          )}
-          {builds.map(name => (
-            <button key={name} onClick={() => pick(name)}
-                    className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-surface">
+          {builds.length === 0 && !summary && <div className="px-2 py-2 text-xs opacity-60">No builds for {species}</div>}
+          {builds.map((name) => (
+            <button key={name} onClick={() => pick(name)} className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-surface">
               {name}
             </button>
           ))}

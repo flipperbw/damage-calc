@@ -81,16 +81,15 @@ export async function createTeam(page: Page) {
  * Save when buildName is undefined). Assumes the editor is open after the
  * species pick.
  */
-export async function addMonToFirstSlot(
-  page: Page,
-  species: string,
-  buildName?: RegExp,
-) {
+export async function addMonToFirstSlot(page: Page, species: string, buildName?: RegExp) {
   // Click the first empty slot on the active team card.
   await page.getByTestId('team-slot-empty-0').first().click();
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill(species);
-  await shell.getByRole('button', { name: new RegExp(`^${species}$`) }).first().click();
+  await shell
+    .getByRole('button', { name: new RegExp(`^${species}$`) })
+    .first()
+    .click();
   if (buildName) {
     // Build dropdown shows "Custom" until a build is applied. Open and pick.
     await page.getByRole('button', { name: /^Custom/ }).click();
@@ -112,7 +111,10 @@ export async function activateTeam(page: Page, name: string) {
 async function pickSpeciesInOpenPicker(page: Page, species: string) {
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill(species);
-  await shell.getByRole('button', { name: new RegExp(`^${species}$`) }).first().click();
+  await shell
+    .getByRole('button', { name: new RegExp(`^${species}$`) })
+    .first()
+    .click();
 }
 
 /**

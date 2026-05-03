@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { PickerShell } from './pickers/PickerShell';
-import { abilityDescription, type DescPair } from '../data/pkmn';
+
+import { PickerShell } from '@/components/pickers/PickerShell';
+import { abilityDescription, type DescPair } from '@/data/pkmn';
 
 interface Props {
   open: boolean;
@@ -13,11 +14,7 @@ interface Props {
 }
 
 /** Loading state for the @pkmn/data prose fetch. */
-type ProseState =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'ready'; pair: DescPair }
-  | { kind: 'error' };
+type ProseState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ready'; pair: DescPair } | { kind: 'error' };
 
 /**
  * Read-only sheet showing an ability's name, shortDesc and full desc from
@@ -37,9 +34,15 @@ export function AbilityDetailSheet({ open, abilityName, canChange, onClose, onCh
     let cancelled = false;
     setProse({ kind: 'loading' });
     abilityDescription(abilityName)
-      .then(pair => { if (!cancelled) setProse({ kind: 'ready', pair }); })
-      .catch(() => { if (!cancelled) setProse({ kind: 'error' }); });
-    return () => { cancelled = true; };
+      .then((pair) => {
+        if (!cancelled) setProse({ kind: 'ready', pair });
+      })
+      .catch(() => {
+        if (!cancelled) setProse({ kind: 'error' });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, abilityName]);
 
   if (!open || !abilityName) return null;
@@ -56,15 +59,16 @@ export function AbilityDetailSheet({ open, abilityName, canChange, onClose, onCh
         {/* Fallback when @pkmn/data has nothing - common for niche abilities
             that are only documented by SV-era data. */}
         {prose.kind === 'ready' && !prose.pair.short && !prose.pair.full && (
-          <p className="text-sm opacity-60 italic mb-3">
-            No description available for this ability.
-          </p>
+          <p className="text-sm opacity-60 italic mb-3">No description available for this ability.</p>
         )}
 
         {canChange && onChangeRequest && (
           <button
             type="button"
-            onClick={() => { onClose(); onChangeRequest(); }}
+            onClick={() => {
+              onClose();
+              onChangeRequest();
+            }}
             data-testid="ability-detail-change"
             className="w-full mt-2 py-2.5 rounded-card font-bold text-sm bg-surface border border-surface-hi hover:bg-surface-hi/40"
           >
@@ -90,12 +94,8 @@ function ProseSection({ state }: { state: ProseState }) {
   if (!short && !full) return null;
   return (
     <div className="mb-3" data-testid="ability-prose">
-      {short && (
-        <div className="text-sm font-medium opacity-90 mb-1">{short}</div>
-      )}
-      {full && (
-        <p className="text-sm opacity-75 leading-snug">{full}</p>
-      )}
+      {short && <div className="text-sm font-medium opacity-90 mb-1">{short}</div>}
+      {full && <p className="text-sm opacity-75 leading-snug">{full}</p>}
     </div>
   );
 }

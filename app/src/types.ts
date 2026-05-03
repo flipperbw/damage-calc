@@ -1,28 +1,21 @@
 // Stat IDs aligned with @smogon/calc (no translation at the boundary).
 export type StatID = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
 export type StatIDExceptHP = Exclude<StatID, 'hp'>;
-export type StatusName =
-  | 'Healthy'
-  | 'Poisoned'
-  | 'Badly Poisoned'
-  | 'Burned'
-  | 'Paralyzed'
-  | 'Asleep'
-  | 'Frozen';
+export type StatusName = 'Healthy' | 'Poisoned' | 'Badly Poisoned' | 'Burned' | 'Paralyzed' | 'Asleep' | 'Frozen';
 
 export type MegaState = '' | 'mega' | 'mega-x' | 'mega-y';
 
 export interface SavedMon {
-  id: string;             // uuid v4
-  species: string;        // canonical species name (e.g. "Garchomp")
-  buildName?: string;     // SETDEX_CHAMPIONS key, undefined when "Custom"
+  id: string; // uuid v4
+  species: string; // canonical species name (e.g. "Garchomp")
+  buildName?: string; // SETDEX_CHAMPIONS key, undefined when "Custom"
   item?: string;
   ability?: string;
-  nature: string;         // default 'Hardy'
-  sps: Partial<Record<StatID, number>>;     // each 0..32, sum ≤ 66
-  moves: [string, string, string, string];  // '' for empty
-  mega: MegaState;        // '' = no mega; 'mega', 'mega-x', or 'mega-y'
-  currentHp?: number;     // raw HP; undefined = full
+  nature: string; // default 'Hardy'
+  sps: Partial<Record<StatID, number>>; // each 0..32, sum ≤ 66
+  moves: [string, string, string, string]; // '' for empty
+  mega: MegaState; // '' = no mega; 'mega', 'mega-x', or 'mega-y'
+  currentHp?: number; // raw HP; undefined = full
   status?: StatusName;
   boosts: Partial<Record<StatIDExceptHP, number>>; // -6..+6
 }
@@ -33,7 +26,7 @@ export interface Team {
   id: string;
   name: string;
   format: Format;
-  mons: SavedMon[];   // 0..6
+  mons: SavedMon[]; // 0..6
   createdAt: number;
   updatedAt: number;
 }
@@ -94,7 +87,7 @@ export interface FieldState {
 
 export interface RecentOpponent {
   id: string;
-  mon: SavedMon;       // snapshot at time of last use
+  mon: SavedMon; // snapshot at time of last use
   lastUsed: number;
   useCount: number;
 }
@@ -121,14 +114,14 @@ export type EditorTarget =
 export interface AppState {
   teams: Team[];
   activeTeamId: string | null;
-  activeMonIndex: number;       // 0..5 in active team
+  activeMonIndex: number; // 0..5 in active team
   opponent: SavedMon | null;
-  recentOpponents: RecentOpponent[];  // capped 30, LRU
-  threatLists: ThreatList[];    // seeded by v4 migration
+  recentOpponents: RecentOpponent[]; // capped 30, LRU
+  threatLists: ThreatList[]; // seeded by v4 migration
   field: FieldState;
   notation: Notation;
   tab: Tab;
-  editor: EditorTarget;         // persisted: survives iOS reload-on-unload
+  editor: EditorTarget; // persisted: survives iOS reload-on-unload
 }
 
 export const SP_PER_STAT_MAX = 32;

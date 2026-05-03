@@ -1,8 +1,9 @@
 import { Generations, toID } from '@smogon/calc';
-import type { SavedMon } from '../types';
-import { typeEffectiveness } from './adapter';
-import { TOP_POOL, type TopPoolEntry } from '../data/top-pool';
-import { analyzeCoverage } from './coverage';
+
+import { typeEffectiveness } from '@/calc/adapter';
+import { analyzeCoverage } from '@/calc/coverage';
+import { TOP_POOL, type TopPoolEntry } from '@/data/top-pool';
+import type { SavedMon } from '@/types';
 
 const GEN = Generations.get(0);
 
@@ -74,9 +75,7 @@ function scoreCandidate(
 
   // --- Offensive gaps the candidate's STABs close ---------------------
   for (const gap of offensiveGaps) {
-    const closes = candidate.types.some(
-      t => typeEffectiveness(t, [gap]) >= 2,
-    );
+    const closes = candidate.types.some((t) => typeEffectiveness(t, [gap]) >= 2);
     if (closes) {
       score += SCORE_OFFENSIVE_GAP;
       reasons.push({ kind: 'offensive-gap', text: `covers ${gap}` });
@@ -109,14 +108,10 @@ function scoreCandidate(
     const threatTypes = speciesTypes(threat.species);
     if (threatTypes.length === 0) continue;
 
-    const safeOnDefense = threatTypes.every(
-      atk => typeEffectiveness(atk, candidate.types) <= 1,
-    );
+    const safeOnDefense = threatTypes.every((atk) => typeEffectiveness(atk, candidate.types) <= 1);
     if (!safeOnDefense) continue;
 
-    const punishesOffense = candidate.types.some(stab =>
-      threatTypes.some(def => typeEffectiveness(stab, [def]) >= 2),
-    );
+    const punishesOffense = candidate.types.some((stab) => threatTypes.some((def) => typeEffectiveness(stab, [def]) >= 2));
     if (!punishesOffense) continue;
 
     score += SCORE_THREAT_FAVORABLE;
@@ -145,24 +140,15 @@ export function suggestAdditions(
   topPool: readonly TopPoolEntry[] = TOP_POOL,
 ): Suggestion[] {
   const { offensiveGaps, defensiveOverlaps } = analyzeCoverage(team);
-  const overlapTypes = defensiveOverlaps.map(o => o.type);
+  const overlapTypes = defensiveOverlaps.map((o) => o.type);
 
   const scored: Suggestion[] = [];
   for (const candidate of topPool) {
-    const s = scoreCandidate(
-      candidate,
-      team,
-      threatList,
-      offensiveGaps,
-      overlapTypes,
-    );
+    const s = scoreCandidate(candidate, team, threatList, offensiveGaps, overlapTypes);
     if (s) scored.push(s);
   }
 
-  scored.sort(
-    (a, b) =>
-      b.score - a.score || a.species.localeCompare(b.species),
-  );
+  scored.sort((a, b) => b.score - a.score || a.species.localeCompare(b.species));
 
   return scored.slice(0, MAX_SUGGESTIONS);
 }

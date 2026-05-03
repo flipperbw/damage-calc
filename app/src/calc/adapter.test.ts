@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { calculateMatchup, typeEffectiveness } from './adapter';
-import { preloadPkmn } from '../data/pkmn';
-import type { SavedMon, FieldState } from '../types';
+import { beforeAll, describe, expect, it } from 'vitest';
+
+import { calculateMatchup, typeEffectiveness } from '@/calc/adapter';
+import { preloadPkmn } from '@/data/pkmn';
+import type { FieldState, SavedMon } from '@/types';
 
 const blankField = (): FieldState => ({ yourSide: {}, oppSide: {} });
 
@@ -53,35 +54,33 @@ describe('calculateMatchup', () => {
 
   it('Earthquake hits Tyranitar for damage', () => {
     const m = calculateMatchup(garchomp, tyranitar, blankField());
-    const eq = m.attackerMoves.find(r => r.moveName === 'Earthquake')!;
+    const eq = m.attackerMoves.find((r) => r.moveName === 'Earthquake')!;
     expect(eq.damageRange[0]).toBeGreaterThan(0);
     expect(eq.percentRange[1]).toBeGreaterThan(eq.percentRange[0]);
   });
 
   it('status moves report no damage', () => {
     const m = calculateMatchup(garchomp, tyranitar, blankField());
-    const sr = m.defenderMoves.find(r => r.moveName === 'Stealth Rock')!;
+    const sr = m.defenderMoves.find((r) => r.moveName === 'Stealth Rock')!;
     expect(sr.damageRange).toEqual([0, 0]);
   });
 
   it('mega toggle changes attacker base stats', () => {
-    const baseDmg = calculateMatchup(garchomp, tyranitar, blankField())
-      .attackerMoves[0].damageRange[1];
+    const baseDmg = calculateMatchup(garchomp, tyranitar, blankField()).attackerMoves[0].damageRange[1];
     const mega: SavedMon = { ...garchomp, mega: 'mega' };
-    const megaDmg = calculateMatchup(mega, tyranitar, blankField())
-      .attackerMoves[0].damageRange[1];
+    const megaDmg = calculateMatchup(mega, tyranitar, blankField()).attackerMoves[0].damageRange[1];
     expect(megaDmg).toBeGreaterThan(baseDmg);
   });
 
   it('respects field weather (Sun boosts Fire moves)', () => {
     const charizard: SavedMon = {
-      ...garchomp, species: 'Charizard', moves: ['Flamethrower', '', '', ''],
+      ...garchomp,
+      species: 'Charizard',
+      moves: ['Flamethrower', '', '', ''],
       ability: 'Blaze',
     };
-    const noSun = calculateMatchup(charizard, skarmory, blankField())
-      .attackerMoves[0].percentRange[1];
-    const sun = calculateMatchup(charizard, skarmory, { ...blankField(), weather: 'Sun' })
-      .attackerMoves[0].percentRange[1];
+    const noSun = calculateMatchup(charizard, skarmory, blankField()).attackerMoves[0].percentRange[1];
+    const sun = calculateMatchup(charizard, skarmory, { ...blankField(), weather: 'Sun' }).attackerMoves[0].percentRange[1];
     expect(sun).toBeGreaterThan(noSun);
   });
 
@@ -94,16 +93,16 @@ describe('calculateMatchup', () => {
   it('reports type effectiveness on each move', () => {
     // Garchomp's Earthquake (Ground) vs Tyranitar (Rock/Dark): 2 * 1 = 2x.
     const m = calculateMatchup(garchomp, tyranitar, blankField());
-    const eq = m.attackerMoves.find(r => r.moveName === 'Earthquake')!;
+    const eq = m.attackerMoves.find((r) => r.moveName === 'Earthquake')!;
     expect(eq.effectiveness).toBe(2);
-    const outrage = m.attackerMoves.find(r => r.moveName === 'Outrage')!;
+    const outrage = m.attackerMoves.find((r) => r.moveName === 'Outrage')!;
     // Dragon vs Rock = 1, vs Dark = 1: neutral.
     expect(outrage.effectiveness).toBe(1);
   });
 
   it('status moves report neutral effectiveness', () => {
     const m = calculateMatchup(garchomp, tyranitar, blankField());
-    const sr = m.defenderMoves.find(r => r.moveName === 'Stealth Rock')!;
+    const sr = m.defenderMoves.find((r) => r.moveName === 'Stealth Rock')!;
     expect(sr.effectiveness).toBe(1);
   });
 });
@@ -120,7 +119,7 @@ describe('priority override propagates through the adapter', () => {
       moves: ['Trick Room', 'Earthquake', '', ''],
     };
     const m = calculateMatchup(tricky, tyranitar, blankField());
-    const tr = m.attackerMoves.find(r => r.moveName === 'Trick Room')!;
+    const tr = m.attackerMoves.find((r) => r.moveName === 'Trick Room')!;
     expect(tr.priority).toBe(-7);
   });
 
@@ -130,7 +129,7 @@ describe('priority override propagates through the adapter', () => {
       moves: ['Roar', 'Brave Bird', '', ''],
     };
     const m = calculateMatchup(roarer, tyranitar, blankField());
-    const roar = m.attackerMoves.find(r => r.moveName === 'Roar')!;
+    const roar = m.attackerMoves.find((r) => r.moveName === 'Roar')!;
     expect(roar.priority).toBe(-6);
   });
 
@@ -140,7 +139,7 @@ describe('priority override propagates through the adapter', () => {
       moves: ['Whirlwind', 'Brave Bird', '', ''],
     };
     const m = calculateMatchup(whirly, tyranitar, blankField());
-    const ww = m.attackerMoves.find(r => r.moveName === 'Whirlwind')!;
+    const ww = m.attackerMoves.find((r) => r.moveName === 'Whirlwind')!;
     expect(ww.priority).toBe(-6);
   });
 
@@ -151,15 +150,15 @@ describe('priority override propagates through the adapter', () => {
       moves: ['Sucker Punch', 'Quick Attack', 'Earthquake', ''],
     };
     const m = calculateMatchup(fast, tyranitar, blankField());
-    const sp = m.attackerMoves.find(r => r.moveName === 'Sucker Punch')!;
-    const qa = m.attackerMoves.find(r => r.moveName === 'Quick Attack')!;
+    const sp = m.attackerMoves.find((r) => r.moveName === 'Sucker Punch')!;
+    const qa = m.attackerMoves.find((r) => r.moveName === 'Quick Attack')!;
     expect(sp.priority).toBe(1);
     expect(qa.priority).toBe(1);
   });
 
   it('Earthquake has priority 0 (not erroneously overridden)', () => {
     const m = calculateMatchup(garchomp, tyranitar, blankField());
-    const eq = m.attackerMoves.find(r => r.moveName === 'Earthquake')!;
+    const eq = m.attackerMoves.find((r) => r.moveName === 'Earthquake')!;
     expect(eq.priority).toBe(0);
   });
 });

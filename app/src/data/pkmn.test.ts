@@ -1,12 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import {
-  canLearn,
-  getLearnableMoveIds,
-  moveDescription,
-  abilityDescription,
-  preloadPkmn,
-  priorityOverride,
-} from './pkmn';
+import { describe, expect, it } from 'vitest';
+
+import { abilityDescription, canLearn, getLearnableMoveIds, moveDescription, preloadPkmn, priorityOverride } from '@/data/pkmn';
 
 /**
  * These tests exercise the live @pkmn/data + @pkmn/dex bundle (gen 7). They

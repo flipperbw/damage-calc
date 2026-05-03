@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { uuid } from './uuid';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { uuid } from '@/util/uuid';
 
 const realCrypto = globalThis.crypto;
 
@@ -14,9 +15,7 @@ afterEach(() => {
 describe('uuid', () => {
   it('returns a v4 UUID via crypto.randomUUID when available', () => {
     const id = uuid();
-    expect(id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-    );
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 
   it('falls back to getRandomValues when randomUUID is missing (LAN/non-secure context)', () => {
@@ -26,9 +25,7 @@ describe('uuid', () => {
       writable: true,
     });
     const id = uuid();
-    expect(id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-    );
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 
   it('falls back to Math.random when crypto is missing entirely', () => {
@@ -39,9 +36,7 @@ describe('uuid', () => {
     });
     const spy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const id = uuid();
-    expect(id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-    );
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     spy.mockRestore();
   });
 

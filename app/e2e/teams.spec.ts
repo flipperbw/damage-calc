@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
-import { freshStart, nav, createTeam, addMonToFirstSlot } from './helpers';
+import { expect, test } from '@playwright/test';
+
+import { addMonToFirstSlot, createTeam, freshStart, nav } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await freshStart(page);
@@ -79,7 +80,5 @@ test('remove a mon from a team via the trash button in MonEditor', async ({ page
   await expect(page.getByText('Garchomp removed')).toBeVisible();
 
   // Slot is empty again - no sprites in the slot row.
-  await expect(
-    page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)'),
-  ).toHaveCount(0);
+  await expect(page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)')).toHaveCount(0);
 });

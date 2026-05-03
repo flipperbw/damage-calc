@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { groupNatures, type NatureEntry } from './natures';
+import { describe, expect, it } from 'vitest';
+
+import { groupNatures, type NatureEntry } from '@/components/pickers/natures';
 
 const N = (name: string, plus?: string, minus?: string): NatureEntry => ({ name, plus, minus });
 
@@ -13,18 +14,14 @@ describe('groupNatures', () => {
       N('Timid', 'spe', 'atk'),
       N('Hardy'),
     ]);
-    const labels = out.map(g => g.label);
+    const labels = out.map((g) => g.label);
     expect(labels).toEqual(['+Atk', '+Def', '+SpA', '+SpD', '+Spe', 'Neutral']);
   });
 
   it('places neutral natures (no plus/minus) into the Neutral bucket', () => {
-    const out = groupNatures([
-      N('Hardy'),
-      N('Docile'),
-      N('Adamant', 'atk', 'spa'),
-    ]);
-    const neutral = out.find(g => g.label === 'Neutral')!;
-    expect(neutral.entries.map(n => n.name)).toEqual(['Docile', 'Hardy']);
+    const out = groupNatures([N('Hardy'), N('Docile'), N('Adamant', 'atk', 'spa')]);
+    const neutral = out.find((g) => g.label === 'Neutral')!;
+    expect(neutral.entries.map((n) => n.name)).toEqual(['Docile', 'Hardy']);
   });
 
   it('treats plus===minus as neutral (calc reports Hardy etc. this way)', () => {
@@ -36,28 +33,21 @@ describe('groupNatures', () => {
       N('Serious', 'spe', 'spe'),
       N('Adamant', 'atk', 'spa'),
     ]);
-    const neutral = out.find(g => g.label === 'Neutral')!;
-    expect(neutral.entries.map(n => n.name).sort()).toEqual(
-      ['Bashful', 'Docile', 'Hardy', 'Quirky', 'Serious'],
-    );
-    const plusAtk = out.find(g => g.label === '+Atk')!;
-    expect(plusAtk.entries.map(n => n.name)).toEqual(['Adamant']);
+    const neutral = out.find((g) => g.label === 'Neutral')!;
+    expect(neutral.entries.map((n) => n.name).sort()).toEqual(['Bashful', 'Docile', 'Hardy', 'Quirky', 'Serious']);
+    const plusAtk = out.find((g) => g.label === '+Atk')!;
+    expect(plusAtk.entries.map((n) => n.name)).toEqual(['Adamant']);
   });
 
   it('within a +stat bucket, sorts by hindered stat (Atk/Def/SpA/SpD/Spe)', () => {
     // All +Atk: sort by minus (def/spa/spd/spe).
-    const out = groupNatures([
-      N('Naughty', 'atk', 'spd'),
-      N('Adamant', 'atk', 'spa'),
-      N('Lonely', 'atk', 'def'),
-      N('Brave', 'atk', 'spe'),
-    ]);
-    const atk = out.find(g => g.label === '+Atk')!;
-    expect(atk.entries.map(n => n.name)).toEqual([
-      'Lonely',  // -def
+    const out = groupNatures([N('Naughty', 'atk', 'spd'), N('Adamant', 'atk', 'spa'), N('Lonely', 'atk', 'def'), N('Brave', 'atk', 'spe')]);
+    const atk = out.find((g) => g.label === '+Atk')!;
+    expect(atk.entries.map((n) => n.name)).toEqual([
+      'Lonely', // -def
       'Adamant', // -spa
       'Naughty', // -spd
-      'Brave',   // -spe
+      'Brave', // -spe
     ]);
   });
 

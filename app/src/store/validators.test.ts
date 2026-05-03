@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { validateSps, addRecent } from './validators';
-import type { SavedMon, RecentOpponent } from '../types';
-import { RECENT_OPPONENT_CAP } from '../types';
+import { describe, expect, it } from 'vitest';
+
+import { addRecent, validateSps } from '@/store/validators';
+import { RECENT_OPPONENT_CAP, type RecentOpponent, type SavedMon } from '@/types';
 
 describe('validateSps', () => {
   it('passes a clean allocation', () => {
@@ -9,12 +9,16 @@ describe('validateSps', () => {
   });
   it('flags per-stat over 32', () => {
     expect(validateSps({ atk: 33 })).toEqual({
-      ok: false, total: 33, error: 'atk exceeds 32',
+      ok: false,
+      total: 33,
+      error: 'atk exceeds 32',
     });
   });
   it('flags total over 66', () => {
     expect(validateSps({ atk: 32, spe: 32, hp: 10 })).toEqual({
-      ok: false, total: 74, error: 'total exceeds 66',
+      ok: false,
+      total: 74,
+      error: 'total exceeds 66',
     });
   });
   it('passes empty allocation', () => {
@@ -24,8 +28,13 @@ describe('validateSps', () => {
 
 describe('addRecent', () => {
   const mon = (species: string): SavedMon => ({
-    id: species, species, nature: 'Hardy', sps: {},
-    moves: ['','','',''], mega: '', boosts: {},
+    id: species,
+    species,
+    nature: 'Hardy',
+    sps: {},
+    moves: ['', '', '', ''],
+    mega: '',
+    boosts: {},
   });
 
   it('adds new recent at the head', () => {
@@ -48,7 +57,7 @@ describe('addRecent', () => {
     list = addRecent(list, mon('Skarmory'), 100);
     list = addRecent(list, mon('Clefable'), 200);
     list = addRecent(list, mon('Skarmory'), 300);
-    expect(list.map(r => r.mon.species)).toEqual(['Skarmory', 'Clefable']);
+    expect(list.map((r) => r.mon.species)).toEqual(['Skarmory', 'Clefable']);
   });
 
   it('caps at RECENT_OPPONENT_CAP, evicts oldest', () => {

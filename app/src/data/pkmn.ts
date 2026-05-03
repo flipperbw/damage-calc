@@ -19,6 +19,14 @@
  * ability and learnset JSON. We dynamic-import once on first use so the
  * initial app chunk stays small.
  */
+
+/**
+ * React-friendly hook: returns true once preloadPkmn has resolved (and so the
+ * priority / boost / lowers-target caches are usable). Components that derive
+ * data from those caches should `useMemo([..., ready])` so they recompute
+ * once the cache lands.
+ */
+import { useEffect, useState } from 'react';
 import { toID } from '@smogon/calc';
 
 const TARGET_GEN = 7;
@@ -77,10 +85,7 @@ const LOWERS_TARGET: Set<string> = new Set();
 function loadPkmnGen(): Promise<PkmnApi> {
   if (!pkmnGenPromise) {
     pkmnGenPromise = (async () => {
-      const [{ Generations }, dexMod] = await Promise.all([
-        import('@pkmn/data'),
-        import('@pkmn/dex'),
-      ]);
+      const [{ Generations }, dexMod] = await Promise.all([import('@pkmn/data'), import('@pkmn/dex')]);
       const gens = new Generations(dexMod.Dex);
       const gen = gens.get(TARGET_GEN) as unknown as PkmnApi;
       // Warm the priority lookup so the calc adapter can correct calc's gen-0
@@ -112,13 +117,6 @@ export function preloadPkmn(): Promise<void> {
   return loadPkmnGen().then(() => undefined);
 }
 
-/**
- * React-friendly hook: returns true once preloadPkmn has resolved (and so the
- * priority / boost / lowers-target caches are usable). Components that derive
- * data from those caches should `useMemo([..., ready])` so they recompute
- * once the cache lands.
- */
-import { useEffect, useState } from 'react';
 export function usePkmnReady(): boolean {
   const [ready, setReady] = useState<boolean>(prioritiesLoaded);
   useEffect(() => {
@@ -127,8 +125,12 @@ export function usePkmnReady(): boolean {
       return;
     }
     let cancelled = false;
-    void preloadPkmn().then(() => { if (!cancelled) setReady(true); });
-    return () => { cancelled = true; };
+    void preloadPkmn().then(() => {
+      if (!cancelled) setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
   return ready;
 }
@@ -266,9 +268,11 @@ export async function getLearnableMoveIds(species: string): Promise<Set<string>>
   try {
     // @pkmn/data exposes learnsets.get(name) -> Promise<Learnset|undefined>;
     // the .learnset object is { moveid: string[] } where keys are move ids.
-    const ls = await (gen as unknown as {
-      learnsets: { get(name: string): Promise<{ learnset?: Record<string, unknown> } | undefined> };
-    }).learnsets.get(species);
+    const ls = await (
+      gen as unknown as {
+        learnsets: { get(name: string): Promise<{ learnset?: Record<string, unknown> } | undefined> };
+      }
+    ).learnsets.get(species);
     if (ls?.learnset) {
       for (const id of Object.keys(ls.learnset)) out.add(id);
     }
