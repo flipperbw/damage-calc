@@ -127,6 +127,16 @@ export function BattleScreen() {
         </div>
       </div>
 
+      {/*
+        Speed divider sits directly under the team carousel and above the
+        active mon card — it summarises the matchup before the per-mon
+        detail. On desktop the grid places the carousel to the left of the
+        cards, so the divider spans columns 2-3 (over the two card columns).
+      */}
+      <div className="md:col-start-2 md:col-span-2">
+        <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
+      </div>
+
       {/* Center: you + your moves */}
       <div>
         <MonCard
@@ -146,9 +156,6 @@ export function BattleScreen() {
           {matchup.attackerMoves.map((r, i) => (
             <MoveRow key={i} result={r} defenderForSturdy={opponent} />
           ))}
-        </div>
-        <div className="md:hidden">
-          <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
         </div>
       </div>
 
@@ -173,11 +180,6 @@ export function BattleScreen() {
             <MoveRow key={i} result={r} defenderForSturdy={you} />
           ))}
         </div>
-      </div>
-
-      {/* Speed divider for desktop spans columns 2-3 */}
-      <div className="hidden md:block md:col-start-2 md:col-span-2">
-        <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
       </div>
 
       {editor && editorMon && (

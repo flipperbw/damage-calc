@@ -35,6 +35,8 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
   const koLabel = sturdyApplies ? '2HKO' : ko?.label;
   const koKind = sturdyApplies ? 'thko' : ko?.kind;
 
+  const eff = effectivenessBadge(result.effectiveness, result.isStatus);
+
   return (
     <>
       <button
@@ -43,35 +45,16 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
         aria-label={`${result.moveName} details`}
         data-testid={`move-row-${result.moveName}`}
         style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.15)' }}
-        className={`w-full text-left flex items-center justify-between px-3 py-2 rounded-lg border ${tone} mb-1.5 select-none cursor-pointer`}
+        className={`w-full text-left flex items-center justify-between gap-2 px-3 py-2 rounded-lg border ${tone} mb-1.5 select-none cursor-pointer`}
       >
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 font-semibold text-[12.5px]">
             <TypeBadge type={result.type} />
             <span className="truncate">{result.moveName}</span>
+            {/* Priority flag stays in the left cluster — it's tied to the
+                move's identity, not the matchup. KO / effectiveness / Sturdy
+                badges all moved to the right cluster next to the % readout. */}
             {prio && <span className="text-priority text-[10px] font-bold">{prio}</span>}
-            {ko && koLabel && (
-              <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
-                koKind === 'ohko' ? 'bg-danger text-white'
-                : koKind === 'thko' ? 'bg-warn text-black'
-                : 'bg-black/40 text-white'
-              }`}>
-                {koLabel}
-              </span>
-            )}
-            {sturdyApplies && (
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-warn/30 text-warn">
-                Sturdy
-              </span>
-            )}
-            {(() => {
-              const eff = effectivenessBadge(result.effectiveness, result.isStatus);
-              return eff ? (
-                <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${eff.cls}`}>
-                  {eff.label}
-                </span>
-              ) : null;
-            })()}
           </div>
           {!result.isStatus && (
             <div className="text-[10px] opacity-50 mt-0.5">
@@ -79,7 +62,26 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
             </div>
           )}
         </div>
-        <div className="text-right">
+        <div className="flex items-center gap-1 shrink-0">
+          {eff && (
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${eff.cls}`}>
+              {eff.label}
+            </span>
+          )}
+          {ko && koLabel && (
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${
+              koKind === 'ohko' ? 'bg-danger text-white'
+              : koKind === 'thko' ? 'bg-warn text-black'
+              : 'bg-black/40 text-white'
+            }`}>
+              {koLabel}
+            </span>
+          )}
+          {sturdyApplies && (
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-warn/30 text-warn">
+              Sturdy
+            </span>
+          )}
           {result.isStatus
             ? <span className="opacity-40 text-sm">—</span>
             : <span className="font-bold tabular-nums text-[13px]">
