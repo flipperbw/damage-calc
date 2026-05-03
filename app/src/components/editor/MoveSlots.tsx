@@ -17,9 +17,11 @@ interface Props {
   moves: [string, string, string, string];
   onChange: (moves: [string, string, string, string]) => void;
   species?: string;
+  /** Forwarded to MovePicker so the "Lowers target" filter starts on. */
+  isForOpponent?: boolean;
 }
 
-export function MoveSlots({ moves, onChange, species }: Props) {
+export function MoveSlots({ moves, onChange, species, isForOpponent }: Props) {
   const [editing, setEditing] = useState<number | null>(null);
   return (
     <div>
@@ -36,6 +38,7 @@ export function MoveSlots({ moves, onChange, species }: Props) {
         open={editing !== null}
         onClose={() => setEditing(null)}
         species={species}
+        isForOpponent={isForOpponent}
         onPick={(name) => {
           if (editing === null) return;
           const next = [...moves] as [string, string, string, string];

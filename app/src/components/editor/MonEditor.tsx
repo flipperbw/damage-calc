@@ -34,6 +34,12 @@ interface Props {
   onDelete?: () => void;
   /** Optional team name shown in the trash confirm body. */
   teamName?: string;
+  /**
+   * When true, the move picker defaults its "Lowers target" filter on —
+   * the user is editing the opponent's mon and is most interested in
+   * stat-lowering moves the opponent might use against them.
+   */
+  isForOpponent?: boolean;
 }
 
 /**
@@ -66,7 +72,7 @@ function usePressHandlers(action: () => void) {
   };
 }
 
-export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName }: Props) {
+export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, isForOpponent }: Props) {
   const [draft, setDraft] = useState<SavedMon>(initial);
   useEffect(() => setDraft(initial), [initial]);
 
@@ -219,7 +225,9 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName }
         {/* Moves */}
         <div className="mb-4">
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1">Moves</div>
-          <MoveSlots species={draft.species} moves={draft.moves} onChange={moves => patch({ moves })} />
+          <MoveSlots species={draft.species} moves={draft.moves}
+                     isForOpponent={isForOpponent}
+                     onChange={moves => patch({ moves })} />
         </div>
 
         {/* Save */}

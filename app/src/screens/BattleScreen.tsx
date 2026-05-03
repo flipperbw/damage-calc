@@ -187,6 +187,7 @@ export function BattleScreen() {
         <MonEditor
           open
           initial={editorMon}
+          isForOpponent={editor.kind === 'opponent'}
           onClose={() => setEditor(null)}
           onSave={mon => {
             if (editor.kind === 'team-mon') upsertMon(editor.teamId, mon);
