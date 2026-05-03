@@ -1,7 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from '../../store';
 import { analyzeCoverage } from '../../calc/coverage';
 import { TypeBadge } from '../TypeBadge';
+import { spriteUrl } from '../../data/sprites';
+import { SpeciesPicker } from '../pickers/SpeciesPicker';
+import { emptyMon } from '../../store/factories';
 
 interface Props {
   /** Currently-selected team id. Owned by the parent so it stays in sync with the matchup matrix. */
@@ -15,6 +18,8 @@ interface Props {
  */
 export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
   const teams = useStore(s => s.teams);
+  const upsertMon = useStore(s => s.upsertMon);
+  const setEditor = useStore(s => s.setEditor);
   const team = teams.find(t => t.id === selectedTeamId) ?? null;
 
   // analyzeCoverage is pure but reads species/move data via calc. Memo so
@@ -23,6 +28,24 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
     () => analyzeCoverage(team?.mons ?? []),
     [team?.id, team?.updatedAt],
   );
+
+  // Slot index the user tapped while empty — opens the SpeciesPicker. Once a
+  // species is picked, we add a new mon to the team and immediately open the
+  // editor on it (matches the TeamsScreen flow).
+  const [pickingSlot, setPickingSlot] = useState<number | null>(null);
+
+  function addMon(species: string) {
+    if (!team) return;
+    const mon = emptyMon(species);
+    upsertMon(team.id, mon);
+    setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
+    setPickingSlot(null);
+  }
+
+  function editMon(monId: string) {
+    if (!team) return;
+    setEditor({ kind: 'team-mon', teamId: team.id, monId });
+  }
 
   return (
     <section className="mb-5" data-testid="coverage-section">
@@ -50,9 +73,46 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
         )}
       </div>
 
+      {/* Roster strip: 6 slots showing the team's mons. Tapping a filled
+          slot opens the editor; tapping an empty slot opens the species
+          picker so the user can add a mon directly from this tab. */}
+      {team && (
+        <div className="grid grid-cols-6 gap-1.5 mb-3" data-testid="coverage-roster">
+          {Array.from({ length: 6 }).map((_, i) => {
+            const mon = team.mons[i];
+            if (mon) {
+              return (
+                <button
+                  key={mon.id}
+                  type="button"
+                  onClick={() => editMon(mon.id)}
+                  data-testid={`coverage-slot-filled-${i}`}
+                  aria-label={`Edit ${mon.species}`}
+                  className="aspect-square bg-surface border border-surface-hi rounded-lg flex items-center justify-center hover:border-accent/40"
+                >
+                  <img src={spriteUrl(mon.species)} className="w-3/4 h-3/4 object-contain" />
+                </button>
+              );
+            }
+            return (
+              <button
+                key={`empty-${i}`}
+                type="button"
+                onClick={() => setPickingSlot(i)}
+                data-testid={`coverage-slot-empty-${i}`}
+                aria-label={`Add Pokémon to slot ${i + 1}`}
+                className="aspect-square bg-surface border border-dashed border-accent/30 rounded-lg flex items-center justify-center text-accent text-xl opacity-70 hover:opacity-100"
+              >
+                +
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {team && team.mons.length === 0 && (
-        <div className="text-sm opacity-60 italic">
-          This team has no Pokémon yet.
+        <div className="text-sm opacity-60 italic mb-3">
+          Tap a slot above to add your first Pokémon.
         </div>
       )}
 
@@ -98,6 +158,13 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
           </CoverageBlock>
         </div>
       )}
+
+      <SpeciesPicker
+        open={pickingSlot !== null}
+        onClose={() => setPickingSlot(null)}
+        onPick={addMon}
+        showRecents={false}
+      />
     </section>
   );
 }

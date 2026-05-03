@@ -188,8 +188,9 @@ test('Matchup matrix renders cells with percentages and never shows NaN', async 
 
   // At least one cell contains a "%" sign. Some cells render "—" (immune /
   // status-only build) — Garchomp w/ Swords Dance has 3 attacking moves so
-  // the row is mostly numeric.
-  const cellWithPct = table.locator('td span:has-text("%")').first();
+  // the row is mostly numeric. Cells are tappable buttons that open a
+  // detail sheet on click.
+  const cellWithPct = table.locator('td button:has-text("%")').first();
   await expect(cellWithPct).toBeVisible();
 
   // No cell ever renders the literal string "NaN". This catches a calc
