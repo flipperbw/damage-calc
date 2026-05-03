@@ -4,6 +4,8 @@ import {
   getLearnableMoveIds,
   moveDescription,
   abilityDescription,
+  preloadPkmn,
+  priorityOverride,
 } from './pkmn';
 
 /**
@@ -72,5 +74,35 @@ describe('abilityDescription', () => {
     const d = await abilityDescription('NotAnAbility12345');
     expect(d.short).toBeUndefined();
     expect(d.full).toBeUndefined();
+  });
+});
+
+describe('priorityOverride', () => {
+  it('returns -7 for Trick Room after preload', async () => {
+    await preloadPkmn();
+    expect(priorityOverride('Trick Room')).toBe(-7);
+  });
+
+  it('returns the right priority for other audited moves', async () => {
+    await preloadPkmn();
+    // calc's gen-0 data already includes Sucker Punch / Quick Attack at +1,
+    // so the override is incidental, but pkmn-data should agree.
+    expect(priorityOverride('Sucker Punch')).toBe(1);
+    expect(priorityOverride('Quick Attack')).toBe(1);
+    // Roar / Whirlwind are -6 in real games but calc reports 0 (status moves
+    // with no priority field). The override fills the gap.
+    expect(priorityOverride('Roar')).toBe(-6);
+    expect(priorityOverride('Whirlwind')).toBe(-6);
+  });
+
+  it('returns null for plain moves with no special priority', async () => {
+    await preloadPkmn();
+    expect(priorityOverride('Earthquake')).toBeNull();
+    expect(priorityOverride('Tackle')).toBeNull();
+  });
+
+  it('returns null for unknown moves', async () => {
+    await preloadPkmn();
+    expect(priorityOverride('NotAMove12345')).toBeNull();
   });
 });

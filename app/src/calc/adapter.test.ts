@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { calculateMatchup, typeEffectiveness } from './adapter';
+import { preloadPkmn } from '../data/pkmn';
 import type { SavedMon, FieldState } from '../types';
 
 const blankField = (): FieldState => ({ yourSide: {}, oppSide: {} });
@@ -104,6 +105,62 @@ describe('calculateMatchup', () => {
     const m = calculateMatchup(garchomp, tyranitar, blankField());
     const sr = m.defenderMoves.find(r => r.moveName === 'Stealth Rock')!;
     expect(sr.effectiveness).toBe(1);
+  });
+});
+
+describe('priority override propagates through the adapter', () => {
+  beforeAll(async () => {
+    // The override is sync but reads a cache populated lazily by @pkmn/data.
+    await preloadPkmn();
+  });
+
+  it('Trick Room reports priority -7 (not 0 from calc data)', () => {
+    const tricky: SavedMon = {
+      ...garchomp,
+      moves: ['Trick Room', 'Earthquake', '', ''],
+    };
+    const m = calculateMatchup(tricky, tyranitar, blankField());
+    const tr = m.attackerMoves.find(r => r.moveName === 'Trick Room')!;
+    expect(tr.priority).toBe(-7);
+  });
+
+  it('Roar reports priority -6 (not 0 from calc data)', () => {
+    const roarer: SavedMon = {
+      ...skarmory,
+      moves: ['Roar', 'Brave Bird', '', ''],
+    };
+    const m = calculateMatchup(roarer, tyranitar, blankField());
+    const roar = m.attackerMoves.find(r => r.moveName === 'Roar')!;
+    expect(roar.priority).toBe(-6);
+  });
+
+  it('Whirlwind reports priority -6', () => {
+    const whirly: SavedMon = {
+      ...skarmory,
+      moves: ['Whirlwind', 'Brave Bird', '', ''],
+    };
+    const m = calculateMatchup(whirly, tyranitar, blankField());
+    const ww = m.attackerMoves.find(r => r.moveName === 'Whirlwind')!;
+    expect(ww.priority).toBe(-6);
+  });
+
+  it('Sucker Punch and Quick Attack remain at +1', () => {
+    const fast: SavedMon = {
+      ...garchomp,
+      species: 'Garchomp',
+      moves: ['Sucker Punch', 'Quick Attack', 'Earthquake', ''],
+    };
+    const m = calculateMatchup(fast, tyranitar, blankField());
+    const sp = m.attackerMoves.find(r => r.moveName === 'Sucker Punch')!;
+    const qa = m.attackerMoves.find(r => r.moveName === 'Quick Attack')!;
+    expect(sp.priority).toBe(1);
+    expect(qa.priority).toBe(1);
+  });
+
+  it('Earthquake has priority 0 (not erroneously overridden)', () => {
+    const m = calculateMatchup(garchomp, tyranitar, blankField());
+    const eq = m.attackerMoves.find(r => r.moveName === 'Earthquake')!;
+    expect(eq.priority).toBe(0);
   });
 });
 

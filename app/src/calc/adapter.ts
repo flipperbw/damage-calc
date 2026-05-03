@@ -8,6 +8,7 @@ import {
   TYPE_CHART,
 } from '@smogon/calc';
 import type { SavedMon, FieldState, SideState, StatusName } from '../types';
+import { priorityOverride } from '../data/pkmn';
 
 const STATUS_TO_CALC: Record<Exclude<StatusName, 'Healthy'>, 'psn' | 'tox' | 'brn' | 'par' | 'slp' | 'frz'> = {
   Poisoned: 'psn',
@@ -165,11 +166,18 @@ function buildMoveResult(
   const effectiveness = move.category === 'Status'
     ? 1
     : typeEffectiveness(move.type as string, defender.species.types as readonly string[]);
+  // Calc's Champions (gen-0) move data omits priority for several
+  // Champions-legal moves (Trick Room, Roar, Whirlwind, …), reporting 0
+  // where the real priority is non-zero. When @pkmn/data has a non-zero
+  // value we trust it over calc's silence.
+  const calcPriority = move.priority ?? 0;
+  const override = priorityOverride(move.name as string);
+  const priority = calcPriority === 0 && override !== null ? override : calcPriority;
   return {
     moveName: move.name,
     type: move.type,
     category: move.category,
-    priority: move.priority ?? 0,
+    priority,
     damageRange: isStatus ? [0, 0] : [range[0], range[1]],
     percentRange: percent,
     koChanceText: koText,

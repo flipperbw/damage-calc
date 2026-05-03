@@ -23,13 +23,30 @@ import { toID } from '@smogon/calc';
 
 const TARGET_GEN = 7;
 
+interface PkmnMove {
+  desc?: string;
+  shortDesc?: string;
+  priority?: number;
+}
+
 interface PkmnApi {
-  moves: { get(name: string): { desc?: string; shortDesc?: string } | undefined };
+  moves: {
+    get(name: string): PkmnMove | undefined;
+    [Symbol.iterator](): Iterator<PkmnMove & { name?: string; id?: string }>;
+  };
   abilities: { get(name: string): { desc?: string; shortDesc?: string } | undefined };
   learnsets: { canLearn(species: string, move: string): Promise<boolean> };
 }
 
 let pkmnGenPromise: Promise<PkmnApi> | null = null;
+
+/**
+ * Sync cache of move-id -> priority, populated by {@link preloadPkmn}. Empty
+ * until the first preload completes; callers must treat a missing entry as
+ * "unknown" rather than "priority 0".
+ */
+const PRIORITY_CACHE: Map<string, number> = new Map();
+let prioritiesLoaded = false;
 
 function loadPkmnGen(): Promise<PkmnApi> {
   if (!pkmnGenPromise) {
@@ -39,7 +56,23 @@ function loadPkmnGen(): Promise<PkmnApi> {
         import('@pkmn/dex'),
       ]);
       const gens = new Generations(dexMod.Dex);
-      return gens.get(TARGET_GEN) as unknown as PkmnApi;
+      const gen = gens.get(TARGET_GEN) as unknown as PkmnApi;
+      // Warm the priority lookup so the calc adapter can correct calc's gen-0
+      // move data, which omits priority for several Champions-legal moves
+      // (Trick Room, Roar, Whirlwind, …). Iteration is sync once the gen
+      // bundle is loaded; this is cheap.
+      try {
+        for (const m of gen.moves) {
+          if (typeof m.priority === 'number' && m.priority !== 0 && m.id) {
+            PRIORITY_CACHE.set(m.id, m.priority);
+          }
+        }
+      } catch {
+        // If iteration is unavailable, leave the cache empty — callers
+        // already treat missing entries as "no override".
+      }
+      prioritiesLoaded = true;
+      return gen;
     })();
   }
   return pkmnGenPromise;
@@ -48,6 +81,28 @@ function loadPkmnGen(): Promise<PkmnApi> {
 /** Imperatively warm the cache; safe to call at app startup or first picker open. */
 export function preloadPkmn(): Promise<void> {
   return loadPkmnGen().then(() => undefined);
+}
+
+/**
+ * Sync priority lookup for a move name, sourced from @pkmn/data's gen-7 data.
+ * Returns null when the cache is cold OR when the move has no non-zero
+ * priority (the calc data already reports those moves correctly). Used by
+ * the calc adapter to patch calc's gen-0 move data, which omits priority for
+ * several Champions-legal moves (Trick Room, Roar, Whirlwind, …).
+ *
+ * Callers MUST `await preloadPkmn()` before relying on this returning a hit;
+ * before that, every call returns null.
+ */
+export function priorityOverride(moveName: string): number | null {
+  if (!prioritiesLoaded) return null;
+  const id = toID(moveName) as unknown as string;
+  const v = PRIORITY_CACHE.get(id);
+  return typeof v === 'number' ? v : null;
+}
+
+/** Test-only: expose readiness for assertions about the cache state. */
+export function _prioritiesReady(): boolean {
+  return prioritiesLoaded;
 }
 
 export interface DescPair {
