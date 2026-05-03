@@ -267,4 +267,55 @@ describe('store: threat lists', () => {
     useStore.getState().removeThreatMon('nope', 'Garchomp');
     expect(useStore.getState().threatLists[0].mons).toHaveLength(1);
   });
+
+  it('removeThreatMon clears editor when it points at the removed mon', () => {
+    const id = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
+    const m = mon('Garchomp');
+    useStore.getState().upsertThreatMon(id, m);
+    useStore.getState().setEditor({
+      kind: 'threat-mon', threatListId: id, monId: m.id,
+    });
+    useStore.getState().removeThreatMon(id, m.id);
+    expect(useStore.getState().editor).toBeNull();
+  });
+
+  it('removeThreatMon leaves editor alone when pointing at a different mon', () => {
+    const id = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
+    const m1 = mon('Garchomp');
+    const m2 = mon('Skarmory');
+    useStore.getState().upsertThreatMon(id, m1);
+    useStore.getState().upsertThreatMon(id, m2);
+    useStore.getState().setEditor({
+      kind: 'threat-mon', threatListId: id, monId: m1.id,
+    });
+    useStore.getState().removeThreatMon(id, m2.id);
+    expect(useStore.getState().editor).toEqual({
+      kind: 'threat-mon', threatListId: id, monId: m1.id,
+    });
+  });
+
+  it('deleteThreatList clears editor pointing at a mon in the deleted list', () => {
+    const id = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
+    const m = mon('Garchomp');
+    useStore.getState().upsertThreatMon(id, m);
+    useStore.getState().setEditor({
+      kind: 'threat-mon', threatListId: id, monId: m.id,
+    });
+    useStore.getState().deleteThreatList(id);
+    expect(useStore.getState().editor).toBeNull();
+  });
+
+  it('deleteThreatList leaves editor alone when it points at a team-mon', () => {
+    const teamId = useStore.getState().createTeam({ name: 'T', format: 'singles' });
+    const teamMon = mon('Garchomp');
+    useStore.getState().upsertMon(teamId, teamMon);
+    const listId = useStore.getState().createThreatList({ name: 'Mine', format: 'any' });
+    useStore.getState().setEditor({
+      kind: 'team-mon', teamId, monId: teamMon.id,
+    });
+    useStore.getState().deleteThreatList(listId);
+    expect(useStore.getState().editor).toEqual({
+      kind: 'team-mon', teamId, monId: teamMon.id,
+    });
+  });
 });
