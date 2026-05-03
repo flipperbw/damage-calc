@@ -4,6 +4,7 @@ import type { AppState, Team, SavedMon, FieldState, Notation, Tab, Format, Edito
 import { addRecent } from './validators';
 import { migrate, CURRENT_VERSION } from './migrations';
 import { emptyField } from './factories';
+import { buildSeedThreatLists } from '../data/seed-threats';
 import { uuid } from '../util/uuid';
 
 const PERSIST_NAME = 'champions-calc-v1';
@@ -59,18 +60,28 @@ interface Actions {
   resetAll: () => void;
 }
 
-const initialAppState: AppState = {
-  teams: [],
-  activeTeamId: null,
-  activeMonIndex: 0,
-  opponent: null,
-  recentOpponents: [],
-  threatLists: [],
-  field: emptyField(),
-  notation: 'percent',
-  tab: 'battle',
-  editor: null,
-};
+/**
+ * Initial state used on a brand-new install AND as the reset target. The
+ * threat-list seeds are injected here (rather than only via the v3→v4
+ * migration) so a first-time user gets the curated lists immediately, and
+ * "Reset everything" in Settings repopulates them rather than leaving the
+ * Builder empty.
+ */
+function buildInitialAppState(): AppState {
+  return {
+    teams: [],
+    activeTeamId: null,
+    activeMonIndex: 0,
+    opponent: null,
+    recentOpponents: [],
+    threatLists: buildSeedThreatLists(),
+    field: emptyField(),
+    notation: 'percent',
+    tab: 'battle',
+    editor: null,
+  };
+}
+const initialAppState: AppState = buildInitialAppState();
 
 export const useStore = create<AppState & Actions>()(
   persist(
@@ -245,7 +256,9 @@ export const useStore = create<AppState & Actions>()(
       setNotation: (notation) => set({ notation }),
       setEditor: (editor) => set({ editor }),
 
-      resetAll: () => set(initialAppState),
+      // Reset to a *freshly built* initial state — repopulates seed threat
+      // lists with new uuids rather than reusing the module-load instance.
+      resetAll: () => set(buildInitialAppState()),
     }),
     {
       name: PERSIST_NAME,

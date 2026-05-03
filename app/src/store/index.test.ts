@@ -165,7 +165,15 @@ describe('store: editor target', () => {
 });
 
 describe('store: threat lists', () => {
-  it('starts with no threat lists', () => {
+  // The base store now seeds curated threat lists at initial state (so first-
+  // run users get them without a migration). Wipe to a clean slate for the
+  // CRUD assertions below; the seed-injection itself is covered by the
+  // migration tests in migrations.test.ts and seed-threats.test.ts.
+  beforeEach(() => {
+    useStore.setState({ threatLists: [] });
+  });
+
+  it('starts empty after this suite\'s beforeEach (CRUD baseline)', () => {
     expect(useStore.getState().threatLists).toEqual([]);
   });
 
