@@ -16,7 +16,7 @@ export function FieldBar() {
 
   function clearAll(e: React.MouseEvent) {
     e.stopPropagation();
-    // Reset to a fresh empty FieldState — drops weather, terrain, every room,
+    // Reset to a fresh empty FieldState - drops weather, terrain, every room,
     // both side-state objects.
     const fresh = emptyField();
     setField({

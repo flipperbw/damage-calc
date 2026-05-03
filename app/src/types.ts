@@ -107,7 +107,7 @@ export type Tab = 'battle' | 'teams' | 'builder' | 'settings';
  * that when iOS unloads the tab under memory pressure and reloads, the user
  * lands back on the same edit they were doing.
  *
- * Only the *target* is persisted — the editor's draft fields (the WIP form)
+ * Only the *target* is persisted - the editor's draft fields (the WIP form)
  * still live in MonEditor's local useState and are deliberately transient.
  * Losing in-progress unsaved edits across an unload is the expected tradeoff:
  * the alternative is constantly writing keystrokes into the store.

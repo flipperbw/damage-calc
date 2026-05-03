@@ -13,7 +13,7 @@ export function Nav() {
   const setTab = useStore(s => s.setTab);
   return (
     <>
-      {/* Mobile top nav — matches the desktop placement now to recover the
+      {/* Mobile top nav - matches the desktop placement now to recover the
           ~100px the bottom nav used to consume. Uses class `mobile-nav` for
           legacy selectors but the CSS rule no longer applies a fixed-bottom
           offset (see globals.css). */}

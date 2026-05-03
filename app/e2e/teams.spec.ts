@@ -56,7 +56,7 @@ test('add a mon to a slot via species picker + build', async ({ page }) => {
   await addMonToFirstSlot(page, 'Skarmory', /Defensive/);
 
   // After saving, the editor closes and the slot now shows the sprite.
-  // Confirm by counting slots that contain an <img> — should be 1, not the
+  // Confirm by counting slots that contain an <img> - should be 1, not the
   // initial 0.
   const filled = page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)');
   await expect(filled).toHaveCount(1);
@@ -78,7 +78,7 @@ test('remove a mon from a team via the trash button in MonEditor', async ({ page
   // Toast confirms the removal.
   await expect(page.getByText('Garchomp removed')).toBeVisible();
 
-  // Slot is empty again — no sprites in the slot row.
+  // Slot is empty again - no sprites in the slot row.
   await expect(
     page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)'),
   ).toHaveCount(0);

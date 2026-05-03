@@ -17,7 +17,7 @@ interface Props {
 /**
  * Blur whatever input is currently focused inside the picker before it
  * unmounts. iOS Safari/Brave occasionally fail to release the auto-zoom
- * that was triggered by focusing a sub-16px input — and even when the
+ * that was triggered by focusing a sub-16px input - and even when the
  * input itself is 16px+, removing a focused input from the DOM without
  * an explicit blur can leave the visual viewport zoomed in. This is a
  * belt-and-suspenders fix on top of the text-base sizing already applied
@@ -26,7 +26,7 @@ interface Props {
  * We blur in two places:
  *   1. When the user dismisses by tapping the backdrop (close path here).
  *   2. When `open` flips to false from any path (item picked, parent
- *      reset, etc.), via the open-tracking effect below — the picker's
+ *      reset, etc.), via the open-tracking effect below - the picker's
  *      <input autoFocus> is still document.activeElement at that moment.
  */
 function blurActive() {

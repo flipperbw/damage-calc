@@ -99,7 +99,7 @@ export function TeamsScreen() {
           onClick={handleCreateTeam}
           aria-label="Create team"
           data-testid="create-team"
-          // Bare-bones styling — no gradient, no active-scale transform, no
+          // Bare-bones styling - no gradient, no active-scale transform, no
           // backdrop blur. Some iOS browsers (Brave especially) have flaky
           // hit-testing on transformed/blurred elements. touch-action +
           // tap-highlight-color make taps deterministic on WebKit.

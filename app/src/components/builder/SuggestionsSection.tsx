@@ -18,7 +18,7 @@ interface Props {
  * Top-N candidate Pokémon that complement the active team. Pure type-chart
  * scoring (see calc/suggestions.ts). Tapping a card opens a lightweight
  * detail sheet showing the species' types and the reasons it was suggested
- * — there's no "add to team" affordance because we'd have to make a slot
+ * - there's no "add to team" affordance because we'd have to make a slot
  * decision for the user.
  */
 export function SuggestionsSection({ selectedTeamId }: Props) {
@@ -35,7 +35,7 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
     upsertMon(team.id, mon);
     toast.success(`Added ${species} to ${team.name}`);
     // Drop the user into the editor on the new mon so they can pick a build /
-    // moves immediately — same flow as the Coverage roster's "+ slot" path.
+    // moves immediately - same flow as the Coverage roster's "+ slot" path.
     setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
   }
 
@@ -91,7 +91,7 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
           </div>
           <p className="text-xs opacity-50 mt-2 text-center">
             {teamFull
-              ? `${team!.name} is full — remove a mon to add a suggestion.`
+              ? `${team!.name} is full - remove a mon to add a suggestion.`
               : 'Tap a Pokémon for details, or + to add it to your team.'}
           </p>
         </>
@@ -129,32 +129,18 @@ function SuggestionCard({ suggestion, onOpen, onAdd }: {
       onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); }
       }}
-      className="bg-surface border border-surface-hi rounded-card p-2.5 text-left cursor-pointer flex flex-col gap-1.5 transition-colors hover:bg-accent/[0.06] hover:border-accent/40"
+      className="bg-surface border border-surface-hi rounded-card p-2 text-left cursor-pointer flex flex-col gap-1.5 transition-colors hover:bg-accent/[0.06] hover:border-accent/40"
     >
-      <div className="flex items-center gap-2">
+      {/* Top row: sprite + name + add. Score and types each get their own
+          line so the row never overflows on narrow mobile cards (the v1
+          horizontal layout was overlapping on iPhone widths). */}
+      <div className="flex items-center gap-1.5">
         <img
           src={spriteUrl(suggestion.species)}
           alt={suggestion.species}
-          className="w-10 h-10 object-contain shrink-0"
+          className="w-9 h-9 object-contain shrink-0"
         />
-        <div className="flex-1 min-w-0">
-          <div className="font-semibold text-sm truncate">{suggestion.species}</div>
-          <div className="flex gap-1 mt-0.5">
-            {suggestion.types.map(t => (
-              <TypeBadge key={t} type={t} />
-            ))}
-          </div>
-        </div>
-        {/* Right cluster: small match-strength score then the add button.
-            Inline (no absolute positioning) so they don't collide on narrow
-            mobile cards. Score is title-attributed so a hover/long-press
-            reveals what the number means. */}
-        <span
-          className="text-[10px] font-bold bg-accent/20 text-accent rounded px-1 py-0.5 leading-none shrink-0"
-          title="Match strength: +3 per coverage gap closed, +2 per shared weakness, +1 per favorable matchup vs Most-Used"
-        >
-          +{suggestion.score}
-        </span>
+        <div className="font-semibold text-[13px] truncate flex-1 min-w-0">{suggestion.species}</div>
         {onAdd && (
           <button
             type="button"
@@ -168,6 +154,20 @@ function SuggestionCard({ suggestion, onOpen, onAdd }: {
           </button>
         )}
       </div>
+      {/* Types + score: full row of their own. Score is title-attributed so a
+          hover/long-press reveals what the number means. */}
+      <div className="flex items-center gap-1 flex-wrap">
+        {suggestion.types.map(t => (
+          <TypeBadge key={t} type={t} />
+        ))}
+        <span
+          className="text-[10px] font-bold bg-accent/20 text-accent rounded px-1 py-0.5 leading-none ml-auto"
+          title="Match strength: +3 per coverage gap closed, +2 per shared weakness, +1 per favorable matchup vs Most-Used"
+        >
+          +{suggestion.score}
+        </span>
+      </div>
+      {/* Reasons row */}
       <div className="flex flex-wrap gap-1">
         {suggestion.reasons.slice(0, 3).map((r, i) => (
           <ReasonChip key={`${r.kind}-${r.text}-${i}`} reason={r} />
@@ -244,7 +244,7 @@ function SuggestionDetailSheet({ open, suggestion, canAdd, onAdd, onClose }: {
           </button>
         ) : (
           <p className="text-xs opacity-55 italic">
-            Team is full — remove a mon to add a new one.
+            Team is full - remove a mon to add a new one.
           </p>
         )}
       </div>

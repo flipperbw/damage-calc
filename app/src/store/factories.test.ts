@@ -61,7 +61,7 @@ describe('defaultOpponentMon', () => {
     // A species we know has no builds in the curated set. Pick something
     // sufficiently obscure; verify by checking the build list is empty.
     // If this assertion ever flakes when builds are added, we'll just
-    // pick a different species — the contract under test is the fallback.
+    // pick a different species - the contract under test is the fallback.
     const candidates = ['Mr. Mime', 'Sunkern', 'Unown', 'Caterpie'];
     const noBuildSpecies = candidates.find(c => getBuildsForSpecies(c).length === 0);
     expect(noBuildSpecies).toBeDefined();

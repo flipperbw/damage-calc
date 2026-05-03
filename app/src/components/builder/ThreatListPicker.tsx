@@ -19,7 +19,7 @@ interface Props {
  * Picker / manager for the Builder's threat lists. Renders a column of
  * cards: tap to "make active" (drives the matrix), per-row menu for
  * Rename / Duplicate / Delete (Delete is hidden for seed lists). The
- * selected list expands inline with its mon roster — tap a mon to open
+ * selected list expands inline with its mon roster - tap a mon to open
  * MonEditor, tap "+ Add" to append a new mon.
  */
 export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon }: Props) {
@@ -275,11 +275,12 @@ function ThreatListCard({
 }
 
 function FormatPill({ format }: { format: ThreatList['format'] }) {
-  // Color-coded so the format reads at a glance instead of looking like a
-  // dead gray badge. Singles → accent violet; Doubles → priority orange;
-  // Any → ok green (these match how the rest of the app uses these tones).
+  // Color-coded so the format reads at a glance. Distinct from the seed
+  // badge (which is accent/violet) so the two pills don't look like a
+  // single bicolor smear: Singles -> warn yellow, Doubles -> priority
+  // orange, Any -> ok green.
   const cls =
-    format === 'singles' ? 'bg-accent/15 text-accent border-accent/30'
+    format === 'singles' ? 'accent-2/15 text-accent-2 border-accent-2/30'
     : format === 'doubles' ? 'bg-priority/15 text-priority border-priority/30'
     : 'bg-ok/15 text-ok border-ok/30';
   const label = format === 'singles' ? 'Singles'

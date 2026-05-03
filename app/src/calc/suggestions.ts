@@ -98,7 +98,7 @@ function scoreCandidate(
 
   // --- Type-favorable matchups vs the threat list ---------------------
   // (a) Defender (candidate) is not super-effectively hit by either of the
-  //     threat's STAB types — combined multiplier across both defender
+  //     threat's STAB types - combined multiplier across both defender
   //     types must be ≤ 1 for EACH threat STAB independently. We compute
   //     it move-by-move so a 4× double-weakness on a 2nd type doesn't get
   //     averaged away.

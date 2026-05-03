@@ -35,7 +35,7 @@ function useTabRoute() {
     if (fromHash && fromHash !== tab) {
       setTab(fromHash);
     } else if (!fromHash) {
-      // Persisted state had a tab but the hash is empty — write it so the
+      // Persisted state had a tab but the hash is empty - write it so the
       // URL reflects the current view from the get-go.
       replaceHash(tab);
     }
@@ -77,7 +77,7 @@ export function App() {
   // Fire-and-forget preload of @pkmn/data so the move picker's learnset
   // filter and the move detail sheet's prose are warm by the time the
   // user opens them. The dynamic import + learnset chunk together weigh
-  // ~3.5 MB raw / ~600 KB gzipped, so we don't await — initial render
+  // ~3.5 MB raw / ~600 KB gzipped, so we don't await - initial render
   // proceeds immediately and the data trickles in.
   useEffect(() => { void preloadPkmn(); }, []);
   useTabRoute();

@@ -33,7 +33,7 @@ describe('analyzeCoverage', () => {
     const overlapTypes = r.defensiveOverlaps.map(o => o.type);
     expect(overlapTypes).toContain('Electric');
     expect(overlapTypes).toContain('Grass');
-    // All three mons are weak — count must be 3 for both.
+    // All three mons are weak - count must be 3 for both.
     expect(r.defensiveOverlaps.find(o => o.type === 'Electric')?.count).toBe(3);
     expect(r.defensiveOverlaps.find(o => o.type === 'Grass')?.count).toBe(3);
   });
@@ -48,7 +48,7 @@ describe('analyzeCoverage', () => {
     expect(r.offensiveGaps).toContain('Water');
   });
 
-  it('all-Water team can SE Fire / Ground / Rock — those are not gaps', () => {
+  it('all-Water team can SE Fire / Ground / Rock - those are not gaps', () => {
     const team = [mon('Vaporeon'), mon('Politoed'), mon('Milotic')];
     const r = analyzeCoverage(team);
     expect(r.offensiveGaps).not.toContain('Fire');
@@ -82,7 +82,7 @@ describe('analyzeCoverage', () => {
 
   it('moves on the team contribute to offensive coverage', () => {
     // Steel/Ground-heavy team's STAB pool (Steel/Ground/Flying) leaves
-    // Dragon uncovered — Steelix is Ground/Steel, Excadrill is
+    // Dragon uncovered - Steelix is Ground/Steel, Excadrill is
     // Ground/Steel, Skarmory is Steel/Flying.
     const baseTeam = [mon('Skarmory'), mon('Excadrill'), mon('Steelix')];
     const baseReport = analyzeCoverage(baseTeam);
@@ -129,7 +129,7 @@ describe('analyzeCoverage', () => {
     // it's still 2× via Steel)… actually Skarmory is Steel/Flying which is
     // 1× Electric (Steel resists)… let's compute: Steel resists Electric
     // (½), Flying is 2× weak → 1×. Excadrill (Ground/Steel) is immune to
-    // Electric. So Electric overlap is just Empoleon + Sharpedo (2 < 3) —
+    // Electric. So Electric overlap is just Empoleon + Sharpedo (2 < 3) -
     // not enough. Fighting: Skarmory (Steel 2× × Flying ½ = 1×) no,
     // Excadrill (Steel 2× × Ground 1 = 2×) yes, Empoleon (Steel 2×
     // × Water 1 = 2×) yes, Sharpedo (Dark 2× × Water 1 = 2×) yes.
@@ -145,7 +145,7 @@ describe('analyzeCoverage', () => {
     for (let i = 1; i < r.defensiveOverlaps.length; i++) {
       expect(r.defensiveOverlaps[i - 1].count >= r.defensiveOverlaps[i].count).toBe(true);
     }
-    // Fighting hits 3 of these — should be present.
+    // Fighting hits 3 of these - should be present.
     expect(r.defensiveOverlaps.map(o => o.type)).toContain('Fighting');
   });
 });

@@ -21,7 +21,7 @@ test('recent species appears as a Recent row in the species picker', async ({ pa
 
   // SpeciesPicker keeps its query state across opens (it's always mounted),
   // so the search box may still hold "Clefable" from the swap. Recent header
-  // only renders when the query is empty — clear it first.
+  // only renders when the query is empty - clear it first.
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill('');
 
@@ -35,7 +35,7 @@ test('recent species appears as a Recent row in the species picker', async ({ pa
 test('useCount increments on species change, not on HP edit', async ({ page }) => {
   await pickOpponent(page, 'Skarmory');
 
-  // Tweak HP — should NOT increment useCount.
+  // Tweak HP - should NOT increment useCount.
   const oppHpSlider = page.locator('[data-testid="swap-opp"] input[aria-label="HP"]');
   await oppHpSlider.evaluate((el: HTMLInputElement) => {
     const setter = Object.getOwnPropertyDescriptor(
@@ -52,7 +52,7 @@ test('useCount increments on species change, not on HP edit', async ({ page }) =
     page.getByTestId('recent-Skarmory'),
   ).toHaveAttribute('data-use-count', '1');
 
-  // Swap to Clefable, then back to Skarmory — useCount should bump to 2.
+  // Swap to Clefable, then back to Skarmory - useCount should bump to 2.
   await nav(page, 'Battle');
   await swapOpponent(page, 'Clefable');
   await swapOpponent(page, 'Skarmory');

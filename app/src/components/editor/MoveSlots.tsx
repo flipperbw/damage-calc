@@ -29,7 +29,7 @@ export function MoveSlots({ moves, onChange, species, isForOpponent }: Props) {
         <div key={i} onClick={() => setEditing(i)}
              className="flex justify-between items-center bg-surface border border-surface-hi rounded-lg px-3 py-2 mb-1.5 cursor-pointer">
           <div className="flex items-center gap-2">
-            {m ? <><TypeBadge type={moveTypeOf(m)} /><b>{m}</b></> : <span className="text-text-mute">— empty —</span>}
+            {m ? <><TypeBadge type={moveTypeOf(m)} /><b>{m}</b></> : <span className="text-text-mute">- empty -</span>}
           </div>
           <span className="opacity-40">▾</span>
         </div>

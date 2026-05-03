@@ -35,8 +35,8 @@ export function SpGrid({ sps, onChange }: Props) {
 
   // Three rendering tiers for the total readout:
   //   ok && < cap : neutral/muted (still room to allocate)
-  //   ok && === cap : green (success — fully spent without overflow)
-  //   !ok         : red (over cap or per-stat exceedance — Save disabled)
+  //   ok && === cap : green (success - fully spent without overflow)
+  //   !ok         : red (over cap or per-stat exceedance - Save disabled)
   // The non-ok branch already includes the `error` string; we only style.
   const totalCls =
     !v.ok ? 'text-danger'
@@ -57,7 +57,7 @@ export function SpGrid({ sps, onChange }: Props) {
           const pct = (value / SP_PER_STAT_MAX) * 100;
           // Three tiers so the eye can scan allocation density:
           //   max  (32)    : bright green border + glow, bold value
-          //   some (1..31) : violet/accent (distinct from max — at-a-glance
+          //   some (1..31) : violet/accent (distinct from max - at-a-glance
           //                  read of "partial" vs "maxed")
           //   none (0)     : muted gray
           const tier =

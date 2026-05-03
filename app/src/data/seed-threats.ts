@@ -18,7 +18,7 @@ interface SeedEntry {
 }
 
 interface SeedSpec {
-  /** Stable identifier — survives renames so Suggestions can pin the
+  /** Stable identifier - survives renames so Suggestions can pin the
    *  Most-Used list independent of display name. */
   seedKey: SeedKey;
   name: string;
@@ -31,12 +31,12 @@ interface SeedSpec {
 //
 // Some entries specify a `mega` evolution + the corresponding Mega Stone.
 // `buildSeedThreatLists` validates each item against calc's data and silently
-// drops the override when the item isn't known — the mon still gets the
+// drops the override when the item isn't known - the mon still gets the
 // `mega` flag so it shows as Mega-evolved, just without an explicit item set.
 const SPECS: SeedSpec[] = [
   {
     seedKey: 'singles',
-    name: 'Top Threats — Singles',
+    name: 'Top Threats - Singles',
     format: 'singles',
     entries: [
       { species: 'Garchomp' },
@@ -50,7 +50,7 @@ const SPECS: SeedSpec[] = [
   },
   {
     seedKey: 'doubles',
-    name: 'Top Threats — Doubles / VGC',
+    name: 'Top Threats - Doubles / VGC',
     format: 'doubles',
     entries: [
       { species: 'Incineroar' },
@@ -63,22 +63,6 @@ const SPECS: SeedSpec[] = [
       // Rillaboom is not in calc's Champions legal list; Aegislash-Shield
       // stands in as a popular Doubles threat that *is* legal.
       { species: 'Aegislash-Shield' },
-    ],
-  },
-  {
-    seedKey: 'megas',
-    name: 'Top Megas',
-    format: 'any',
-    entries: [
-      { species: 'Charizard', mega: 'mega-y', item: 'Charizardite Y' },
-      { species: 'Gengar', mega: 'mega', item: 'Gengarite' },
-      { species: 'Delphox', mega: 'mega', item: 'Delphoxite' },
-      { species: 'Greninja', mega: 'mega', item: 'Greninjite' },
-      // Hawlucha's mega item in calc data is "Hawluchanite", not "Hawluchite".
-      // The validator below would drop an unknown item; we use the correct
-      // name explicitly so the mega has its stone set.
-      { species: 'Hawlucha', mega: 'mega', item: 'Hawluchanite' },
-      { species: 'Garchomp', mega: 'mega', item: 'Garchompite' },
     ],
   },
   {
@@ -108,7 +92,7 @@ function entryToMon(entry: SeedEntry): SavedMon {
   if (!entry.mega) return base;
   // Apply mega flag; only pin the item override if calc knows about it. If
   // the item is missing we still keep `mega` set so the UI shows the mega
-  // forme — the user can add an item later if needed.
+  // forme - the user can add an item later if needed.
   const item =
     entry.item && itemExists(entry.item) ? entry.item : base.item;
   return { ...base, mega: entry.mega, item };
@@ -128,7 +112,7 @@ export function buildSeedThreatLists(): ThreatList[] {
         warnedMissingSpecies.add(e.species);
         // eslint-disable-next-line no-console
         console.error(
-          `seed-threats: dropping "${e.species}" from "${spec.name}" — species not found in calc gen 0`,
+          `seed-threats: dropping "${e.species}" from "${spec.name}" - species not found in calc gen 0`,
         );
       }
       allMissing.push(e.species);

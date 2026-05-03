@@ -7,7 +7,7 @@
  * ---------------------
  * Champions is calc's synthetic gen 0; @pkmn/data has no equivalent. We grep
  * the legacy SETDEX_CHAMPIONS for set-name prefixes and overwhelmingly find
- * "SM …" entries (Mega Stones, Z-moves, USUM-era picks) — the rest are
+ * "SM …" entries (Mega Stones, Z-moves, USUM-era picks) - the rest are
  * tagged "SV …" but always for Pokémon that pre-date gen 9 and would lose
  * their Mega abilities under gen 9 mechanics. Gen 7 maximises learnset
  * coverage for the curated builds while still recognising every move and
@@ -37,7 +37,7 @@ interface PkmnMove {
    * Leer, Memento (negative values lower the target).
    */
   boosts?: Record<string, number>;
-  /** Move category — present on every entry. */
+  /** Move category - present on every entry. */
   category?: string;
   /** 'self' for Swords Dance et al.; 'normal' for most attacks. */
   target?: string;
@@ -67,7 +67,7 @@ let prioritiesLoaded = false;
 /**
  * Sync caches for move stat-change behavior. `BOOSTS_USER` is true for moves
  * that raise a user stat (Swords Dance, Agility, Calm Mind, Bulk Up, etc.).
- * `LOWERS_TARGET` is true for moves that lower a target stat — including
+ * `LOWERS_TARGET` is true for moves that lower a target stat - including
  * pure debuff moves (Charm, Memento, Tail Whip) AND moves with a negative-
  * boost secondary (Crunch's 20% to drop Def, etc.).
  */
@@ -97,7 +97,7 @@ function loadPkmnGen(): Promise<PkmnApi> {
           if (moveNegativelyAffectsTarget(m)) LOWERS_TARGET.add(m.id);
         }
       } catch {
-        // If iteration is unavailable, leave the caches empty — callers
+        // If iteration is unavailable, leave the caches empty - callers
         // already treat missing entries as "no override".
       }
       prioritiesLoaded = true;
@@ -178,9 +178,9 @@ function movePositiveBoostsUser(m: PkmnMove): boolean {
   //   { boosts: { spe: 2 }, target: 'self' }
   if (m.target === 'self' && hasPositive(m.boosts)) return true;
   // Otherwise nested under `self.boosts` (Power-Up Punch, Outrage's
-  // intermediates, etc.) — applies to user regardless of target.
+  // intermediates, etc.) - applies to user regardless of target.
   if (hasPositive(m.self?.boosts)) return true;
-  // Secondary self-buff like Power-Up Punch's 100% Atk +1 — sometimes
+  // Secondary self-buff like Power-Up Punch's 100% Atk +1 - sometimes
   // expressed as a single `secondary` with `self.boosts`.
   if (hasPositive(m.secondary?.self?.boosts)) return true;
   if (m.secondaries) {
@@ -224,7 +224,7 @@ export interface DescPair {
 /**
  * Returns prose descriptions for a move. `full` is the multi-sentence
  * description; `short` is a one-liner. Both can be missing for cosmetic
- * moves that PS doesn't document — caller should treat both as optional.
+ * moves that PS doesn't document - caller should treat both as optional.
  */
 export async function moveDescription(moveName: string): Promise<DescPair> {
   const gen = await loadPkmnGen();
@@ -257,7 +257,7 @@ export async function canLearn(species: string, moveName: string): Promise<boole
 
 /**
  * Bulk variant: returns the set of move IDs `species` can learn. Intended
- * for the MovePicker, which filters a long ALL_MOVES list — calling
+ * for the MovePicker, which filters a long ALL_MOVES list - calling
  * canLearn() per row would issue O(N) async lookups.
  */
 export async function getLearnableMoveIds(species: string): Promise<Set<string>> {
@@ -273,7 +273,7 @@ export async function getLearnableMoveIds(species: string): Promise<Set<string>>
       for (const id of Object.keys(ls.learnset)) out.add(id);
     }
   } catch {
-    // species not in dex, or learnset missing — leave the set empty
+    // species not in dex, or learnset missing - leave the set empty
   }
   return out;
 }

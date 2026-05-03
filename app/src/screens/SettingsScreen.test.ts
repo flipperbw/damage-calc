@@ -3,7 +3,7 @@ import { isImportShape } from './SettingsScreen';
 
 describe('isImportShape', () => {
   it('accepts an empty object', () => {
-    // No required keys; accepting empty is fine — it merges nothing.
+    // No required keys; accepting empty is fine - it merges nothing.
     expect(isImportShape({})).toBe(true);
   });
 

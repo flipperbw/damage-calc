@@ -43,7 +43,7 @@ export function ItemPicker({ open, onClose, onPick, species }: Props) {
   );
 
   // The non-mega item list (sorted). When species is provided we always
-  // strip every mega stone — the compatible ones, if any, render in the
+  // strip every mega stone - the compatible ones, if any, render in the
   // dedicated Mega Stones section above.
   const baseItems = useMemo(() => {
     const out: string[] = [];

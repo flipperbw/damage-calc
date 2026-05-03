@@ -15,7 +15,7 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
   const ko = koTagFromText(result.koChanceText);
   const prio = priorityFlag(result.priority);
   // If the move would OHKO but the defender has Sturdy at full HP, the actual
-  // outcome is a 2HKO at best — flag this distinctly.
+  // outcome is a 2HKO at best - flag this distinctly.
   const sturdyApplies =
     !result.isStatus
     && ko?.kind === 'ohko'
@@ -29,7 +29,7 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
   : 'bg-surface border-surface-hi';
 
   if (!result.moveName) {
-    return <div className="px-3 py-2 rounded-lg border border-dashed border-white/10 text-text-mute text-xs">— empty slot —</div>;
+    return <div className="px-3 py-2 rounded-lg border border-dashed border-white/10 text-text-mute text-xs">- empty slot -</div>;
   }
 
   const koLabel = sturdyApplies ? '2HKO' : ko?.label;
@@ -51,7 +51,7 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
             rows regardless of type-name length. */}
         <TypeBadge type={result.type} fixedWidth />
         <span className="font-semibold text-[12.5px] truncate flex-1">{result.moveName}</span>
-        {/* Priority flag — tied to move identity, kept next to the name. */}
+        {/* Priority flag - tied to move identity, kept next to the name. */}
         {prio && <span className="text-priority text-[10px] font-bold shrink-0">{prio}</span>}
         {/* Right cluster: badges centered next to the % readout. */}
         <div className="flex items-center gap-1 shrink-0">
@@ -75,7 +75,7 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
             </span>
           )}
           {result.isStatus
-            ? <span className="opacity-40 text-sm">—</span>
+            ? <span className="opacity-40 text-sm">-</span>
             : <span className="font-bold tabular-nums text-[13px] min-w-[60px] text-right">
                 {result.percentRange[0]}–{result.percentRange[1]}%
               </span>}

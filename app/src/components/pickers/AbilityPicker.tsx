@@ -33,15 +33,15 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
   }, [all, query]);
 
   // Lazy-loaded shortDesc cache. We only fetch once per ability name across
-  // the lifetime of the picker — opening, closing, retyping the query all
+  // the lifetime of the picker - opening, closing, retyping the query all
   // reuse the same map.
   const [descs, setDescs] = useState<Record<string, string | null>>({});
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     // Fetch only the visible (filtered) rows we don't already have. Calls
-    // are cheap once @pkmn/data is warm — they're sync object lookups in
-    // the wrapper — so we can fire them all in parallel.
+    // are cheap once @pkmn/data is warm - they're sync object lookups in
+    // the wrapper - so we can fire them all in parallel.
     const missing = filtered.filter(n => descs[n] === undefined);
     if (missing.length === 0) return;
     void Promise.all(missing.map(async n => {

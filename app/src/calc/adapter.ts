@@ -56,7 +56,7 @@ export interface MatchupResult {
     /** Effective: when Trick Room is on, this is reversed from the raw stat. */
     attackerOutspeeds: boolean;
     delta: number;
-    /** True when Trick Room is in effect — UI may show a callout. */
+    /** True when Trick Room is in effect - UI may show a callout. */
     trickRoom: boolean;
   };
   defenderMaxHp: number;
@@ -220,7 +220,7 @@ export function calculateMatchup(
   field: FieldState,
 ): MatchupResult {
   const yourSide = buildField(field);
-  // Field is asymmetric — attacker/defender perspective swaps. Build twice.
+  // Field is asymmetric - attacker/defender perspective swaps. Build twice.
   const oppSide = buildField({ ...field, yourSide: field.oppSide, oppSide: field.yourSide });
 
   const attacker = buildPokemon(you);
@@ -236,7 +236,7 @@ export function calculateMatchup(
   const attackerSpe = attacker.stats.spe;
   const defenderSpe = defender.stats.spe;
 
-  // Trick Room reverses speed order — the slower mon moves first. We expose
+  // Trick Room reverses speed order - the slower mon moves first. We expose
   // `attackerOutspeeds` as "you act first this turn" so the UI reads naturally.
   const trickRoom = !!field.isTrickRoom;
   const rawOutspeed = attackerSpe > defenderSpe;

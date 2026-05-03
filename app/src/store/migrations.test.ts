@@ -67,7 +67,7 @@ describe('migrate', () => {
     expect(out.state.editor).toBeNull();
   });
 
-  it('v3 -> v4 injects the four curated seed threat lists', () => {
+  it('v3 -> v4 injects the three curated seed threat lists', () => {
     const v3 = {
       version: 3,
       state: {
@@ -82,11 +82,10 @@ describe('migrate', () => {
     };
     const out = migrate(v3)!;
     expect(out.version).toBe(CURRENT_VERSION);
-    expect(out.state.threatLists).toHaveLength(4);
+    expect(out.state.threatLists).toHaveLength(3);
     const names = out.state.threatLists.map(l => l.name);
-    expect(names).toContain('Top Threats — Singles');
-    expect(names).toContain('Top Threats — Doubles / VGC');
-    expect(names).toContain('Top Megas');
+    expect(names).toContain('Top Threats - Singles');
+    expect(names).toContain('Top Threats - Doubles / VGC');
     expect(names).toContain('Most-Used');
     // All seeds should be flagged isSeed and have mons populated.
     for (const list of out.state.threatLists) {

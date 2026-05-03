@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { buildSeedThreatLists } from './seed-threats';
 
 describe('buildSeedThreatLists', () => {
-  it('returns the four curated lists, all flagged as seeds', () => {
+  it('returns the three curated lists, all flagged as seeds', () => {
     const lists = buildSeedThreatLists();
-    expect(lists).toHaveLength(4);
+    expect(lists).toHaveLength(3);
     for (const list of lists) {
       expect(list.isSeed).toBe(true);
       expect(list.id).toBeTruthy();
@@ -15,37 +15,21 @@ describe('buildSeedThreatLists', () => {
     }
   });
 
-  it('Top Megas list applies mega flags and known mega items', () => {
+  it('Singles list applies the Charizard-Y mega override', () => {
     const lists = buildSeedThreatLists();
-    const megas = lists.find(l => l.name === 'Top Megas')!;
-    expect(megas).toBeTruthy();
-    expect(megas.format).toBe('any');
-    // Every entry in this list must have a mega flag set.
-    for (const m of megas.mons) {
-      expect(m.mega).not.toBe('');
-    }
-    // Charizard-Y should keep its Charizardite Y stone.
-    const zard = megas.mons.find(m => m.species === 'Charizard');
+    const singles = lists.find(l => l.seedKey === 'singles')!;
+    expect(singles).toBeTruthy();
+    expect(singles.format).toBe('singles');
+    const zard = singles.mons.find(m => m.species === 'Charizard');
     expect(zard?.mega).toBe('mega-y');
     expect(zard?.item).toBe('Charizardite Y');
-    // Garchomp Mega should hold Garchompite (verified to exist in calc data).
-    const garchomp = megas.mons.find(m => m.species === 'Garchomp');
-    expect(garchomp?.mega).toBe('mega');
-    expect(garchomp?.item).toBe('Garchompite');
   });
 
-  it('falls back gracefully when an item is unknown to calc', () => {
-    // Smoke-test the validator path: building should never throw and never
-    // crash on a missing-from-calc item. Hawlucha's stone is intentionally
-    // spelt the right way ("Hawluchanite") in the spec — but if a future
-    // edit introduces a bogus item, the validator should drop the override
-    // silently. We can't easily trigger that here without monkey-patching,
-    // so we just assert the build completes and Hawlucha keeps its mega
-    // flag regardless of which exact item ended up applied.
+  it('Most-Used list contains Incineroar / Kingambit / Garchomp', () => {
     const lists = buildSeedThreatLists();
-    const megas = lists.find(l => l.name === 'Top Megas')!;
-    const hawlucha = megas.mons.find(m => m.species === 'Hawlucha');
-    expect(hawlucha).toBeTruthy();
-    expect(hawlucha?.mega).toBe('mega');
+    const mu = lists.find(l => l.seedKey === 'most-used')!;
+    expect(mu).toBeTruthy();
+    const species = mu.mons.map(m => m.species).sort();
+    expect(species).toEqual(['Garchomp', 'Incineroar', 'Kingambit']);
   });
 });

@@ -63,7 +63,7 @@ describe('groupNatures', () => {
 
   it('drops empty groups', () => {
     const out = groupNatures([N('Adamant', 'atk', 'spa')]);
-    // No neutrals or other +stat — only +Atk should remain.
+    // No neutrals or other +stat - only +Atk should remain.
     expect(out).toHaveLength(1);
     expect(out[0].label).toBe('+Atk');
   });

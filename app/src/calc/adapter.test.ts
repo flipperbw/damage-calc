@@ -16,7 +16,7 @@ const garchomp: SavedMon = {
   boosts: {},
 };
 
-// Tyranitar (Rock/Dark) — Earthquake is 2× super effective; Outrage neutral.
+// Tyranitar (Rock/Dark) - Earthquake is 2× super effective; Outrage neutral.
 // Used as the primary defender so the standard moveset all produces non-zero damage.
 const tyranitar: SavedMon = {
   id: 'b',
@@ -30,7 +30,7 @@ const tyranitar: SavedMon = {
   boosts: {},
 };
 
-// Skarmory (Steel/Flying) — used only for the Sun-weather test where Charizard
+// Skarmory (Steel/Flying) - used only for the Sun-weather test where Charizard
 // hits with Flamethrower (4× SE). Item omitted (Rocky Helmet isn't in the
 // Champions item list).
 const skarmory: SavedMon = {

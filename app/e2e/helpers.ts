@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 /**
- * Shared E2E helpers. Mobile is the priority target — selectors here aim to
+ * Shared E2E helpers. Mobile is the priority target - selectors here aim to
  * work on both mobile-iphone-13 and desktop-chromium where possible (mobile
  * uses bottom nav, desktop uses top tabs; we filter by visibility).
  */
@@ -24,7 +24,7 @@ export async function freshStart(page: Page) {
  * when a test needs the seeded threat lists (Builder picker, matrix, etc.).
  *
  * The fresh-install path through `initialAppState` ships with empty
- * threatLists by design — the seed data only gets injected during the v4
+ * threatLists by design - the seed data only gets injected during the v4
  * migration. That mirrors how a real user upgrading from a pre-Builder build
  * gets their seed lists, which is the only path the spec exercises.
  */

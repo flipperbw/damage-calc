@@ -29,7 +29,7 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
     [team?.id, team?.updatedAt],
   );
 
-  // Slot index the user tapped while empty — opens the SpeciesPicker. Once a
+  // Slot index the user tapped while empty - opens the SpeciesPicker. Once a
   // species is picked, we add a new mon to the team and immediately open the
   // editor on it (matches the TeamsScreen flow).
   const [pickingSlot, setPickingSlot] = useState<number | null>(null);
@@ -56,7 +56,7 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
       <div className="mb-3">
         <label className="text-xxs uppercase tracking-wider opacity-55 mb-1 block">Team</label>
         {teams.length === 0 ? (
-          <div className="text-sm opacity-60 italic">No teams yet — create one in Teams.</div>
+          <div className="text-sm opacity-60 italic">No teams yet - create one in Teams.</div>
         ) : (
           <select
             value={selectedTeamId ?? ''}
@@ -121,7 +121,7 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
           <CoverageBlock title="Offensive gaps" data-testid="offensive-gaps">
             {report.offensiveGaps.length === 0 ? (
               <p className="text-sm opacity-60">
-                No offensive gaps — you can hit everything.
+                No offensive gaps - you can hit everything.
               </p>
             ) : (
               <div className="flex flex-wrap gap-1.5">

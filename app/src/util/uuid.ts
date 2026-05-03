@@ -1,6 +1,6 @@
 /**
  * Cross-context UUID generator. `crypto.randomUUID()` only exists in secure
- * contexts (HTTPS or localhost) — when the dev server is reached via a LAN
+ * contexts (HTTPS or localhost) - when the dev server is reached via a LAN
  * IP from a phone it's NOT secure, so randomUUID is undefined and any code
  * that calls it throws silently inside an event handler. This fallback uses
  * crypto.getRandomValues (available in non-secure contexts on every modern

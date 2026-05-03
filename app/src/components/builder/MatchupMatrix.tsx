@@ -9,12 +9,12 @@ import type { SavedMon, ThreatList, Team } from '../../types';
 interface CellInfo {
   /** Best move's max % (used for the cell label and color tier). */
   pct: number;
-  /** Best move's min % — shown in the drill-down range. */
+  /** Best move's min % - shown in the drill-down range. */
   pctLow: number;
   bestMove: MoveResult | null;
   damageLow: number;
   damageHigh: number;
-  /** Calc's koChance().text — e.g. "guaranteed OHKO" or "44% chance to 2HKO". */
+  /** Calc's koChance().text - e.g. "guaranteed OHKO" or "44% chance to 2HKO". */
   koText: string;
 }
 
@@ -26,14 +26,14 @@ interface Props {
 /**
  * N×M damage % grid: each row is one of your mons, each column is a threat
  * mon. The cell value is the *best-case max* (`Math.max` over each move's
- * percentRange[1]) — that's the most optimistic OHKO read for the matchup.
+ * percentRange[1]) - that's the most optimistic OHKO read for the matchup.
  *
  * Memoised on team + threat-list ids/updatedAt so we don't recompute the
  * full grid every time an unrelated store slice (notation toggle, recent
  * opponents …) changes.
  */
 export function MatchupMatrix({ team, threatList }: Props) {
-  // We don't take live `field` from the store on purpose — the spec says use
+  // We don't take live `field` from the store on purpose - the spec says use
   // the default empty field state so the matchup matrix is a stable readout
   // independent of whatever the user has the field set to in BattleScreen.
   const fallbackField = useMemo(() => emptyField(), []);
@@ -44,7 +44,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
   // Memo key encodes:
   //   - team id + updatedAt (covers any mon edit)
   //   - threat list id + updatedAt
-  // We deliberately don't depend on individual mon objects — the team's
+  // We deliberately don't depend on individual mon objects - the team's
   // updatedAt bumps whenever upsertMon/removeMon fires.
   const grid = useMemo<CellInfo[][]>(() => {
     if (yourMons.length === 0 || threats.length === 0) return [];
@@ -80,11 +80,16 @@ export function MatchupMatrix({ team, threatList }: Props) {
           The selected threat list has no Pokémon.
         </div>
       ) : (
-        <div className="overflow-x-auto -mx-1 px-1 border border-surface-hi rounded-card bg-surface">
+        <div className="overflow-x-auto -mx-1 px-1 border border-surface-hi rounded-card">
           <table className="border-collapse text-xs" data-testid="matrix-table">
             <thead>
               <tr>
-                <th className="sticky left-0 bg-surface z-10 p-1.5 text-left text-text-mute font-medium" />
+                {/* Sticky-left header cell needs a SOLID background so the
+                    cell values from following columns don't bleed through
+                    when scrolled. bg-surface is rgba(...,0.04) - too thin
+                    to occlude. We use the panel-gradient base color so the
+                    sticky stripe blends with the surrounding card. */}
+                <th className="sticky left-0 bg-bg-base z-10 p-1.5 text-left text-text-mute font-medium border-r border-surface-hi" />
                 {threats.map(threat => (
                   <th
                     key={threat.id}
@@ -101,7 +106,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
             <tbody>
               {yourMons.map((you, i) => (
                 <tr key={you.id}>
-                  <td className="sticky left-0 bg-surface z-10 p-1.5 border-t border-surface-hi">
+                  <td className="sticky left-0 bg-bg-base z-10 p-1.5 border-t border-r border-surface-hi">
                     <div className="flex items-center gap-2 min-w-[120px] max-w-[160px]">
                       <img src={spriteUrl(you.species)} className="w-7 h-7 object-contain shrink-0" />
                       <span className="text-[11px] truncate">{you.species}</span>
@@ -191,14 +196,14 @@ function DetailSheet({
               </dd>
               <dt className="opacity-60">KO chance</dt>
               <dd className="text-right text-[12px]">
-                {cell.koText || '—'}
+                {cell.koText || '-'}
               </dd>
             </dl>
 
             <div className="text-[10px] opacity-50 italic mt-3">
               The matrix cell shows the upper bound (best move at max damage roll)
               against the threat's full HP, neutral field. A 100%+ cell means
-              the move's max roll exceeds the target's HP — likely OHKO when
+              the move's max roll exceeds the target's HP - likely OHKO when
               the roll lands high; the KO chance row shows the actual odds.
             </div>
           </>
@@ -214,8 +219,8 @@ function emptyCell(): CellInfo {
 
 function cellStyle(pct: number): { cls: string; label: string } {
   if (pct <= 0) {
-    // Empty mon (no moves) or fully-immune. Don't shout — render dash.
-    return { cls: 'bg-surface text-text-mute', label: '—' };
+    // Empty mon (no moves) or fully-immune. Don't shout - render dash.
+    return { cls: 'bg-surface text-text-mute', label: '-' };
   }
   if (pct >= 100) return { cls: 'bg-danger/40 text-white', label: `${pct}%` };
   if (pct >= 50)  return { cls: 'bg-warn/35 text-black', label: `${pct}%` };
@@ -225,7 +230,7 @@ function cellStyle(pct: number): { cls: string; label: string } {
 
 /**
  * For one (you × threat) pair, run the calc and return the best move's
- * full info — used both for the cell label (max %) and for the drill-down
+ * full info - used both for the cell label (max %) and for the drill-down
  * detail sheet (range, raw damage, KO text). Returns an empty cell when
  * the attacker has no damaging moves or when the calc throws.
  */

@@ -25,7 +25,7 @@ function translateSps(legacy: Record<string, number>): Partial<Record<StatID, nu
   return out;
 }
 
-// BEGIN PORTED DATA — generated from src/js/data/sets/champions.js
+// BEGIN PORTED DATA - generated from src/js/data/sets/champions.js
 const RAW: Record<string, Record<string, any>> = {
   "Venusaur": {
     "SM Ubers Defensive": {"ability":"Chlorophyll","item":"Venusaurite","nature":"Bold","moves":["Leech Seed","Toxic","Synthesis","Grass Knot"],"sps":{"hp":32,"df":23,"sd":10}},

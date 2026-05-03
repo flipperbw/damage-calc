@@ -97,7 +97,7 @@ describe('copyToClipboard', () => {
     const ok = await copyToClipboard('non-secure');
 
     expect(ok).toBe(true);
-    // Critical: never call writeText in non-secure context — it would throw
+    // Critical: never call writeText in non-secure context - it would throw
     // a DOMException in real browsers.
     expect(writeText).not.toHaveBeenCalled();
     expect(exec).toHaveBeenCalledWith('copy');

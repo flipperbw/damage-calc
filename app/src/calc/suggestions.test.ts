@@ -115,7 +115,7 @@ describe('suggestAdditions', () => {
     // Empty team has no offensive gaps reported (analyzeCoverage returns
     // []), and no defensive overlaps. With nothing to score against, no
     // suggestion accrues any points and the list is empty. This is the
-    // documented "nothing to suggest" state — useful contract check.
+    // documented "nothing to suggest" state - useful contract check.
     const out = suggestAdditions([], [], SMALL_POOL);
     expect(out).toEqual([]);
   });
@@ -156,7 +156,7 @@ describe('suggestAdditions', () => {
 
   it('default topPool argument falls back to TOP_POOL', () => {
     // Smoke test: calling without the third argument should use the
-    // module-level constant. We just verify shape — strong assertions on
+    // module-level constant. We just verify shape - strong assertions on
     // the live meta list belong with the SMALL_POOL fixtures above.
     const team = [mon('Vaporeon'), mon('Politoed'), mon('Milotic')];
     const out = suggestAdditions(team, [mon('Garchomp')]);

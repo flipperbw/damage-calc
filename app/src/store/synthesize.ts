@@ -66,7 +66,7 @@ export async function synthesizeBuild(species: string): Promise<SavedMon | null>
 
   // Filter candidate moves: any non-status move the species can learn.
   // If learnset lookup fails or returns empty (species not in @pkmn/data),
-  // accept any non-status move from the calc gen-0 table — better to ship
+  // accept any non-status move from the calc gen-0 table - better to ship
   // a synth build with possibly-illegal moves than zero moves at all.
   const learnable = await getLearnableMoveIds(species).catch(() => new Set<string>());
   const candidates: { name: string; bp: number; cat: string }[] = [];

@@ -14,7 +14,7 @@ interface Props {
   onPick: (moveName: string) => void;
   species?: string;
   /**
-   * When true, the "Lowers target" stat-boost toggle defaults on — useful
+   * When true, the "Lowers target" stat-boost toggle defaults on - useful
    * when the user is picking moves that the opponent will use against the
    * active mon. Has no effect on the available filters; only the initial
    * state.
@@ -37,7 +37,7 @@ interface MoveOption {
   lowersTarget: boolean;
 }
 
-/** All Pokémon types in display order — used for the type filter chips. */
+/** All Pokémon types in display order - used for the type filter chips. */
 const ALL_TYPES = [
   'Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice',
   'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug',
@@ -61,7 +61,7 @@ function moveOption(name: string): MoveOption {
   const category: 'Physical' | 'Special' | 'Status' =
     rawCat ?? (bp === 0 ? 'Status' : 'Physical');
   const isStatus = category === 'Status' || bp === 0;
-  // Boost detection lives in @pkmn/data — calc's gen-0 doesn't carry stat-
+  // Boost detection lives in @pkmn/data - calc's gen-0 doesn't carry stat-
   // change info on status moves. Falls back to false until preloadPkmn()
   // resolves; the user's filter sees nothing tagged before that, which is
   // the safest default (no false negatives in the active session).
@@ -80,7 +80,7 @@ function moveOption(name: string): MoveOption {
 }
 
 /**
- * Recompute every MoveOption — needed because some fields (priority,
+ * Recompute every MoveOption - needed because some fields (priority,
  * boostsUser, lowersTarget) are sourced from the @pkmn/data cache which
  * loads async. Components useMemo this against `usePkmnReady()` so they
  * pick up the better values once the cache lands.
@@ -178,7 +178,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
   const ALL_MOVES = useMemo(buildAllMoves, [pkmnReady]);
   const [detailMove, setDetailMove] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  // "Show all moves" override — when on, the learnset filter is bypassed and
+  // "Show all moves" override - when on, the learnset filter is bypassed and
   // we show every move in the gen. Used when calc data and pkmn data
   // disagree on a move name, or for joke/illegal builds.
   const [showAll, setShowAll] = useState(false);
@@ -186,7 +186,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
   // instant. Refetch only when species changes.
   const [learnset, setLearnset] = useState<LearnsetState>({ kind: 'idle' });
 
-  // Filter state and panel visibility — both reset on close.
+  // Filter state and panel visibility - both reset on close.
   const [filters, setFilters] = useState<FilterState>(() => emptyFilters(isForOpponent));
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -238,7 +238,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
   }, [common, query, filters]);
 
   /**
-   * The "main list" — either learnable-only or unfiltered, depending on
+   * The "main list" - either learnable-only or unfiltered, depending on
    * species, learnset state, and the show-all override.
    */
   const filteredMain = useMemo(() => {
@@ -422,7 +422,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
             </div>
           </div>
 
-          {/* Stat-boost toggles — full-width grid like the priority/sort
+          {/* Stat-boost toggles - full-width grid like the priority/sort
               segments above, so the controls visually line up. */}
           <div>
             <div className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Stat boost</div>
@@ -494,7 +494,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
         </div>
       )}
 
-      {/* Show-all override — only meaningful when a species is set. Without
+      {/* Show-all override - only meaningful when a species is set. Without
           a species there's no learnset filter to bypass. */}
       {species && (
         <div className="flex items-center justify-between mt-1.5 mb-3 px-1">
@@ -558,7 +558,7 @@ function Row({ option, onPick, onInfo }: {
   const catLabel = option.category === 'Physical' ? 'Phys' : option.category === 'Special' ? 'Spec' : 'Stat';
   return (
     <div className="w-full flex items-center gap-1.5 px-1 py-1 rounded-lg hover:bg-surface">
-      {/* Info icon (leftmost) — opens MoveDetailSheet without picking. */}
+      {/* Info icon (leftmost) - opens MoveDetailSheet without picking. */}
       <button
         type="button"
         onClick={e => { e.stopPropagation(); onInfo(); }}

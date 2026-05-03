@@ -28,14 +28,14 @@ interface Props {
   /**
    * Optional delete handler. When provided, a trash button is rendered in
    * the editor's top bar and tapping it (after confirm) calls onDelete and
-   * closes the sheet. Only TeamsScreen wires this — the battle screen and
+   * closes the sheet. Only TeamsScreen wires this - the battle screen and
    * brand-new-mon flows shouldn't expose delete here.
    */
   onDelete?: () => void;
   /** Optional team name shown in the trash confirm body. */
   teamName?: string;
   /**
-   * When true, the move picker defaults its "Lowers target" filter on —
+   * When true, the move picker defaults its "Lowers target" filter on -
    * the user is editing the opponent's mon and is most interested in
    * stat-lowering moves the opponent might use against them.
    */
@@ -61,7 +61,7 @@ function usePressHandlers(action: () => void) {
     if (firedRef.current) return;
     firedRef.current = true;
     try { action(); } finally {
-      // Microtask reset is enough — the click event after pointerup is
+      // Microtask reset is enough - the click event after pointerup is
       // dispatched in the same task and would observe firedRef===true.
       setTimeout(() => { firedRef.current = false; }, 250);
     }
@@ -203,8 +203,8 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
         </div>
 
         {/* Item / Ability / Nature */}
-        <Field label="Item" value={draft.item ?? '— none —'} onClick={() => setPicker('item')} />
-        <Field label="Ability" value={draft.ability ?? '— none —'} onClick={() => setPicker('ability')} />
+        <Field label="Item" value={draft.item ?? '- none -'} onClick={() => setPicker('item')} />
+        <Field label="Ability" value={draft.ability ?? '- none -'} onClick={() => setPicker('ability')} />
         <Field label="Nature" value={draft.nature} onClick={() => setPicker('nature')} />
 
         {/* SP grid */}
@@ -212,7 +212,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
           <SpGrid sps={draft.sps} onChange={sps => patch({ sps })} />
         </div>
 
-        {/* Effective stats — also shows the post-mega column when item is a mega stone */}
+        {/* Effective stats - also shows the post-mega column when item is a mega stone */}
         <div className="mb-4">
           <EffectiveStats
             species={draft.species}

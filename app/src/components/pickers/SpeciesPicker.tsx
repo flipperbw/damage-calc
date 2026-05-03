@@ -29,7 +29,7 @@ function allSpeciesNames(): string[] {
 
 export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Props) {
   const [query, setQuery] = useState('');
-  // Reset the search box every time the picker (re)opens — stale queries
+  // Reset the search box every time the picker (re)opens - stale queries
   // confuse the user when they reopen expecting a fresh list.
   useEffect(() => {
     if (open) setQuery('');

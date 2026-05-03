@@ -128,7 +128,7 @@ export function MonCard({
         </div>
       </div>
 
-      {/* Stats row — six cells, hp/atk/def/spa/spd/spe. Each cell shows the
+      {/* Stats row - six cells, hp/atk/def/spa/spd/spe. Each cell shows the
           stat value with a small indicator line for nature (▲/▼) and EV
           allocation ("+N SP"). Tabular numerals so values line up. */}
       {stats && (
@@ -165,7 +165,7 @@ export function MonCard({
 
       {/*
         Stop click/keydown bubbling for inner controls when the card surface is
-        a swap target — chips, HpBar, and MegaToggle each route to their own
+        a swap target - chips, HpBar, and MegaToggle each route to their own
         handlers, not the swap.
       */}
       <div onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
@@ -178,7 +178,7 @@ export function MonCard({
 
         <div className="flex gap-1.5 mt-2 flex-wrap">
           {mon.ability && (
-            // Tapping the ability chip opens the read-only detail sheet —
+            // Tapping the ability chip opens the read-only detail sheet -
             // not the editor. The sheet's "Change ability" button (rendered
             // only when onChangeAbility is wired) routes to AbilityPicker.
             <StatChip

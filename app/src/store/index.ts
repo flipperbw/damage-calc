@@ -14,7 +14,7 @@ const PERSIST_NAME = 'champions-calc-v1';
 //
 // `editor` is persisted so the MonEditor reopens on the same target after
 // iOS unloads the tab under memory pressure and reloads the page. The
-// in-progress draft is not persisted — only the target.
+// in-progress draft is not persisted - only the target.
 export const PERSISTED_KEYS = [
   'teams',
   'activeTeamId',
@@ -53,7 +53,7 @@ interface Actions {
   /**
    * Idempotent backfill: if `threatLists` is empty (e.g. user reset, or an
    * older build that briefly shipped with empty seeds), repopulate from
-   * buildSeedThreatLists(). Safe to call repeatedly — no-op when seeds are
+   * buildSeedThreatLists(). Safe to call repeatedly - no-op when seeds are
    * already present.
    */
   ensureSeedThreatLists: () => void;
@@ -149,7 +149,7 @@ export const useStore = create<AppState & Actions>()(
           ? { ...t, mons: t.mons.filter(m => m.id !== monId), updatedAt: Date.now() }
           : t,
         ),
-        // Clear an editor that was pointing at the mon we just removed —
+        // Clear an editor that was pointing at the mon we just removed -
         // otherwise the editor reopens on a vapor target after reload.
         editor:
           s.editor && s.editor.kind === 'team-mon'
@@ -201,7 +201,7 @@ export const useStore = create<AppState & Actions>()(
         const newId = uuid();
         const now = Date.now();
         // Copies always come back as non-seed lists; that's the whole point of
-        // duplicating a curated list — to get a freely editable/deletable copy.
+        // duplicating a curated list - to get a freely editable/deletable copy.
         const copy: ThreatList = {
           id: newId,
           name: `${original.name} (copy)`,
@@ -225,7 +225,7 @@ export const useStore = create<AppState & Actions>()(
         set(s => ({
           threatLists: s.threatLists.filter(l => l.id !== id),
           // Clear an editor pointing at a mon in the threat list we just
-          // deleted — same hygiene rule as deleteTeam.
+          // deleted - same hygiene rule as deleteTeam.
           editor:
             s.editor && s.editor.kind === 'threat-mon' && s.editor.threatListId === id
               ? null
@@ -248,7 +248,7 @@ export const useStore = create<AppState & Actions>()(
           : l,
         ),
         // Clear an editor that was pointing at the threat-mon we just
-        // removed — mirrors the team-mon hygiene above.
+        // removed - mirrors the team-mon hygiene above.
         editor:
           s.editor && s.editor.kind === 'threat-mon'
             && s.editor.threatListId === threatListId
@@ -267,7 +267,7 @@ export const useStore = create<AppState & Actions>()(
       setNotation: (notation) => set({ notation }),
       setEditor: (editor) => set({ editor }),
 
-      // Reset to a *freshly built* initial state — repopulates seed threat
+      // Reset to a *freshly built* initial state - repopulates seed threat
       // lists with new uuids rather than reusing the module-load instance.
       resetAll: () => set(buildInitialAppState()),
     }),

@@ -41,7 +41,7 @@ test('change item via picker', async ({ page }) => {
   await expect(page.getByTestId('field-item')).toContainText('Leftovers');
 });
 
-test('change ability via picker — list is species-filtered', async ({ page }) => {
+test('change ability via picker - list is species-filtered', async ({ page }) => {
   await openGarchompEditor(page);
 
   await page.getByTestId('field-ability').click();
@@ -59,14 +59,14 @@ test('change ability via picker — list is species-filtered', async ({ page }) 
   await expect(page.getByTestId('field-ability')).toContainText('Sand Veil');
 });
 
-test('change nature via picker — natures are grouped', async ({ page }) => {
+test('change nature via picker - natures are grouped', async ({ page }) => {
   await openGarchompEditor(page);
 
   await page.getByTestId('field-nature').click();
 
   // Group headers from groupNatures(): "+Atk", "+Def", "+SpA", "+SpD", "+Spe".
   // (Calc reports neutral natures with plus === minus, so they fall into the
-  // matching plus bucket rather than a dedicated Neutral group — that's the
+  // matching plus bucket rather than a dedicated Neutral group - that's the
   // current shipping behavior and we test what we ship.)
   await expect(page.getByText('+Atk', { exact: true })).toBeVisible();
   await expect(page.getByText('+SpA', { exact: true })).toBeVisible();
@@ -76,11 +76,11 @@ test('change nature via picker — natures are grouped', async ({ page }) => {
   await expect(page.getByTestId('field-nature')).toContainText('Adamant');
 });
 
-test('change a move via picker — Common section appears for known species', async ({ page }) => {
+test('change a move via picker - Common section appears for known species', async ({ page }) => {
   await openGarchompEditor(page);
 
-  // Tap the first move slot ("— empty —").
-  await page.getByText('— empty —').first().click();
+  // Tap the first move slot ("- empty -").
+  await page.getByText('- empty -').first().click();
 
   // Common section header is rendered when the species has known moves.
   await expect(page.getByText('Common', { exact: true })).toBeVisible();
@@ -110,12 +110,12 @@ test('move picker: Pikachu Learnable list excludes Earthquake until "Show all mo
   await shell.getByRole('button', { name: /^Pikachu$/ }).first().click();
 
   // Open the move picker on the first slot.
-  await page.getByText('— empty —').first().click();
+  await page.getByText('- empty -').first().click();
 
   // Wait for the learnset to load (header switches from "All" to "Learnable").
   await expect(page.getByText('Learnable', { exact: true })).toBeVisible();
 
-  // Search for "Earthquake" — it should NOT appear in the Learnable list.
+  // Search for "Earthquake" - it should NOT appear in the Learnable list.
   await page.getByPlaceholder('Search moves').fill('Earthquake');
 
   // Scope the assertion to the picker shell so we don't accidentally match
@@ -124,7 +124,7 @@ test('move picker: Pikachu Learnable list excludes Earthquake until "Show all mo
   const pickerShell = page.getByTestId('picker-shell');
   await expect(pickerShell.getByRole('button', { name: /Earthquake/ })).toHaveCount(0);
 
-  // Toggle on "Show all moves" — Earthquake is now visible in the unfiltered list.
+  // Toggle on "Show all moves" - Earthquake is now visible in the unfiltered list.
   await page.getByRole('button', { name: 'Show all moves' }).click();
   await expect(pickerShell.getByRole('button', { name: /Earthquake/ }).first()).toBeVisible();
 });
@@ -148,7 +148,7 @@ test('SP grid: per-stat cap is 32 and total cap is 66', async ({ page }) => {
 
   // Skip the slow loop: set sps directly via the active team's mon to
   // simulate the at-cap state. This still hits the SpGrid render path
-  // because the editor reads from local draft state — but we can drive
+  // because the editor reads from local draft state - but we can drive
   // additional bumps from there.
   await page.evaluate(() => {
     // Click atk + 27 more times in quick succession with microtask yields
@@ -201,7 +201,7 @@ test('Copy button copies showdown text and surfaces a toast', async ({ page }) =
       .context()
       .grantPermissions(['clipboard-read', 'clipboard-write']);
   } catch {
-    // webkit doesn't support these permissions strings; not fatal — we'll
+    // webkit doesn't support these permissions strings; not fatal - we'll
     // verify the toast text instead of round-tripping through the clipboard.
   }
 
@@ -218,7 +218,7 @@ test('Copy button copies showdown text and surfaces a toast', async ({ page }) =
   await expect(page.getByTestId('copy-confirmation')).toBeVisible();
 });
 
-test('Mega toggle is gated on held mega stone — Garchomp + Garchompite shows it', async ({ page }) => {
+test('Mega toggle is gated on held mega stone - Garchomp + Garchompite shows it', async ({ page }) => {
   await openGarchompEditor(page);
 
   // Without an item, no Mega toggle yet.
@@ -231,7 +231,7 @@ test('Mega toggle is gated on held mega stone — Garchomp + Garchompite shows i
   // Now the toggle appears.
   await expect(page.getByRole('button', { name: /Mega Evolve/ })).toBeVisible();
 
-  // Toggle on — label flips to "Mega Active".
+  // Toggle on - label flips to "Mega Active".
   await page.getByRole('button', { name: /Mega Evolve/ }).click();
   await expect(page.getByRole('button', { name: /Mega Active/ })).toBeVisible();
 });

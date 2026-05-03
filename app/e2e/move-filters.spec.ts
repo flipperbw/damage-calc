@@ -4,7 +4,7 @@ import { freshStart, nav, createTeam } from './helpers';
 /**
  * Open the move picker on the first slot of a brand-new Garchomp. Garchomp
  * has plenty of curated/learnable moves, so all filter scenarios reduce to
- * checking the visible row count — no risk of an empty list being a false
+ * checking the visible row count - no risk of an empty list being a false
  * negative.
  */
 async function openMovePicker(page: Page) {
@@ -15,8 +15,8 @@ async function openMovePicker(page: Page) {
   const speciesShell = page.getByTestId('picker-shell');
   await speciesShell.getByPlaceholder('Search Pokémon').fill('Garchomp');
   await speciesShell.getByRole('button', { name: /^Garchomp$/ }).first().click();
-  // Tap the first move slot — it shows "— empty —" until a move is set.
-  await page.getByText('— empty —').first().click();
+  // Tap the first move slot - it shows "- empty -" until a move is set.
+  await page.getByText('- empty -').first().click();
   // The picker has its own search input; wait for it before interacting.
   await expect(page.getByPlaceholder('Search moves')).toBeVisible();
 }
@@ -76,7 +76,7 @@ test('BP descending sort puts highest base power first', async ({ page }) => {
 
   const shell = page.getByTestId('picker-shell');
   // The "All" / "Learnable" header divides curated Common picks from the
-  // full move pool. Read all rows that follow it in DOM order — that's the
+  // full move pool. Read all rows that follow it in DOM order - that's the
   // bulk of the picker.
   const allHeader = shell.getByText(/^(All|Learnable)$/, { exact: true });
   await expect(allHeader).toBeVisible();

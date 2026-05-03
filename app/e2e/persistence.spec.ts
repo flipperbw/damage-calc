@@ -15,7 +15,7 @@ test('team persists across reload', async ({ page }) => {
   await page.reload();
   await nav(page, 'Teams');
   await expect(page.getByText('New team')).toBeVisible();
-  // Slot still has a sprite — TeamsScreen slot imgs don't carry alt, so use
+  // Slot still has a sprite - TeamsScreen slot imgs don't carry alt, so use
   // the sprite-bearing slot button as the marker.
   await expect(
     page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)'),
@@ -59,7 +59,7 @@ test('open MonEditor reopens after reload (iOS unload-and-restore)', async ({ pa
   // Tap the (now filled) slot to open the editor on Garchomp.
   await page.getByTestId('team-slot-filled-0').first().click();
 
-  // Editor's hero shows the species name. Use a scoped match — "Garchomp"
+  // Editor's hero shows the species name. Use a scoped match - "Garchomp"
   // also appears in the team carousel.
   await expect(page.getByText('Edit Pokémon')).toBeVisible();
   // The hero <div> with text-lg is the species title inside MonEditor.

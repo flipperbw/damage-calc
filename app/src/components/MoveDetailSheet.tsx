@@ -38,7 +38,7 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
   const [prose, setProse] = useState<ProseState>({ kind: 'idle' });
 
   // Fetch prose on each open. We don't memoise across move names because the
-  // pkmn module already caches the gen object — the lookup itself is sync
+  // pkmn module already caches the gen object - the lookup itself is sync
   // after the first call, so a fresh effect per move is cheap.
   useEffect(() => {
     if (!open || !moveName) {
@@ -114,7 +114,7 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
         </div>
 
         {/* Prose description from @pkmn/data. Some newer (SV-era) moves
-            aren't in our gen-7 dataset and will silently render nothing —
+            aren't in our gen-7 dataset and will silently render nothing -
             the structured info below still tells the user what the move
             does in mechanical terms. */}
         <ProseSection state={prose} />
@@ -155,7 +155,7 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <Stat label="Base Power" value={bp > 0 ? String(bp) : '—'} />
+          <Stat label="Base Power" value={bp > 0 ? String(bp) : '-'} />
           <Stat label="Priority" value={priority === 0 ? '0' : (priorityFlag(priority) ?? '0')} />
         </div>
 
@@ -196,7 +196,7 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
 /**
  * Renders the @pkmn/data prose for a move. While loading, shows a thin
  * skeleton (two grey lines) so the layout doesn't jump when prose arrives.
- * On error or when both fields are empty, renders nothing — the structured
+ * On error or when both fields are empty, renders nothing - the structured
  * info elsewhere on the sheet remains useful.
  */
 function ProseSection({ state }: { state: ProseState }) {

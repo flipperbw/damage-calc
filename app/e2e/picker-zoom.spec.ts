@@ -12,7 +12,7 @@ import { freshStart, nav, createTeam } from './helpers';
  * test asserts the visualViewport scale is 1 after a full picker round trip.
  *
  * Playwright's WebKit emulation doesn't actually simulate the auto-zoom, so
- * on CI this test will pass trivially — that's by design. It still catches
+ * on CI this test will pass trivially - that's by design. It still catches
  * any regression on real WebKit and documents the expected behavior.
  */
 test('species picker close path leaves visualViewport scale at 1', async ({ page, isMobile }) => {
@@ -28,19 +28,19 @@ test('species picker close path leaves visualViewport scale at 1', async ({ page
   const shell = page.getByTestId('picker-shell');
   await expect(shell).toBeVisible();
 
-  // Type into the search input — focuses it, which on real iOS would zoom
+  // Type into the search input - focuses it, which on real iOS would zoom
   // unless the input is ≥16px.
   const input = shell.getByPlaceholder('Search Pokémon');
   await input.fill('Garchomp');
 
-  // Pick a result — this calls onPick + onClose, unmounting the picker.
+  // Pick a result - this calls onPick + onClose, unmounting the picker.
   await shell.getByRole('button', { name: /^Garchomp$/ }).first().click();
 
   // Picker is gone.
   await expect(shell).toHaveCount(0);
 
   // visualViewport.scale should be 1 (no residual zoom). Some headless
-  // WebKit builds expose visualViewport but never simulate zoom — that's
+  // WebKit builds expose visualViewport but never simulate zoom - that's
   // fine, the assertion still passes.
   const scale = await page.evaluate(() => window.visualViewport?.scale ?? 1);
   expect(scale).toBe(1);

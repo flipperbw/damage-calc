@@ -17,7 +17,7 @@ import {
  *   - Matchup matrix render + sanity (no NaN)
  *   - Threat-mon edit persistence
  *
- * Mobile/desktop matrix is handled by the Playwright project config — every
+ * Mobile/desktop matrix is handled by the Playwright project config - every
  * test runs on both `mobile-webkit` and `desktop-chromium` automatically.
  */
 
@@ -31,7 +31,7 @@ async function addMonToSlot(page: Page, slotIndex: number, species: string) {
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill(species);
   await shell.getByRole('button', { name: new RegExp(`^${species}$`) }).first().click();
-  // No build — just save with default fields. The coverage analyzer is pure
+  // No build - just save with default fields. The coverage analyzer is pure
   // type-chart, so STAB types alone drive the readout regardless of moves.
   await page.getByRole('button', { name: 'Save' }).click();
 }
@@ -110,7 +110,7 @@ test('Suggestions section: partial team yields cards with reasons; team mons exc
   const firstText = (await firstCard.innerText()).toLowerCase();
   expect(firstText).toMatch(/covers|resists|2×|2x/);
 
-  // Garchomp is on the team — it must NOT appear as a suggestion. Also
+  // Garchomp is on the team - it must NOT appear as a suggestion. Also
   // covers the mega-strip rule (Garchomp-Mega is suppressed too).
   await expect(suggestions.locator('[data-testid="suggestion-Garchomp"]')).toHaveCount(0);
 });
@@ -142,9 +142,8 @@ test('Threat list picker shows all four seeded lists by name', async ({ page }) 
   // Each seed list ships with a unique name (matched verbatim against the
   // migration test in store/migrations.test.ts).
   for (const name of [
-    'Top Threats — Singles',
-    'Top Threats — Doubles / VGC',
-    'Top Megas',
+    'Top Threats - Singles',
+    'Top Threats - Doubles / VGC',
     'Most-Used',
   ]) {
     await expect(picker.getByText(name, { exact: true })).toBeVisible();
@@ -152,7 +151,7 @@ test('Threat list picker shows all four seeded lists by name', async ({ page }) 
 });
 
 test('Fresh install (no migration path) seeds threat lists too', async ({ page }) => {
-  // freshStart wipes localStorage and reloads — no v3 envelope is left
+  // freshStart wipes localStorage and reloads - no v3 envelope is left
   // behind, so the v3->v4 migration does not run. The seeds must come from
   // buildInitialAppState's first-run path. If a refactor regresses that,
   // this test fails.
@@ -162,7 +161,7 @@ test('Fresh install (no migration path) seeds threat lists too', async ({ page }
   await nav(page, 'Builder');
 
   const picker = page.getByTestId('threat-list-picker');
-  await expect(picker.getByText('Top Threats — Singles', { exact: true })).toBeVisible();
+  await expect(picker.getByText('Top Threats - Singles', { exact: true })).toBeVisible();
   await expect(picker.getByText('Most-Used', { exact: true })).toBeVisible();
 });
 
@@ -178,7 +177,7 @@ test('Matchup matrix renders cells with percentages and never shows NaN', async 
   const matrix = page.getByTestId('matchup-matrix');
   await expect(matrix).toBeVisible();
 
-  // The default selected list is the first seeded list (Top Threats — Singles)
+  // The default selected list is the first seeded list (Top Threats - Singles)
   // per BuilderScreen's lazy initializer. Switch to "Most-Used" so the test
   // pins to a known threat list that maps to a fixed cell count (3 mons).
   await page.getByText('Most-Used', { exact: true }).click();
@@ -186,8 +185,8 @@ test('Matchup matrix renders cells with percentages and never shows NaN', async 
   const table = page.getByTestId('matrix-table');
   await expect(table).toBeVisible();
 
-  // At least one cell contains a "%" sign. Some cells render "—" (immune /
-  // status-only build) — Garchomp w/ Swords Dance has 3 attacking moves so
+  // At least one cell contains a "%" sign. Some cells render "-" (immune /
+  // status-only build) - Garchomp w/ Swords Dance has 3 attacking moves so
   // the row is mostly numeric. Cells are tappable buttons that open a
   // detail sheet on click.
   const cellWithPct = table.locator('td button:has-text("%")').first();
@@ -222,7 +221,7 @@ test('Threat list edit: changing a mon item persists across reload', async ({ pa
 
   // Reload and confirm persistence.
   await page.reload();
-  // Re-open the same list (default is Top Threats — Singles after reload).
+  // Re-open the same list (default is Top Threats - Singles after reload).
   await page.getByText('Most-Used', { exact: true }).click();
   await page.getByTestId('threat-mon-Garchomp').getByRole('button', { name: /Edit Garchomp/ }).click();
   await expect(page.getByTestId('field-item')).toContainText('Leftovers');
@@ -255,14 +254,14 @@ test('Create new threat list, add a mon, persists across reload', async ({ page 
   const shell = page.getByTestId('picker-shell');
   await shell.getByPlaceholder('Search Pokémon').fill('Garchomp');
   await shell.getByRole('button', { name: /^Garchomp$/ }).first().click();
-  // MonEditor opened — close it. (It saves on Save button only; the back
+  // MonEditor opened - close it. (It saves on Save button only; the back
   // arrow just closes without persisting unsaved tweaks. The mon was already
   // upserted by upsertThreatMon before the editor opened.)
   await page.getByRole('button', { name: 'Save' }).click();
 
   // Reload and check the list and Garchomp survive.
   await page.reload();
-  // The user list defaults to NOT being active after reload — pick by name.
+  // The user list defaults to NOT being active after reload - pick by name.
   await page.getByText('Locals', { exact: true }).click();
   await expect(
     page

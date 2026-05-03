@@ -9,17 +9,17 @@ const GEN = Generations.get(0);
  */
 export interface TopPoolEntry {
   species: string;
-  /** STAB types from calc — derived once at module load. */
+  /** STAB types from calc - derived once at module load. */
   types: readonly string[];
 }
 
 // Curated list of candidate species. Every entry has been verified against
 // calc's Champions legal list (calc/src/data/species.ts ChampionsLegal). In
-// dev mode `buildTopPool` THROWS if a candidate is missing — silent drops
+// dev mode `buildTopPool` THROWS if a candidate is missing - silent drops
 // would shrink the suggestion universe without anyone noticing.
 //
 // Champions doesn't include several popular VGC mons (Heatran, Ferrothorn,
-// Magnezone, Rillaboom, Mawile, Urshifu, Tapu*) — only species that are
+// Magnezone, Rillaboom, Mawile, Urshifu, Tapu*) - only species that are
 // part of the Champions-legal subset are listed below.
 const CANDIDATE_NAMES: readonly string[] = [
   // Top S-tier offensive

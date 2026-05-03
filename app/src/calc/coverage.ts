@@ -62,7 +62,7 @@ function moveType(name: string): string | null {
 }
 
 /**
- * Collect every attacking-type source the team can throw at the opponent —
+ * Collect every attacking-type source the team can throw at the opponent -
  * each mon's STAB types plus the type of every non-empty, non-status move
  * in its `moves` array.
  *
@@ -85,12 +85,12 @@ function collectAttackingTypes(team: readonly SavedMon[]): Set<string> {
 }
 
 /**
- * Pure type-chart team analysis. No damage rolls — just reads STAB types,
+ * Pure type-chart team analysis. No damage rolls - just reads STAB types,
  * the type of every saved move, and the standard 18-type chart via
  * `typeEffectiveness` from the adapter.
  *
  * Empty teams produce empty arrays for both readouts. We deliberately do
- * NOT report all 18 types as offensive gaps for an empty team — that would
+ * NOT report all 18 types as offensive gaps for an empty team - that would
  * be technically true but useless to render.
  */
 export function analyzeCoverage(team: readonly SavedMon[]): CoverageReport {
@@ -129,7 +129,7 @@ export function analyzeCoverage(team: readonly SavedMon[]): CoverageReport {
       overlaps.push({ type: atkType, count });
     }
   }
-  // Sort by count desc, ties alphabetically — gives the UI a stable, useful
+  // Sort by count desc, ties alphabetically - gives the UI a stable, useful
   // ordering without a second pass.
   overlaps.sort((a, b) => (b.count - a.count) || a.type.localeCompare(b.type));
 

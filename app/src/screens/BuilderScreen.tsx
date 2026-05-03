@@ -22,7 +22,7 @@ export function BuilderScreen() {
   // Backfill the curated threat lists for users whose persisted state somehow
   // ended up at v4 with an empty threatLists slice (early build of stage 1
   // with the seed throw, a manual reset, an aborted migration, etc.). Idempotent
-  // — the action no-ops when the slice is non-empty.
+  // - the action no-ops when the slice is non-empty.
   useEffect(() => {
     ensureSeedThreatLists();
   }, [ensureSeedThreatLists]);
@@ -30,13 +30,13 @@ export function BuilderScreen() {
   // The team that drives Coverage / Suggestions / Matrix. Defaults to the
   // user's active team; falls back to the first team if there is no active.
   // Lives in component state (not the store) so navigating away and back
-  // resets to the active team — this is a builder workspace, not a separate
+  // resets to the active team - this is a builder workspace, not a separate
   // persisted "what team is the builder thinking about" pointer.
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(
     activeTeamId ?? teams[0]?.id ?? null,
   );
   // Re-sync if the user picks a different active team in Teams while we're
-  // mounted. (We don't listen continuously — the screen typically remounts
+  // mounted. (We don't listen continuously - the screen typically remounts
   // when you switch tabs, and that re-runs the lazy initializer above.)
   useEffect(() => {
     if (selectedTeamId && teams.some(t => t.id === selectedTeamId)) return;

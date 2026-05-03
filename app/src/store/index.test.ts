@@ -65,7 +65,7 @@ describe('store: opponent + recents', () => {
 
   it('setOpponent does NOT bump recents when species is unchanged', () => {
     useStore.getState().setOpponent(mon('Skarmory'));
-    // Re-set with same species (e.g. round-trip through editor) — should not
+    // Re-set with same species (e.g. round-trip through editor) - should not
     // increment useCount. addRecent would only fire on a species change.
     useStore.getState().setOpponent(mon('Skarmory', { ability: 'Sturdy' }));
     const recents = useStore.getState().recentOpponents;

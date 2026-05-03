@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
 test('toggle notation between percent and pixels', async ({ page }) => {
   await nav(page, 'Settings');
 
-  // Default is percent — the "100%" pill is active.
+  // Default is percent - the "100%" pill is active.
   const percent = page.getByRole('button', { name: '100%' });
   const pixels = page.getByRole('button', { name: '48ths' });
 

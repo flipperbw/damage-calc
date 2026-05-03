@@ -26,7 +26,7 @@ interface Row {
   label: string;
   base: number;
   value: number;
-  arrow: '▲' | '▼' | '—';
+  arrow: '▲' | '▼' | '-';
   megaBase?: number;
   megaValue?: number;
 }
@@ -63,12 +63,12 @@ function natureMods(nature: string): { plus?: StatID; minus?: StatID } {
   return { plus: n.plus as StatID | undefined, minus: n.minus as StatID | undefined };
 }
 
-function arrowFor(stat: StatID, plus?: StatID, minus?: StatID): '▲' | '▼' | '—' {
-  if (stat === 'hp') return '—';
-  if (plus && minus && plus === minus) return '—'; // neutral nature
+function arrowFor(stat: StatID, plus?: StatID, minus?: StatID): '▲' | '▼' | '-' {
+  if (stat === 'hp') return '-';
+  if (plus && minus && plus === minus) return '-'; // neutral nature
   if (stat === plus) return '▲';
   if (stat === minus) return '▼';
-  return '—';
+  return '-';
 }
 
 export function EffectiveStats({ species, nature, sps, item }: Props) {
@@ -164,7 +164,7 @@ function Cells({ row, showMega }: { row: Row; showMega: boolean }) {
     : row.arrow === '▼' ? 'text-danger'
     : 'opacity-40';
   const tier = tierFor(row.stat, row.value);
-  // The "stat" column gets the strongest emphasis — it's the user-visible
+  // The "stat" column gets the strongest emphasis - it's the user-visible
   // post-nature, post-EV value. Bold for ok/neutral so the eye lands on
   // high numbers; warn/danger keep their colour to signal weakness.
   const valueCls = tierClass(tier, true);
@@ -180,7 +180,7 @@ function Cells({ row, showMega }: { row: Row; showMega: boolean }) {
       <div className={`text-right ${valueCls}`}>{row.value}</div>
       {showMega && (
         <div className={`text-right border-l border-accent/40 pl-2 ${megaCls}`}>
-          {row.megaValue !== undefined ? row.megaValue : '—'}
+          {row.megaValue !== undefined ? row.megaValue : '-'}
         </div>
       )}
     </>

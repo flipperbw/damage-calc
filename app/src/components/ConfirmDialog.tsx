@@ -4,7 +4,7 @@ import { PickerShell } from './pickers/PickerShell';
 /**
  * In-app confirm/prompt dialogs that replace `window.confirm` / `window.prompt` /
  * `window.alert`. iOS Brave (and several other mobile browsers) suppress the
- * native dialogs by default — when that happens `window.confirm` returns
+ * native dialogs by default - when that happens `window.confirm` returns
  * false silently, so a user who tapped Delete sees no UI and reports "the
  * button does nothing." Routing every yes/no through our own modal makes
  * the flow deterministic on every platform.

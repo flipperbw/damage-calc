@@ -20,7 +20,7 @@ export function BattleScreen() {
   const field = useStore(s => s.field);
   // Editor target lives in the store so it survives iOS unloading the tab.
   // The editor is rendered for the *current* `you` or `opponent` mon based
-  // on the persisted target — losing the WIP draft on reload is the agreed
+  // on the persisted target - losing the WIP draft on reload is the agreed
   // tradeoff (keystroke writes would be too noisy).
   const editor = useStore(s => s.editor);
   const setEditor = useStore(s => s.setEditor);

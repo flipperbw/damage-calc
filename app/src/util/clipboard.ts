@@ -4,7 +4,7 @@
  * (HTTPS or localhost). When the dev server is reached via a LAN IP from a
  * phone (e.g. `http://192.168.x.y:5173` from iOS Brave) the page is NOT a
  * secure context, so `navigator.clipboard` is undefined and any code that
- * called it directly threw silently inside the click handler — leaving the
+ * called it directly threw silently inside the click handler - leaving the
  * user with a Copy button that "did nothing."
  *
  * Strategy:
@@ -14,7 +14,7 @@
  *      That API predates the secure-context restriction and works on the LAN
  *      dev URL on every modern browser, including iOS Brave.
  *   3. If both routes fail, return false so the caller can surface an
- *      explicit "couldn't copy" toast — never leave the user staring at
+ *      explicit "couldn't copy" toast - never leave the user staring at
  *      nothing.
  *
  * Returns a promise that resolves to true on a verified copy, false on total
@@ -23,7 +23,7 @@
 export async function copyToClipboard(text: string): Promise<boolean> {
   // Secure-context async path. We gate on isSecureContext explicitly because
   // some non-secure environments still expose a stub navigator.clipboard
-  // that throws on writeText — gating saves us a try/catch round-trip.
+  // that throws on writeText - gating saves us a try/catch round-trip.
   try {
     if (
       typeof navigator !== 'undefined' &&
@@ -39,7 +39,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     // fall through to execCommand path
   }
 
-  // execCommand fallback — works in non-secure contexts.
+  // execCommand fallback - works in non-secure contexts.
   try {
     if (typeof document === 'undefined') return false;
     const ta = document.createElement('textarea');
@@ -61,7 +61,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     document.body.appendChild(ta);
     ta.focus();
     ta.select();
-    // iOS sometimes ignores select() on a fresh textarea — explicit range
+    // iOS sometimes ignores select() on a fresh textarea - explicit range
     // covers that case.
     ta.setSelectionRange(0, text.length);
     let ok = false;

@@ -22,7 +22,7 @@ type ProseState =
 /**
  * Read-only sheet showing an ability's name, shortDesc and full desc from
  * @pkmn/data. Triggered by tapping a non-edit ability chip on the MonCard.
- * The picker remains the affordance for actually changing the ability — the
+ * The picker remains the affordance for actually changing the ability - the
  * sheet routes there via the optional "Change ability" button when the chip
  * is editable.
  */
@@ -53,7 +53,7 @@ export function AbilityDetailSheet({ open, abilityName, canChange, onClose, onCh
 
         <ProseSection state={prose} />
 
-        {/* Fallback when @pkmn/data has nothing — common for niche abilities
+        {/* Fallback when @pkmn/data has nothing - common for niche abilities
             that are only documented by SV-era data. */}
         {prose.kind === 'ready' && !prose.pair.short && !prose.pair.full && (
           <p className="text-sm opacity-60 italic mb-3">

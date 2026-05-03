@@ -56,7 +56,7 @@ test('swap opponent species by tapping the opponent card surface', async ({ page
   await expect(page.locator('[data-testid="swap-opp"]')).toContainText('Sturdy');
 });
 
-test('tap opponent name/sprite to open editor — distinct from swap', async ({ page }) => {
+test('tap opponent name/sprite to open editor - distinct from swap', async ({ page }) => {
   await setUpBattle(page);
 
   await page.getByTestId('edit-name-opp').click();
@@ -150,7 +150,7 @@ test('damage updates after toggling weather', async ({ page }) => {
   await expect(firstRow).toBeVisible();
   const before = (await firstRow.textContent()) ?? '';
 
-  // Burn the active mon — physical attacker damage should drop.
+  // Burn the active mon - physical attacker damage should drop.
   await page.getByRole('button', { name: '+ Status' }).first().click();
   await page.getByRole('button', { name: 'Burned', exact: true }).click();
 
