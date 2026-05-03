@@ -49,11 +49,17 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
       <h3 className="text-base font-bold mb-2">Suggestions</h3>
 
       {(!team || team.mons.length === 0) ? (
-        <div className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
+        <div
+          data-testid="suggestions-empty"
+          className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic"
+        >
           Build a team first to see suggestions.
         </div>
       ) : suggestions.length === 0 ? (
-        <div className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
+        <div
+          data-testid="suggestions-no-fit"
+          className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic"
+        >
           No candidate fits this team's gaps right now.
         </div>
       ) : (

@@ -66,7 +66,12 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {report.offensiveGaps.map(t => (
-                  <TypeBadge key={t} type={t} size="md" />
+                  <span
+                    key={t}
+                    data-testid={`offensive-gap-${t}`}
+                  >
+                    <TypeBadge type={t} size="md" />
+                  </span>
                 ))}
               </div>
             )}
@@ -78,7 +83,12 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {report.defensiveOverlaps.map(o => (
-                  <span key={o.type} className="inline-flex items-center gap-1.5">
+                  <span
+                    key={o.type}
+                    data-testid={`defensive-overlap-${o.type}`}
+                    data-count={o.count}
+                    className="inline-flex items-center gap-1.5"
+                  >
                     <TypeBadge type={o.type} size="md" />
                     <span className="text-xs opacity-65">×{o.count} mons</span>
                   </span>

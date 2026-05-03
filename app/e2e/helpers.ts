@@ -18,8 +18,48 @@ export async function freshStart(page: Page) {
   await page.reload();
 }
 
+/**
+ * Like freshStart, but also seeds the curated threat lists by writing a v3
+ * persisted state and letting the v3->v4 migration fire on load. Use this
+ * when a test needs the seeded threat lists (Builder picker, matrix, etc.).
+ *
+ * The fresh-install path through `initialAppState` ships with empty
+ * threatLists by design — the seed data only gets injected during the v4
+ * migration. That mirrors how a real user upgrading from a pre-Builder build
+ * gets their seed lists, which is the only path the spec exercises.
+ */
+export async function freshStartWithSeeds(page: Page) {
+  await page.goto('/');
+  await page.evaluate(() => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      // Drop a minimal v3 envelope into the persist key. Zustand reads the
+      // version on hydrate and runs MIGRATORS[4] to seed threatLists.
+      const v3 = {
+        version: 3,
+        state: {
+          teams: [],
+          activeTeamId: null,
+          activeMonIndex: 0,
+          opponent: null,
+          recentOpponents: [],
+          field: {
+            yourSide: {},
+            oppSide: {},
+          },
+          notation: 'percent',
+          editor: null,
+        },
+      };
+      localStorage.setItem('champions-calc-v1', JSON.stringify(v3));
+    } catch {}
+  });
+  await page.reload();
+}
+
 /** Click a top-level nav item by name; works on both layouts. */
-export async function nav(page: Page, label: 'Battle' | 'Teams' | 'Settings') {
+export async function nav(page: Page, label: 'Battle' | 'Teams' | 'Builder' | 'Settings') {
   await page
     .getByRole('button', { name: new RegExp(label) })
     .filter({ visible: true })

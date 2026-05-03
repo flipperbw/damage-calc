@@ -144,7 +144,7 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
               Duplicate
             </MenuButton>
             {!menuList.isSeed && (
-              <MenuButton tone="danger" onClick={() => { setMenuListId(null); handleDelete(menuList); }}>
+              <MenuButton testId="threat-list-delete" tone="danger" onClick={() => { setMenuListId(null); handleDelete(menuList); }}>
                 Delete
               </MenuButton>
             )}
@@ -175,8 +175,8 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
   );
 }
 
-function MenuButton({ onClick, tone, children }: {
-  onClick: () => void; tone?: 'danger'; children: React.ReactNode;
+function MenuButton({ onClick, tone, children, testId }: {
+  onClick: () => void; tone?: 'danger'; children: React.ReactNode; testId?: string;
 }) {
   const cls = tone === 'danger'
     ? 'bg-danger/10 border-danger/30 text-danger'
@@ -184,6 +184,7 @@ function MenuButton({ onClick, tone, children }: {
   return (
     <button
       onClick={onClick}
+      data-testid={testId}
       className={`text-left px-3 py-2 rounded-lg border text-sm ${cls}`}
     >
       {children}
@@ -224,6 +225,7 @@ function ThreatListCard({
         <button
           onClick={onMenu}
           aria-label="Threat list menu"
+          data-testid={`threat-list-menu-${list.id}`}
           className="w-8 h-8 rounded-lg bg-surface border border-surface-hi text-base opacity-70 hover:opacity-100 shrink-0"
         >⋯</button>
       </div>
