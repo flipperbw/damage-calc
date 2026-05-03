@@ -1,53 +1,89 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from '../store';
+import type { FieldState } from '../types';
 import { FieldDrawer } from './FieldDrawer';
 
 export function FieldBar() {
   const field = useStore(s => s.field);
   const [open, setOpen] = useState(false);
 
+  // Compact summary chips inside the Field button. We list the active flags
+  // in a stable order so the row doesn't shuffle as the user toggles things.
+  const activeChips = useMemo(() => collectActive(field), [field]);
+
   return (
     <>
-      <div className="flex gap-1.5 mb-3.5 flex-wrap">
-        {field.weather && (
-          <Pill active onClick={() => setOpen(true)}>
-            {weatherIcon(field.weather)} {field.weather}
-          </Pill>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Edit field state"
+        data-testid="field-toggle"
+        style={{ touchAction: 'manipulation' }}
+        className={`w-full flex items-center gap-2 px-3 py-2 mb-3.5 rounded-lg border ${
+          activeChips.length > 0
+            ? 'bg-warn/10 border-warn/40 text-warn'
+            : 'bg-surface border-surface-hi opacity-80 hover:opacity-100'
+        }`}
+      >
+        <span className="text-base font-semibold">＋ Field</span>
+        {activeChips.length > 0 ? (
+          <div className="flex items-center gap-1 flex-wrap flex-1">
+            {activeChips.map(c => (
+              <span
+                key={c.key}
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warn/20 border border-warn/40 text-warn"
+              >
+                {c.label}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="text-[11px] opacity-70">Weather, terrain, hazards…</span>
         )}
-        {field.terrain && (
-          <Pill active onClick={() => setOpen(true)}>
-            ⚡ {field.terrain}
-          </Pill>
-        )}
-        <Pill onClick={() => setOpen(true)}>＋ Field</Pill>
-      </div>
+      </button>
       <FieldDrawer open={open} onClose={() => setOpen(false)} />
     </>
   );
 }
 
-function weatherIcon(w: string) {
-  return ({ Sun: '☀', Rain: '🌧', Sand: '🟫', Snow: '❄' } as Record<string, string>)[w] ?? '';
+interface ActiveChip { key: string; label: string }
+
+function collectActive(field: FieldState): ActiveChip[] {
+  const out: ActiveChip[] = [];
+  if (field.weather) out.push({ key: 'weather', label: `${weatherIcon(field.weather)} ${field.weather}` });
+  if (field.terrain) out.push({ key: 'terrain', label: `⚡ ${field.terrain}` });
+  if (field.isTrickRoom) out.push({ key: 'tr', label: '⏱ Trick Room' });
+  if (field.isMagicRoom) out.push({ key: 'mr', label: 'Magic Room' });
+  if (field.isWonderRoom) out.push({ key: 'wr', label: 'Wonder Room' });
+  if (field.isGravity) out.push({ key: 'g', label: 'Gravity' });
+  // Side flags: count how many distinct hazards/screens are up so the bar
+  // doesn't sprawl. Spikes counted as one regardless of layer count.
+  const yourCount = countSideFlags(field.yourSide);
+  const oppCount = countSideFlags(field.oppSide);
+  if (yourCount > 0) out.push({ key: 'your-side', label: `Your side · ${yourCount}` });
+  if (oppCount > 0) out.push({ key: 'opp-side', label: `Opp side · ${oppCount}` });
+  return out;
 }
 
-function Pill({
-  children,
-  active,
-  onClick,
-}: {
-  children: React.ReactNode;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  const cls = active
-    ? 'bg-warn/15 border-warn/40 text-warn'
-    : 'bg-surface border-surface-hi opacity-70';
-  return (
-    <button
-      onClick={onClick}
-      className={`text-[10px] px-2.5 py-1 rounded-full border ${cls}`}
-    >
-      {children}
-    </button>
-  );
+function countSideFlags(s: import('../types').SideState): number {
+  let n = 0;
+  if (s.stealthRock) n++;
+  if (s.spikes && s.spikes > 0) n++;
+  if (s.reflect) n++;
+  if (s.lightScreen) n++;
+  if (s.auroraVeil) n++;
+  if (s.tailwind) n++;
+  if (s.protect) n++;
+  if (s.leechSeed) n++;
+  if (s.saltCure) n++;
+  if (s.helpingHand) n++;
+  if (s.isPowerTrick) n++;
+  if (s.friendGuard) n++;
+  if (s.isStatBoost) n++;
+  if (s.isSwitching) n++;
+  return n;
+}
+
+function weatherIcon(w: string) {
+  return ({ Sun: '☀', Rain: '🌧', Sand: '🟫', Snow: '❄' } as Record<string, string>)[w] ?? '';
 }

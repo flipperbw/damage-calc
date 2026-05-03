@@ -90,7 +90,7 @@ test('change a move via picker — Common section appears for known species', as
   await expect(page.getByText('Learnable', { exact: true })).toBeVisible();
 
   await page.getByPlaceholder('Search moves').fill('Earthquake');
-  await page.getByRole('button', { name: /Earthquake/ }).first().click();
+  await page.getByTestId('move-row-pick-Earthquake').first().click();
 
   // The chosen move now renders in the slot row as bold text.
   await expect(page.locator('b', { hasText: 'Earthquake' })).toBeVisible();

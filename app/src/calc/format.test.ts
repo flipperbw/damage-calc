@@ -11,8 +11,11 @@ describe('koTagFromText', () => {
   it('maps "guaranteed 2HKO" to 2HKO', () => {
     expect(koTagFromText('guaranteed 2HKO')).toEqual({ label: '2HKO', kind: 'thko' });
   });
-  it('maps "44.5% chance to 2HKO" to chance', () => {
-    expect(koTagFromText('44.5% chance to 2HKO')).toEqual({ label: '44% 2HKO', kind: 'chance' });
+  it('maps "44.5% chance to 2HKO" to chance (ceiling)', () => {
+    expect(koTagFromText('44.5% chance to 2HKO')).toEqual({ label: '45% 2HKO', kind: 'chance' });
+  });
+  it('rounds up tiny probabilities so 0.6% does not display as 0%', () => {
+    expect(koTagFromText('0.6% chance to 4HKO')).toEqual({ label: '1% 4HKO', kind: 'chance' });
   });
   it('returns null for empty', () => {
     expect(koTagFromText('')).toBeNull();

@@ -3,7 +3,10 @@ import { Generations, toID } from '@smogon/calc';
 import { PickerShell } from './PickerShell';
 import { TypeBadge } from '../TypeBadge';
 import { getKnownMovesForSpecies } from '../../data/setdex-champions';
-import { getLearnableMoveIds, priorityOverride } from '../../data/pkmn';
+import {
+  getLearnableMoveIds, priorityOverride, moveBoostsUser, moveLowersTarget, usePkmnReady,
+} from '../../data/pkmn';
+import { MoveDetailSheet } from '../MoveDetailSheet';
 
 interface Props {
   open: boolean;
@@ -58,20 +61,12 @@ function moveOption(name: string): MoveOption {
   const category: 'Physical' | 'Special' | 'Status' =
     rawCat ?? (bp === 0 ? 'Status' : 'Physical');
   const isStatus = category === 'Status' || bp === 0;
-  const selfBoosts = m?.self?.boosts;
-  const boostsUser = !!selfBoosts && Object.values(selfBoosts).some(v => (v as number) > 0);
-  let lowersTarget = false;
-  const secondaries = m?.secondaries;
-  if (secondaries) {
-    const arr = Array.isArray(secondaries) ? secondaries : [secondaries];
-    for (const s of arr) {
-      const b = s?.boosts;
-      if (b && Object.values(b).some(v => (v as number) < 0)) {
-        lowersTarget = true;
-        break;
-      }
-    }
-  }
+  // Boost detection lives in @pkmn/data — calc's gen-0 doesn't carry stat-
+  // change info on status moves. Falls back to false until preloadPkmn()
+  // resolves; the user's filter sees nothing tagged before that, which is
+  // the safest default (no false negatives in the active session).
+  const boostsUser = moveBoostsUser(name);
+  const lowersTarget = moveLowersTarget(name);
   return {
     name,
     type: (m?.type as string) ?? '???',
@@ -84,12 +79,18 @@ function moveOption(name: string): MoveOption {
   };
 }
 
-const ALL_MOVES: MoveOption[] = (() => {
+/**
+ * Recompute every MoveOption — needed because some fields (priority,
+ * boostsUser, lowersTarget) are sourced from the @pkmn/data cache which
+ * loads async. Components useMemo this against `usePkmnReady()` so they
+ * pick up the better values once the cache lands.
+ */
+function buildAllMoves(): MoveOption[] {
   const out: MoveOption[] = [];
   for (const m of GEN.moves) out.push(moveOption(m.name));
   out.sort((a, b) => a.name.localeCompare(b.name));
   return out;
-})();
+}
 
 /** Loading state for the species learnset fetch. */
 type LearnsetState =
@@ -173,6 +174,9 @@ function catRank(m: MoveOption, mode: 'phys' | 'spec'): number {
 }
 
 export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Props) {
+  const pkmnReady = usePkmnReady();
+  const ALL_MOVES = useMemo(buildAllMoves, [pkmnReady]);
+  const [detailMove, setDetailMove] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   // "Show all moves" override — when on, the learnset filter is bypassed and
   // we show every move in the gen. Used when calc data and pkmn data
@@ -221,7 +225,8 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
   const common = useMemo(() => {
     if (!species) return [] as MoveOption[];
     return getKnownMovesForSpecies(species).map(moveOption);
-  }, [species]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pkmnReady recomputes the moveOption fields populated from @pkmn/data
+  }, [species, pkmnReady]);
 
   const filteredCommon = useMemo(() => {
     let base = common;
@@ -251,7 +256,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
       base = base.filter(m => m.name.toLowerCase().includes(q));
     }
     return applyFilters(base, filters);
-  }, [query, species, showAll, learnset, filters]);
+  }, [query, species, showAll, learnset, filters, ALL_MOVES]);
 
   const showCommonHeader = species && filteredCommon.length > 0;
   const mainHeader = species && !showAll && learnset.kind === 'ready'
@@ -417,10 +422,11 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
             </div>
           </div>
 
-          {/* Stat-boost toggles */}
+          {/* Stat-boost toggles — full-width grid like the priority/sort
+              segments above, so the controls visually line up. */}
           <div>
             <div className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Stat boost</div>
-            <div className="flex gap-1.5 flex-wrap">
+            <div className="grid grid-cols-2 gap-1">
               <button
                 type="button"
                 onClick={() => setFilters(f => ({ ...f, boostsUser: !f.boostsUser }))}
@@ -511,7 +517,8 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
             <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5">Common</div>
             {filteredCommon.map(m => (
               <Row key={`c-${m.name}`} option={m}
-                   onPick={() => { onPick(m.name); onClose(); }} />
+                   onPick={() => { onPick(m.name); onClose(); }}
+                   onInfo={() => setDetailMove(m.name)} />
             ))}
           </>
         )}
@@ -522,14 +529,24 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
         )}
         {filteredMain.map(m => (
           <Row key={m.name} option={m}
-               onPick={() => { onPick(m.name); onClose(); }} />
+               onPick={() => { onPick(m.name); onClose(); }}
+               onInfo={() => setDetailMove(m.name)} />
         ))}
       </div>
+      <MoveDetailSheet
+        open={detailMove !== null}
+        moveName={detailMove}
+        onClose={() => setDetailMove(null)}
+      />
     </PickerShell>
   );
 }
 
-function Row({ option, onPick }: { option: MoveOption; onPick: () => void }) {
+function Row({ option, onPick, onInfo }: {
+  option: MoveOption;
+  onPick: () => void;
+  onInfo: () => void;
+}) {
   const prioLabel = option.priority === 0 ? null : (option.priority > 0 ? `+${option.priority}` : `${option.priority}`);
   const prioCls = option.priority > 0
     ? 'bg-priority/20 text-priority border-priority/40'
@@ -540,27 +557,41 @@ function Row({ option, onPick }: { option: MoveOption; onPick: () => void }) {
     : 'bg-white/5 text-text-mute border-surface-hi';
   const catLabel = option.category === 'Physical' ? 'Phys' : option.category === 'Special' ? 'Spec' : 'Stat';
   return (
-    <button
-      onClick={onPick}
-      data-testid={`move-row-pick-${option.name}`}
-      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-surface"
-    >
-      <TypeBadge type={option.type} />
-      <span className="font-medium flex-1 text-left truncate">{option.name}</span>
-      {prioLabel && (
-        <span
-          data-testid={`move-row-prio-${option.name}`}
-          className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border ${prioCls}`}
-        >
-          {prioLabel}
+    <div className="w-full flex items-center gap-1.5 px-1 py-1 rounded-lg hover:bg-surface">
+      {/* Info icon (leftmost) — opens MoveDetailSheet without picking. */}
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); onInfo(); }}
+        aria-label={`${option.name} details`}
+        title={`${option.name} details`}
+        data-testid={`move-row-info-${option.name}`}
+        className="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-white/[0.04] border border-surface-hi text-[11px] opacity-70 hover:opacity-100 hover:border-accent hover:text-accent"
+      >
+        i
+      </button>
+      <button
+        type="button"
+        onClick={onPick}
+        data-testid={`move-row-pick-${option.name}`}
+        className="flex-1 flex items-center gap-2 px-1.5 py-1 rounded text-left"
+      >
+        <TypeBadge type={option.type} fixedWidth />
+        <span className="font-medium flex-1 text-left truncate">{option.name}</span>
+        {prioLabel && (
+          <span
+            data-testid={`move-row-prio-${option.name}`}
+            className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border ${prioCls}`}
+          >
+            {prioLabel}
+          </span>
+        )}
+        {!option.isStatus && option.bp > 0 && (
+          <span className="text-[10px] tabular-nums opacity-60">BP {option.bp}</span>
+        )}
+        <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border ${catCls}`}>
+          {catLabel}
         </span>
-      )}
-      {!option.isStatus && option.bp > 0 && (
-        <span className="text-[10px] tabular-nums opacity-60">BP {option.bp}</span>
-      )}
-      <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded border ${catCls}`}>
-        {catLabel}
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }

@@ -82,15 +82,19 @@ test('BP descending sort puts highest base power first', async ({ page }) => {
   await expect(allHeader).toBeVisible();
 
   // Capture the testids of the first three rows AFTER the All/Learnable
-  // header. We walk the next siblings and stop after collecting three
-  // move-row-pick rows.
+  // header. The row markup wraps an info button + pick button in a div, so
+  // we walk siblings and read the testid off any descendant `move-row-pick-*`.
   const firstThreeAfterAll = await allHeader.evaluate(el => {
     const out: string[] = [];
     let cur: Element | null = el.nextElementSibling;
     while (cur && out.length < 3) {
-      const tid = cur.getAttribute('data-testid') ?? '';
-      if (tid.startsWith('move-row-pick-')) {
-        out.push(tid.replace('move-row-pick-', ''));
+      const directTid = cur.getAttribute('data-testid') ?? '';
+      if (directTid.startsWith('move-row-pick-')) {
+        out.push(directTid.replace('move-row-pick-', ''));
+      } else {
+        const inner = cur.querySelector('[data-testid^="move-row-pick-"]');
+        const innerTid = inner?.getAttribute('data-testid') ?? '';
+        if (innerTid) out.push(innerTid.replace('move-row-pick-', ''));
       }
       cur = cur.nextElementSibling;
     }

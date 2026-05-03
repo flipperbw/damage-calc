@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Generations, toID } from '@smogon/calc';
-import type { SavedMon, StatIDExceptHP, StatusName, MegaState } from '../types';
+import type { SavedMon, StatID, StatIDExceptHP, StatusName, MegaState } from '../types';
 import type { ComputedStats } from '../calc/adapter';
 import { spriteUrl } from '../data/sprites';
 import { TypeBadge } from './TypeBadge';
@@ -11,6 +11,14 @@ import { StatusPicker } from './pickers/StatusPicker';
 import { BoostPicker } from './pickers/BoostPicker';
 import { AbilityPicker } from './pickers/AbilityPicker';
 import { AbilityDetailSheet } from './AbilityDetailSheet';
+
+const GEN_FOR_NATURE = Generations.get(0);
+
+function natureMods(nature: string): { plus?: StatID; minus?: StatID } {
+  const n = GEN_FOR_NATURE.natures.get(toID(nature) as any);
+  if (!n) return {};
+  return { plus: n.plus as StatID | undefined, minus: n.minus as StatID | undefined };
+}
 
 const GEN = Generations.get(0);
 
@@ -55,25 +63,31 @@ export function MonCard({
   const hasBoosts =
     Object.values(mon.boosts).some(v => typeof v === 'number' && v !== 0);
 
-  // The outer card is interactive only when onSwap is wired (opponent-side).
-  // We use role="button" + a div instead of a <button> so we can nest other
-  // buttons (sprite/name/chips) without invalid DOM (button-in-button).
-  const swapProps = onSwap
+  // The outer card surface is interactive: opponent-side opens the swap
+  // picker; your-side opens the editor. Inner controls (sprite/name/chips)
+  // each route to their own handlers and stop propagation. We use
+  // role="button" + a div so we can nest buttons without invalid DOM.
+  const surfaceAction = onSwap ?? (side === 'you' ? onEdit : undefined);
+  const surfaceLabel = onSwap ? `Swap ${mon.species}` : `Edit ${mon.species}`;
+  const surfaceTestId = onSwap ? `swap-${side}` : `surface-${side}`;
+  const swapProps = surfaceAction
     ? {
         role: 'button',
         tabIndex: 0,
-        'aria-label': `Swap ${mon.species}`,
-        'data-testid': `swap-${side}`,
-        onClick: onSwap,
+        'aria-label': surfaceLabel,
+        'data-testid': surfaceTestId,
+        onClick: surfaceAction,
         onKeyDown: (e: React.KeyboardEvent) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            onSwap();
+            surfaceAction();
           }
         },
         className: `bg-surface border ${dashed} rounded-card p-3 mb-2.5 cursor-pointer`,
       }
     : { className: `bg-surface border ${dashed} rounded-card p-3 mb-2.5` };
+
+  const { plus: naturePlus, minus: natureMinus } = natureMods(mon.nature);
 
   function stop<E extends React.SyntheticEvent>(e: E, fn?: () => void) {
     e.stopPropagation();
@@ -87,7 +101,7 @@ export function MonCard({
 
   return (
     <div {...swapProps}>
-      <div className="flex gap-2.5 items-center mb-2">
+      <div className="flex gap-2.5 items-start mb-2">
         <button
           onClick={e => stop(e, onEdit)}
           data-testid={`edit-sprite-${side}`}
@@ -95,13 +109,18 @@ export function MonCard({
           <img src={spriteUrl(mon.species)} alt={mon.species} className="w-13 h-13 rounded-xl" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start gap-2">
             <button
               onClick={e => stop(e, onEdit)}
               data-testid={`edit-name-${side}`}
               className="font-bold text-base text-left truncate"
             >{mon.species}</button>
-            <span className="text-[10px] opacity-50 ml-2 shrink-0">L50</span>
+            {/* Top-right cluster: Mega toggle (when species supports it AND
+                the held item is a mega stone) sits above the small L50 label. */}
+            <div className="flex flex-col items-end gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+              <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
+              <span className="text-[10px] opacity-50">L50</span>
+            </div>
           </div>
           <div className="flex gap-1 mt-1">
             {types.map(t => <TypeBadge key={t} type={t as string} />)}
@@ -109,20 +128,38 @@ export function MonCard({
         </div>
       </div>
 
-      {/* Stats row — six cells, hp/atk/def/spa/spd/spe.
-          Tabular numerals so values line up; tight typography to fit on mobile. */}
+      {/* Stats row — six cells, hp/atk/def/spa/spd/spe. Each cell shows the
+          stat value with a small indicator line for nature (▲/▼) and EV
+          allocation ("+N SP"). Tabular numerals so values line up. */}
       {stats && (
         <div className="grid grid-cols-6 gap-1 mb-2 text-center">
-          {(['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const).map(k => (
-            <div
-              key={k}
-              className="bg-white/[0.03] rounded-md py-1 px-0.5"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="text-[8px] uppercase tracking-wider opacity-55 leading-none">{statLabel(k)}</div>
-              <div className="text-[12px] font-semibold tabular-nums leading-tight mt-0.5">{stats[k]}</div>
-            </div>
-          ))}
+          {(['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const).map(k => {
+            const sp = mon.sps[k] ?? 0;
+            const isPlus = k === naturePlus && naturePlus !== natureMinus;
+            const isMinus = k === natureMinus && naturePlus !== natureMinus;
+            const valCls =
+              isPlus ? 'text-ok'
+              : isMinus ? 'text-danger'
+              : sp > 0 ? 'text-accent'
+              : '';
+            return (
+              <div
+                key={k}
+                className={`rounded-md py-1 px-0.5 ${sp > 0 ? 'bg-accent/[0.07]' : 'bg-white/[0.03]'}`}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="text-[8px] uppercase tracking-wider opacity-55 leading-none flex items-center justify-center gap-0.5">
+                  <span>{statLabel(k)}</span>
+                  {isPlus && <span className="text-ok">▲</span>}
+                  {isMinus && <span className="text-danger">▼</span>}
+                </div>
+                <div className={`text-[12px] font-semibold tabular-nums leading-tight mt-0.5 ${valCls}`}>{stats[k]}</div>
+                <div className={`text-[8px] tabular-nums leading-none mt-0.5 ${sp > 0 ? 'text-accent/80' : 'opacity-30'}`}>
+                  {sp > 0 ? `+${sp}` : '·'}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -183,8 +220,6 @@ export function MonCard({
           {!hasBoosts && onChangeBoosts && (
             <StatChip label="+ Boost" onClick={() => setPicker('boosts')} />
           )}
-
-          <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
         </div>
       </div>
 

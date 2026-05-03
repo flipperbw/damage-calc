@@ -27,6 +27,22 @@ interface PkmnMove {
   desc?: string;
   shortDesc?: string;
   priority?: number;
+  /**
+   * Self-targeted stat changes; populated for moves like Swords Dance, Agility,
+   * Calm Mind. The shape is `{ atk?: number, def?: number, ... }`.
+   */
+  self?: { boosts?: Record<string, number> };
+  /**
+   * Stat changes applied to the target. Populated for moves like Charm,
+   * Leer, Memento (negative values lower the target).
+   */
+  boosts?: Record<string, number>;
+  /** Move category — present on every entry. */
+  category?: string;
+  /** 'self' for Swords Dance et al.; 'normal' for most attacks. */
+  target?: string;
+  secondary?: { boosts?: Record<string, number>; chance?: number; self?: { boosts?: Record<string, number> } };
+  secondaries?: Array<{ boosts?: Record<string, number>; chance?: number; self?: { boosts?: Record<string, number> } }>;
 }
 
 interface PkmnApi {
@@ -48,6 +64,16 @@ let pkmnGenPromise: Promise<PkmnApi> | null = null;
 const PRIORITY_CACHE: Map<string, number> = new Map();
 let prioritiesLoaded = false;
 
+/**
+ * Sync caches for move stat-change behavior. `BOOSTS_USER` is true for moves
+ * that raise a user stat (Swords Dance, Agility, Calm Mind, Bulk Up, etc.).
+ * `LOWERS_TARGET` is true for moves that lower a target stat — including
+ * pure debuff moves (Charm, Memento, Tail Whip) AND moves with a negative-
+ * boost secondary (Crunch's 20% to drop Def, etc.).
+ */
+const BOOSTS_USER: Set<string> = new Set();
+const LOWERS_TARGET: Set<string> = new Set();
+
 function loadPkmnGen(): Promise<PkmnApi> {
   if (!pkmnGenPromise) {
     pkmnGenPromise = (async () => {
@@ -63,12 +89,15 @@ function loadPkmnGen(): Promise<PkmnApi> {
       // bundle is loaded; this is cheap.
       try {
         for (const m of gen.moves) {
-          if (typeof m.priority === 'number' && m.priority !== 0 && m.id) {
+          if (!m.id) continue;
+          if (typeof m.priority === 'number' && m.priority !== 0) {
             PRIORITY_CACHE.set(m.id, m.priority);
           }
+          if (movePositiveBoostsUser(m)) BOOSTS_USER.add(m.id);
+          if (moveNegativelyAffectsTarget(m)) LOWERS_TARGET.add(m.id);
         }
       } catch {
-        // If iteration is unavailable, leave the cache empty — callers
+        // If iteration is unavailable, leave the caches empty — callers
         // already treat missing entries as "no override".
       }
       prioritiesLoaded = true;
@@ -81,6 +110,27 @@ function loadPkmnGen(): Promise<PkmnApi> {
 /** Imperatively warm the cache; safe to call at app startup or first picker open. */
 export function preloadPkmn(): Promise<void> {
   return loadPkmnGen().then(() => undefined);
+}
+
+/**
+ * React-friendly hook: returns true once preloadPkmn has resolved (and so the
+ * priority / boost / lowers-target caches are usable). Components that derive
+ * data from those caches should `useMemo([..., ready])` so they recompute
+ * once the cache lands.
+ */
+import { useEffect, useState } from 'react';
+export function usePkmnReady(): boolean {
+  const [ready, setReady] = useState<boolean>(prioritiesLoaded);
+  useEffect(() => {
+    if (prioritiesLoaded) {
+      setReady(true);
+      return;
+    }
+    let cancelled = false;
+    void preloadPkmn().then(() => { if (!cancelled) setReady(true); });
+    return () => { cancelled = true; };
+  }, []);
+  return ready;
 }
 
 /**
@@ -103,6 +153,67 @@ export function priorityOverride(moveName: string): number | null {
 /** Test-only: expose readiness for assertions about the cache state. */
 export function _prioritiesReady(): boolean {
   return prioritiesLoaded;
+}
+
+/**
+ * True iff the given move (looked up in the cache populated by preloadPkmn)
+ * raises any user stat. Returns false for unknown moves and before preload.
+ */
+export function moveBoostsUser(moveName: string): boolean {
+  if (!prioritiesLoaded) return false;
+  return BOOSTS_USER.has(toID(moveName) as unknown as string);
+}
+
+/**
+ * True iff the given move lowers any target stat (either as a primary
+ * effect like Charm, or via a secondary chance like Crunch's Def drop).
+ */
+export function moveLowersTarget(moveName: string): boolean {
+  if (!prioritiesLoaded) return false;
+  return LOWERS_TARGET.has(toID(moveName) as unknown as string);
+}
+
+function movePositiveBoostsUser(m: PkmnMove): boolean {
+  // Self-targeted move with direct `boosts` (Swords Dance, Agility):
+  //   { boosts: { spe: 2 }, target: 'self' }
+  if (m.target === 'self' && hasPositive(m.boosts)) return true;
+  // Otherwise nested under `self.boosts` (Power-Up Punch, Outrage's
+  // intermediates, etc.) — applies to user regardless of target.
+  if (hasPositive(m.self?.boosts)) return true;
+  // Secondary self-buff like Power-Up Punch's 100% Atk +1 — sometimes
+  // expressed as a single `secondary` with `self.boosts`.
+  if (hasPositive(m.secondary?.self?.boosts)) return true;
+  if (m.secondaries) {
+    for (const s of m.secondaries) {
+      if (hasPositive(s.self?.boosts)) return true;
+    }
+  }
+  return false;
+}
+
+function moveNegativelyAffectsTarget(m: PkmnMove): boolean {
+  // Direct boost on a non-self target: Charm, Tail Whip, Leer, etc.
+  if (m.target !== 'self' && hasNegative(m.boosts)) return true;
+  // Secondary effect with negative boosts on the target: Crunch, Iron Tail.
+  if (hasNegative(m.secondary?.boosts)) return true;
+  if (m.secondaries) {
+    for (const s of m.secondaries) {
+      if (hasNegative(s.boosts)) return true;
+    }
+  }
+  return false;
+}
+
+function hasPositive(b: Record<string, number> | undefined): boolean {
+  if (!b) return false;
+  for (const v of Object.values(b)) if (typeof v === 'number' && v > 0) return true;
+  return false;
+}
+
+function hasNegative(b: Record<string, number> | undefined): boolean {
+  if (!b) return false;
+  for (const v of Object.values(b)) if (typeof v === 'number' && v < 0) return true;
+  return false;
 }
 
 export interface DescPair {

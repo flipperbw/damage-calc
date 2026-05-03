@@ -18,7 +18,10 @@ export function koTagFromText(text: string): KoTag | null {
   }
   const chance = /(\d+(?:\.\d+)?)% chance to (\dHKO|OHKO)/.exec(text);
   if (chance) {
-    const pct = Math.floor(parseFloat(chance[1]));
+    // Round UP so a 0.6% chance shows as "1% 4HKO", never "0%". Tiny
+    // probabilities are still surfaced; users care that there's any chance
+    // at all, not the precise odds.
+    const pct = Math.ceil(parseFloat(chance[1]));
     return { label: `${pct}% ${chance[2]}`, kind: 'chance' };
   }
   return null;

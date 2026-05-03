@@ -127,20 +127,19 @@ test('adjust a boost on the active mon', async ({ page }) => {
 test('open the field drawer and set weather to Sun', async ({ page }) => {
   await setUpBattle(page);
 
-  // The "＋ Field" pill (fullwidth +, U+FF0B) opens the FieldDrawer.
-  await page.getByRole('button', { name: /Field$/ }).filter({ hasNotText: 'state' }).first().click();
+  // FieldBar is a full-width button with data-testid="field-toggle".
+  await page.getByTestId('field-toggle').click();
   await expect(page.getByText('Field state')).toBeVisible();
 
   // Pick Sun (drawer button accessible name = "Sun").
   await page.getByRole('button', { name: 'Sun', exact: true }).click();
 
   // Close the drawer by clicking the backdrop. PickerShell uses a fixed-inset
-  // overlay; tapping the backdrop calls onClose. Use the "Field state" title's
-  // grand-parent as a click target outside the inner shell.
+  // overlay; tapping the backdrop calls onClose.
   await page.locator('div.fixed.inset-0').first().click({ position: { x: 5, y: 5 } });
 
-  // The FieldBar now shows a Sun pill — accessible name "☀ Sun".
-  await expect(page.getByRole('button', { name: '☀ Sun' })).toBeVisible();
+  // The FieldBar's button now shows the active Sun chip.
+  await expect(page.getByTestId('field-toggle')).toContainText(/Sun/);
 });
 
 test('damage updates after toggling weather', async ({ page }) => {
