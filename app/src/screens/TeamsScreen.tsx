@@ -141,25 +141,29 @@ export function TeamsScreen() {
       {recents.length > 0 && (
         <div className="mt-6">
           <div className="text-xxs uppercase tracking-wider opacity-50 px-1 mb-2">Recent opponents</div>
-          {recents.map(r => (
-            <div
-              key={r.id}
-              data-testid={`recent-${r.mon.species}`}
-              data-use-count={r.useCount}
-              className="flex items-center gap-2.5 px-2.5 py-2 bg-surface/60 border border-surface-hi rounded-lg mb-1.5"
-            >
-              <img src={spriteUrl(r.mon.species)} className="w-8 h-8 rounded" />
-              <div className="flex-1">
-                <div className="font-semibold">{r.mon.species}</div>
-                <div className="text-[10px] opacity-50">{r.mon.buildName ?? 'Custom'} · {r.useCount} battles</div>
+          <div className="rounded-card border border-surface-hi divide-y divide-surface-hi overflow-hidden">
+            {recents.map(r => (
+              <div
+                key={r.id}
+                data-testid={`recent-${r.mon.species}`}
+                data-use-count={r.useCount}
+                className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/[0.02]"
+              >
+                <img src={spriteUrl(r.mon.species)} className="w-8 h-8 rounded" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{r.mon.species}</div>
+                  <div className="text-[10px] opacity-50 truncate">
+                    {r.mon.buildName ?? 'Custom'} · {r.useCount} battles
+                  </div>
+                </div>
+                <button
+                  onClick={() => clearRecent(r.id)}
+                  aria-label={`Remove ${r.mon.species} from recents`}
+                  className="w-7 h-7 flex items-center justify-center rounded text-text-mute hover:text-danger hover:bg-danger/10"
+                >×</button>
               </div>
-              <button
-                onClick={() => clearRecent(r.id)}
-                aria-label={`Remove ${r.mon.species} from recents`}
-                className="opacity-50"
-              >×</button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
