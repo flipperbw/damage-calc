@@ -3,7 +3,6 @@ import { Toaster } from 'sonner';
 
 import { ConfirmProvider } from '@/components/ConfirmDialog';
 import { Nav } from '@/components/Nav';
-import { preloadPkmn } from '@/data/pkmn';
 import { BattleScreen } from '@/screens/BattleScreen';
 import { BuilderScreen } from '@/screens/BuilderScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
@@ -88,14 +87,11 @@ function replaceHash(tab: Tab) {
 
 export function App() {
   const tab = useStore((s) => s.tab);
-  // Fire-and-forget preload of @pkmn/data so the move picker's learnset
-  // filter and the move detail sheet's prose are warm by the time the
-  // user opens them. The dynamic import + learnset chunk together weigh
-  // ~3.5 MB raw / ~600 KB gzipped, so we don't await - initial render
-  // proceeds immediately and the data trickles in.
-  useEffect(() => {
-    void preloadPkmn();
-  }, []);
+  // @pkmn/data preload is now triggered lazily by the first `usePkmnReady`
+  // consumer (MovePicker, AbilityPicker, move/ability detail sheets) so we
+  // don't allocate ~250KB of dex data on initial mount. iOS WKWebView is
+  // tight on background-tab heap; smaller initial heap means longer tab
+  // survival when the user app-switches away.
   useTabRoute();
   useTabPageTitle(tab);
   return (

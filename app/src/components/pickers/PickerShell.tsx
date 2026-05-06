@@ -89,11 +89,16 @@ export function PickerShell({ open, onClose, title, children, align = 'sheet', s
     onClose();
   }
   const verticalAlign = align === 'centered' ? 'items-center' : 'items-end md:items-center';
+  // Sheet-style pickers get a mobile min-height so a short list (e.g.
+  // AbilityPicker with 3 entries) doesn't render as a small floating panel
+  // while ItemPicker / NaturePicker fill the 80vh cap. Desktop and centered
+  // dialogs stay unconstrained so confirm/prompt sheets don't bloat.
+  const sizing = align === 'centered' ? 'max-h-[80vh]' : 'min-h-[70vh] md:min-h-0 max-h-[80vh]';
   return (
     <div className={`fixed inset-0 z-30 bg-black/60 flex ${verticalAlign} justify-center p-3.5`} onClick={close}>
       <div
         data-testid="picker-shell"
-        className="w-full max-w-md bg-bg-base bg-panel-gradient border border-surface-hi rounded-card p-3.5 max-h-[80vh] flex flex-col"
+        className={`w-full max-w-md bg-bg-base bg-panel-gradient border border-surface-hi rounded-card p-3.5 ${sizing} flex flex-col`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && <h3 className="text-base font-bold mb-2">{title}</h3>}

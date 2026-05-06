@@ -60,9 +60,16 @@ interface PkmnApi {
   };
   abilities: { get(name: string): { desc?: string; shortDesc?: string } | undefined };
   learnsets: { canLearn(species: string, move: string): Promise<boolean> };
+  species: {
+    [Symbol.iterator](): Iterator<{ id?: string; name?: string; abilities?: Record<string, string> }>;
+  };
 }
 
 let pkmnGenPromise: Promise<PkmnApi> | null = null;
+// Gen-9 instance retained alongside the gen-7 primary so prose lookups for
+// post-gen-7 abilities/moves (Armor Tail, Trailblaze, ...) can fall back to
+// the latest dex when the target gen doesn't recognise them.
+let latestGenCache: PkmnApi | null = null;
 
 /**
  * Sync cache of move-id -> priority, populated by {@link preloadPkmn}. Empty
@@ -82,12 +89,26 @@ let prioritiesLoaded = false;
 const BOOSTS_USER: Set<string> = new Set();
 const LOWERS_TARGET: Set<string> = new Set();
 
+/**
+ * Sync cache of species id -> full ability list (slot 0 / 1 / hidden, in
+ * pokedex order). Populated at preload from @pkmn/data, which carries the
+ * full pokedex; calc's gen-0 species table only ships a single default
+ * ability per species, so the AbilityPicker prefers this when warm.
+ */
+const SPECIES_ABILITIES: Map<string, string[]> = new Map();
+
 function loadPkmnGen(): Promise<PkmnApi> {
   if (!pkmnGenPromise) {
     pkmnGenPromise = (async () => {
       const [{ Generations }, dexMod] = await Promise.all([import('@pkmn/data'), import('@pkmn/dex')]);
       const gens = new Generations(dexMod.Dex);
       const gen = gens.get(TARGET_GEN) as unknown as PkmnApi;
+      // Species → ability lookup must use the *latest* dex (gen 9) so newer
+      // mons like Farigiraf (Armor Tail), Iron Treads, etc. are recognised.
+      // Gen 7 in this wrapper is chosen for learnset / move coverage of the
+      // SM/USUM-era curated builds, not for species presence.
+      const speciesGen = gens.get(9) as unknown as PkmnApi;
+      latestGenCache = speciesGen;
       // Warm the priority lookup so the calc adapter can correct calc's gen-0
       // move data, which omits priority for several Champions-legal moves
       // (Trick Room, Roar, Whirlwind, …). Iteration is sync once the gen
@@ -104,6 +125,16 @@ function loadPkmnGen(): Promise<PkmnApi> {
       } catch {
         // If iteration is unavailable, leave the caches empty - callers
         // already treat missing entries as "no override".
+      }
+      try {
+        for (const sp of speciesGen.species) {
+          if (!sp.id || !sp.abilities) continue;
+          const list = Object.values(sp.abilities).filter(Boolean) as string[];
+          if (list.length) SPECIES_ABILITIES.set(sp.id, list);
+        }
+      } catch {
+        // Same defensive pattern as moves: leave the cache empty if
+        // iteration is unsupported on the runtime.
       }
       prioritiesLoaded = true;
       return gen;
@@ -175,6 +206,17 @@ export function moveLowersTarget(moveName: string): boolean {
   return LOWERS_TARGET.has(toID(moveName) as unknown as string);
 }
 
+/**
+ * Full ability list (slot 0 / 1 / hidden, in pokedex order) for a species,
+ * sourced from @pkmn/data. Returns null when the cache is cold OR when the
+ * species isn't found - the AbilityPicker falls back to calc's gen-0 entry
+ * in that case (which only ships a single default ability per species).
+ */
+export function getSpeciesAbilities(species: string): string[] | null {
+  if (!prioritiesLoaded) return null;
+  return SPECIES_ABILITIES.get(toID(species) as unknown as string) ?? null;
+}
+
 function movePositiveBoostsUser(m: PkmnMove): boolean {
   // Self-targeted move with direct `boosts` (Swords Dance, Agility):
   //   { boosts: { spe: 2 }, target: 'self' }
@@ -231,7 +273,9 @@ export interface DescPair {
 export async function moveDescription(moveName: string): Promise<DescPair> {
   const gen = await loadPkmnGen();
   const id = toID(moveName) as unknown as string;
-  const m = gen.moves.get(id);
+  // Prefer the target-gen entry; fall back to the latest dex for moves
+  // introduced post-gen-7 (Trailblaze, Tera Blast, ...).
+  const m = gen.moves.get(id) ?? latestGenCache?.moves.get(id);
   return { short: m?.shortDesc || undefined, full: m?.desc || undefined };
 }
 
@@ -239,7 +283,9 @@ export async function moveDescription(moveName: string): Promise<DescPair> {
 export async function abilityDescription(name: string): Promise<DescPair> {
   const gen = await loadPkmnGen();
   const id = toID(name) as unknown as string;
-  const a = gen.abilities.get(id);
+  // Prefer the target-gen entry; fall back to the latest dex for abilities
+  // introduced post-gen-7 (Armor Tail, Cud Chew, Toxic Chain, ...).
+  const a = gen.abilities.get(id) ?? latestGenCache?.abilities.get(id);
   return { short: a?.shortDesc || undefined, full: a?.desc || undefined };
 }
 

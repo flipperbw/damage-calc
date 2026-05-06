@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { GEN, toID } from '@/calc/gen';
 import { PickerShell } from '@/components/pickers/PickerShell';
-import { abilityDescription } from '@/data/pkmn';
+import { abilityDescription, getSpeciesAbilities, usePkmnReady } from '@/data/pkmn';
 
 interface Props {
   open: boolean;
@@ -13,10 +13,17 @@ interface Props {
 
 export function AbilityPicker({ open, onClose, onPick, species }: Props) {
   const [query, setQuery] = useState('');
+  // Re-run when @pkmn/data finishes loading so cold-start picker opens
+  // promote from calc's single-ability entry to the full list.
+  const pkmnReady = usePkmnReady();
   const all = useMemo(() => {
-    // Prefer species-scoped abilities; fall back to all. calc looks up by id,
-    // not display name, so toID() is required.
     if (species) {
+      // Prefer @pkmn/data's full list (slot 0 / 1 / hidden) - calc's gen-0
+      // species table only ships one default ability per species, so e.g.
+      // Farigiraf would otherwise lose Armor Tail. Fall back to calc when
+      // @pkmn/data is cold or doesn't know the species.
+      const fromPkmn = getSpeciesAbilities(species);
+      if (fromPkmn?.length) return fromPkmn;
       const sp = GEN.species.get(toID(species) as any);
       const arr = sp?.abilities ? (Object.values(sp.abilities).filter(Boolean) as string[]) : [];
       if (arr.length) return arr;
@@ -24,7 +31,8 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
     const all: string[] = [];
     for (const a of GEN.abilities) all.push(a.name);
     return all.sort();
-  }, [species]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pkmnReady is the trigger; getSpeciesAbilities reads a sync cache that flips when it loads
+  }, [species, pkmnReady]);
   const filtered = useMemo(() => {
     if (!query) return all;
     const q = query.toLowerCase();

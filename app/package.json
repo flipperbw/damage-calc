@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "dev:bfcache": "vite --host --mode bfcache",
     "build": "tsc && vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --host",
+    "preview:watch": "vite build --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
