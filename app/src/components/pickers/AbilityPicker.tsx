@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { GEN, toID } from '@/calc/gen';
+import { AbilityDetailSheet } from '@/components/AbilityDetailSheet';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { abilityDescription, getSpeciesAbilities, usePkmnReady } from '@/data/pkmn';
 
@@ -69,6 +70,10 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
     };
   }, [open, filtered, descs]);
 
+  // Detail-sheet target: tapping the (i) info icon on a row opens the full
+  // ability description without committing the pick.
+  const [detailName, setDetailName] = useState<string | null>(null);
+
   return (
     <PickerShell
       open={open}
@@ -79,19 +84,33 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
       {filtered.map((name) => {
         const short = descs[name];
         return (
-          <button
-            key={name}
-            onClick={() => {
-              onPick(name);
-              onClose();
-            }}
-            className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface"
-          >
-            <div className="text-sm font-medium">{name}</div>
-            {short && <div className="text-xxs opacity-60 leading-snug truncate">{short}</div>}
-          </button>
+          <div key={name} className="w-full flex items-center gap-1.5 px-1 py-1 rounded-lg hover:bg-surface">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDetailName(name);
+              }}
+              aria-label={`${name} details`}
+              className="w-7 h-7 shrink-0 flex items-center justify-center rounded-full bg-white/[0.04] border border-surface-hi text-[11px] opacity-70 hover:opacity-100 hover:border-accent hover:text-accent"
+            >
+              i
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onPick(name);
+                onClose();
+              }}
+              className="flex-1 text-left px-1 py-0.5"
+            >
+              <div className="text-sm font-medium">{name}</div>
+              {short && <div className="text-xxs opacity-60 leading-snug truncate">{short}</div>}
+            </button>
+          </div>
         );
       })}
+      <AbilityDetailSheet open={detailName !== null} abilityName={detailName} onClose={() => setDetailName(null)} />
     </PickerShell>
   );
 }

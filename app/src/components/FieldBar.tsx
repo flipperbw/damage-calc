@@ -32,6 +32,28 @@ export function FieldBar() {
     });
   }
 
+  function clearChip(key: string) {
+    const fresh = emptyField();
+    switch (key) {
+      case 'weather':
+        return setField({ weather: undefined });
+      case 'terrain':
+        return setField({ terrain: undefined });
+      case 'tr':
+        return setField({ isTrickRoom: false });
+      case 'mr':
+        return setField({ isMagicRoom: false });
+      case 'wr':
+        return setField({ isWonderRoom: false });
+      case 'g':
+        return setField({ isGravity: false });
+      case 'your-side':
+        return setField({ yourSide: fresh.yourSide });
+      case 'opp-side':
+        return setField({ oppSide: fresh.oppSide });
+    }
+  }
+
   return (
     <>
       <div className="flex items-stretch gap-1.5 mb-3.5">
@@ -49,8 +71,26 @@ export function FieldBar() {
           {hasActive ? (
             <div className="flex items-center gap-1 flex-wrap flex-1">
               {activeChips.map((c) => (
-                <span key={c.key} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warn/20 border border-warn/40 text-warn">
-                  {c.label}
+                <span
+                  key={c.key}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Clear ${c.label}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearChip(c.key);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      clearChip(c.key);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold pl-1.5 pr-1 py-0.5 rounded bg-warn/20 border border-warn/40 text-warn cursor-pointer hover:bg-warn/30"
+                >
+                  <span>{c.label}</span>
+                  <span aria-hidden className="opacity-70">×</span>
                 </span>
               ))}
             </div>

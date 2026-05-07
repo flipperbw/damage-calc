@@ -1,7 +1,7 @@
 import { calculate, Field, Move, Pokemon, TYPE_CHART } from '@smogon/calc';
 
 import { GEN, toID } from '@/calc/gen';
-import { megaFormeName } from '@/calc/helpers';
+import { effectiveAbility, megaFormeName } from '@/calc/helpers';
 import { priorityOverride } from '@/data/pkmn';
 import type { FieldState, SavedMon, SideState, StatusName } from '@/types';
 
@@ -71,9 +71,13 @@ function speciesForCalc(mon: SavedMon): string {
 }
 
 function buildPokemon(mon: SavedMon) {
+  // When mega'd, override the user's base-form ability with the mega forme's
+  // ability (Mega Charizard X = Tough Claws, etc.). The base ability is
+  // preserved on the saved mon — this is purely a calc-time substitution.
+  const ability = effectiveAbility(mon.species, mon.mega, mon.ability);
   return new Pokemon(GEN, speciesForCalc(mon), {
     item: mon.item || undefined,
-    ability: mon.ability || undefined,
+    ability: ability || undefined,
     nature: mon.nature,
     evs: mon.sps, // Champions: sps map onto evs (verified in spike)
     boosts: mon.boosts,
@@ -82,8 +86,9 @@ function buildPokemon(mon: SavedMon) {
   });
 }
 
-function buildField(state: FieldState): Field {
+function buildField(state: FieldState, gameType: 'Singles' | 'Doubles' = 'Singles'): Field {
   return new Field({
+    gameType,
     weather: state.weather,
     terrain: state.terrain,
     isMagicRoom: state.isMagicRoom,
@@ -184,10 +189,14 @@ function emptyMoveResult(): MoveResult {
   };
 }
 
-export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState): MatchupResult {
-  const yourSide = buildField(field);
+export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState, format: 'singles' | 'doubles' = 'singles'): MatchupResult {
+  // Champions Doubles applies a 0.75x spread reduction to multi-target moves
+  // (Earthquake, Discharge, Eruption, Surf, ...). Calc handles the move-target
+  // detection internally; we just need to flip Field.gameType.
+  const gameType = format === 'doubles' ? 'Doubles' : 'Singles';
+  const yourSide = buildField(field, gameType);
   // Field is asymmetric - attacker/defender perspective swaps. Build twice.
-  const oppSide = buildField({ ...field, yourSide: field.oppSide, oppSide: field.yourSide });
+  const oppSide = buildField({ ...field, yourSide: field.oppSide, oppSide: field.yourSide }, gameType);
 
   const attacker = buildPokemon(you);
   const defender = buildPokemon(opp);

@@ -34,6 +34,7 @@ interface Actions {
   // Teams
   createTeam: (init: { name: string; format: Format }) => string;
   renameTeam: (id: string, name: string) => void;
+  setTeamFormat: (id: string, format: Format) => void;
   duplicateTeam: (id: string) => string | null;
   deleteTeam: (id: string) => void;
   setActiveTeam: (id: string) => void;
@@ -111,6 +112,10 @@ export const useStore = create<AppState & Actions>()(
         return id;
       },
       renameTeam: (id, name) => set((s) => ({ teams: renameById(s.teams, id, name) })),
+      setTeamFormat: (id, format) =>
+        set((s) => ({
+          teams: s.teams.map((t) => (t.id === id ? { ...t, format, updatedAt: Date.now() } : t)),
+        })),
       duplicateTeam: (id) => {
         const now = Date.now();
         const newId = uuid();

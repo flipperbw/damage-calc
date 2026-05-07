@@ -30,3 +30,21 @@ export function natureMods(nature: string): { plus?: StatID; minus?: StatID } {
   if (!n) return {};
   return { plus: n.plus as StatID | undefined, minus: n.minus as StatID | undefined };
 }
+
+/**
+ * The ability actually in effect at battle time. When a mon is mega-evolved
+ * we override the user's base-form ability with the mega forme's ability
+ * (Mega Charizard X is Tough Claws regardless of base Blaze/Solar Power
+ * selection). For non-mega mons or mega formes that calc doesn't have a
+ * documented ability for, falls back to the user's selection.
+ */
+export function effectiveAbility(species: string, mega: MegaState, baseAbility: string | undefined): string | undefined {
+  if (!mega) return baseAbility;
+  const megaSpecies = megaFormeName(species, mega);
+  const sp = GEN.species.get(toID(megaSpecies) as any);
+  if (!sp?.abilities) return baseAbility;
+  // Calc's species table stores mega abilities in slot 0. Use it when
+  // present; otherwise keep the user's pick.
+  const slot0 = (sp.abilities as Record<string, string>)['0'];
+  return slot0 || baseAbility;
+}

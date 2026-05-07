@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import type { ComputedStats } from '@/calc/adapter';
 import { GEN, toID } from '@/calc/gen';
-import { natureMods } from '@/calc/helpers';
+import { effectiveAbility, megaFormeName, natureMods } from '@/calc/helpers';
 import { AbilityDetailSheet } from '@/components/AbilityDetailSheet';
 import { HpBar } from '@/components/HpBar';
 import { MegaToggle } from '@/components/MegaToggle';
@@ -53,8 +53,17 @@ export function MonCard({
   onChangeAbility,
   onSwap,
 }: Props) {
-  const sp = GEN.species.get(toID(mon.species) as any);
+  // When a mega is active, look up the mega forme's species so types
+  // reflect the transform (Mega Charizard X is Fire/Dragon; Mega Gyarados
+  // is Water/Dark; etc.). Falls back to base when calc lacks the forme.
+  const effectiveSpecies = mon.mega ? megaFormeName(mon.species, mon.mega) : mon.species;
+  const sp = GEN.species.get(toID(effectiveSpecies) as any) ?? GEN.species.get(toID(mon.species) as any);
   const types = sp?.types ?? [];
+  // Mega evolution overrides the user's base ability (Mega Charizard X is
+  // Tough Claws; Mega Gyarados is Mold Breaker). Display the in-effect
+  // ability so the chip matches what calc actually uses.
+  const displayAbility = effectiveAbility(mon.species, mon.mega, mon.ability);
+  const abilityFromMega = !!mon.mega && displayAbility !== mon.ability;
   const dashed = side === 'opp' ? 'border-dashed border-danger/25' : 'border-surface-hi';
 
   const [picker, setPicker] = useState<'status' | 'boosts' | 'ability' | null>(null);
@@ -160,11 +169,19 @@ export function MonCard({
         <HpBar current={mon.currentHp} max={maxHp} showRaw={side === 'you'} onChange={onChangeHp} />
 
         <div className="flex gap-1.5 mt-2 flex-wrap">
-          {mon.ability && (
+          {displayAbility && (
             // Tapping the ability chip opens the read-only detail sheet -
             // not the editor. The sheet's "Change ability" button (rendered
             // only when onChangeAbility is wired) routes to AbilityPicker.
-            <StatChip icon="🩸" label={mon.ability} editable={!!onChangeAbility} onClick={() => setAbilityDetailOpen(true)} />
+            // The ✦ prefix flags an ability that was overridden by mega
+            // evolution (so the user knows the chip isn't the base form's
+            // ability and editing it would have no effect right now).
+            <StatChip
+              icon={abilityFromMega ? '✦' : '🩸'}
+              label={displayAbility}
+              editable={!!onChangeAbility && !abilityFromMega}
+              onClick={() => setAbilityDetailOpen(true)}
+            />
           )}
           {mon.item && <StatChip icon="🎒" label={mon.item} editable={side === 'opp'} onClick={onEdit} />}
           <StatChip icon="🌿" label={mon.nature} editable={side === 'opp'} onClick={onEdit} />
@@ -204,7 +221,7 @@ export function MonCard({
       {onChangeBoosts && <BoostPicker open={picker === 'boosts'} boosts={mon.boosts} onClose={() => setPicker(null)} onSave={onChangeBoosts} />}
       <AbilityDetailSheet
         open={abilityDetailOpen}
-        abilityName={mon.ability ?? null}
+        abilityName={displayAbility ?? null}
         canChange={!!onChangeAbility}
         onClose={() => setAbilityDetailOpen(false)}
         onChangeRequest={onChangeAbility ? () => setPicker('ability') : undefined}

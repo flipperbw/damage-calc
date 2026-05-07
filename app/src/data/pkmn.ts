@@ -59,6 +59,7 @@ interface PkmnApi {
     [Symbol.iterator](): Iterator<PkmnMove & { name?: string; id?: string }>;
   };
   abilities: { get(name: string): { desc?: string; shortDesc?: string } | undefined };
+  items: { get(name: string): { desc?: string; shortDesc?: string } | undefined };
   learnsets: { canLearn(species: string, move: string): Promise<boolean> };
   species: {
     [Symbol.iterator](): Iterator<{ id?: string; name?: string; abilities?: Record<string, string> }>;
@@ -287,6 +288,14 @@ export async function abilityDescription(name: string): Promise<DescPair> {
   // introduced post-gen-7 (Armor Tail, Cud Chew, Toxic Chain, ...).
   const a = gen.abilities.get(id) ?? latestGenCache?.abilities.get(id);
   return { short: a?.shortDesc || undefined, full: a?.desc || undefined };
+}
+
+/** Same shape as moveDescription, for items. */
+export async function itemDescription(name: string): Promise<DescPair> {
+  const gen = await loadPkmnGen();
+  const id = toID(name) as unknown as string;
+  const it = gen.items.get(id) ?? latestGenCache?.items.get(id);
+  return { short: it?.shortDesc || undefined, full: it?.desc || undefined };
 }
 
 /**

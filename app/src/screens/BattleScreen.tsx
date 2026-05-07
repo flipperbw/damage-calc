@@ -48,8 +48,14 @@ export function BattleScreen() {
 
   const you = team?.mons[activeIndex];
 
-  // Memo so we don't recompute when unrelated store slices change.
-  const matchup = useMemo(() => (you && opponent ? calculateMatchup(you, opponent, field) : null), [you, opponent, field]);
+  // Memo so we don't recompute when unrelated store slices change. Pass the
+  // team's format so calc applies the Doubles 0.75x spread reduction to
+  // multi-target moves (Earthquake, Eruption, Discharge, Surf, ...) when the
+  // user is on a Doubles team.
+  const matchup = useMemo(
+    () => (you && opponent ? calculateMatchup(you, opponent, field, team?.format) : null),
+    [you, opponent, field, team?.format],
+  );
 
   // Priority-flips-order warning. Fires when:
   // - You outspeed but opponent has a positive-priority move (they hit first), or
@@ -186,6 +192,15 @@ export function BattleScreen() {
               <MoveRow key={i} result={r} defenderForSturdy={opponent} />
             ))}
           </div>
+        </div>
+
+        {/* Mobile-only divider between the two stacked sides. Disappears at md+
+            where the layout is two columns and the visual separation is the
+            grid gap. */}
+        <div className="md:hidden flex items-center gap-2 my-4" aria-hidden>
+          <div className="flex-1 border-t border-surface-hi" />
+          <span className="text-[10px] uppercase tracking-wider opacity-50">vs.</span>
+          <div className="flex-1 border-t border-surface-hi" />
         </div>
 
         {/* Opponent */}

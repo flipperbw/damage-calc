@@ -132,7 +132,17 @@ function SearchBody({ search, filters, children }: { search: SearchProps; filter
         className={`w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-base ${filters ? '' : 'mb-3'}`}
       />
       {filters}
-      <div className="overflow-y-auto flex-1 -mx-1 px-1">{children}</div>
+      <div
+        // overscroll-behavior contains scroll chaining (pull-to-refresh,
+        // bounce affecting the page underneath). touch-action pan-y is a
+        // belt-and-suspenders hint to iOS WebKit that this region is a
+        // vertical scroll container — without it some layouts get treated
+        // as the document scroll which interacts badly with sticky filter
+        // panels.
+        className="overflow-y-auto flex-1 -mx-1 px-1 [overscroll-behavior:contain] [touch-action:pan-y]"
+      >
+        {children}
+      </div>
     </>
   );
 }

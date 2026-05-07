@@ -20,6 +20,7 @@ export function TeamsScreen() {
   const upsertMon = useStore((s) => s.upsertMon);
   const removeMon = useStore((s) => s.removeMon);
   const renameTeam = useStore((s) => s.renameTeam);
+  const setTeamFormat = useStore((s) => s.setTeamFormat);
   const duplicateTeam = useStore((s) => s.duplicateTeam);
   const deleteTeam = useStore((s) => s.deleteTeam);
   const recents = useStore((s) => s.recentOpponents);
@@ -219,6 +220,15 @@ export function TeamsScreen() {
                   onClick: () => {
                     setMenuTeamId(null);
                     handleRename(menuTeam);
+                  },
+                },
+                {
+                  label: menuTeam.format === 'singles' ? 'Switch to Doubles' : 'Switch to Singles',
+                  onClick: () => {
+                    setMenuTeamId(null);
+                    const next = menuTeam.format === 'singles' ? 'doubles' : 'singles';
+                    setTeamFormat(menuTeam.id, next);
+                    toast.success(`Format set to ${next === 'singles' ? 'Singles' : 'Doubles'}`);
                   },
                 },
                 {

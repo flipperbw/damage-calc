@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MEGA_STONES } from '@smogon/calc';
 
 import { GEN } from '@/calc/gen';
 import { PickerShell } from '@/components/pickers/PickerShell';
+import { itemDescription } from '@/data/pkmn';
 
 interface Props {
   open: boolean;
@@ -65,6 +66,34 @@ export function ItemPicker({ open, onClose, onPick, species }: Props) {
 
   const showNoneRow = !query; // hide the "(none)" sentinel when searching
 
+  // Lazy short-desc cache for the visible rows. Mirrors AbilityPicker's
+  // pattern: fetch only what the filter currently shows, reuse hits across
+  // re-queries.
+  const [descs, setDescs] = useState<Record<string, string | null>>({});
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const visible = [...filteredMega, ...filteredBase];
+    const missing = visible.filter((n) => descs[n] === undefined);
+    if (missing.length === 0) return;
+    void Promise.all(
+      missing.map(async (n) => {
+        const d = await itemDescription(n);
+        return [n, d.short ?? null] as const;
+      }),
+    ).then((pairs) => {
+      if (cancelled) return;
+      setDescs((prev) => {
+        const next = { ...prev };
+        for (const [n, s] of pairs) next[n] = s;
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, filteredMega, filteredBase, descs]);
+
   return (
     <PickerShell
       open={open}
@@ -88,32 +117,23 @@ export function ItemPicker({ open, onClose, onPick, species }: Props) {
         <>
           <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 mt-2">Mega Stones</div>
           {filteredMega.map((name) => (
-            <button
-              key={`mega-${name}`}
-              onClick={() => {
-                onPick(name);
-                onClose();
-              }}
-              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
-            >
-              {name}
-            </button>
+            <ItemRow key={`mega-${name}`} name={name} short={descs[name]} onPick={() => { onPick(name); onClose(); }} />
           ))}
           <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5 mt-3">All items</div>
         </>
       )}
       {filteredBase.map((name) => (
-        <button
-          key={name}
-          onClick={() => {
-            onPick(name);
-            onClose();
-          }}
-          className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
-        >
-          {name}
-        </button>
+        <ItemRow key={name} name={name} short={descs[name]} onPick={() => { onPick(name); onClose(); }} />
       ))}
     </PickerShell>
+  );
+}
+
+function ItemRow({ name, short, onPick }: { name: string; short: string | null | undefined; onPick: () => void }) {
+  return (
+    <button onClick={onPick} className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface">
+      <div className="text-sm font-medium">{name}</div>
+      {short && <div className="text-xxs opacity-60 leading-snug truncate">{short}</div>}
+    </button>
   );
 }

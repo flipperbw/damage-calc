@@ -38,18 +38,21 @@ export function MegaToggle({ mega, onChange, species, item }: Props) {
   // there's nothing to toggle and we render nothing.
   if (!isMegaStone(item)) return null;
   const opts = megaOptions(species);
-  // X/Y forms (Charizard, Mewtwo): show 3-state segmented [Off | X | Y]
+  // X/Y forms (Charizard, Mewtwo): show 3-state segmented [Off | X | Y].
+  // Short labels keep the cluster compact so the species name beside it
+  // doesn't truncate; min-w/min-h + touch-action manipulation make each
+  // segment a comfortable tap target on mobile (was ~24px tall).
   if (opts.hasX && opts.hasY) {
     return (
-      <div className="inline-flex rounded-lg border border-surface-hi overflow-hidden text-xs font-bold uppercase tracking-wider">
-        <SegBtn active={mega === ''} onClick={() => onChange('')}>
+      <div className="inline-flex rounded-lg border border-surface-hi overflow-hidden text-[11px] font-bold uppercase tracking-wider">
+        <SegBtn active={mega === ''} onClick={() => onChange('')} ariaLabel="Mega off">
           Off
         </SegBtn>
-        <SegBtn active={mega === 'mega-x'} onClick={() => onChange('mega-x')}>
-          Mega X
+        <SegBtn active={mega === 'mega-x'} onClick={() => onChange('mega-x')} ariaLabel="Mega X">
+          X
         </SegBtn>
-        <SegBtn active={mega === 'mega-y'} onClick={() => onChange('mega-y')}>
-          Mega Y
+        <SegBtn active={mega === 'mega-y'} onClick={() => onChange('mega-y')} ariaLabel="Mega Y">
+          Y
         </SegBtn>
       </div>
     );
@@ -60,7 +63,8 @@ export function MegaToggle({ mega, onChange, species, item }: Props) {
     return (
       <button
         onClick={() => onChange(isMega ? '' : 'mega')}
-        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${
+        style={{ touchAction: 'manipulation' }}
+        className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${
           isMega ? 'bg-accent-gradient text-white border-accent' : 'bg-surface border-surface-hi opacity-70'
         }`}
       >
@@ -71,9 +75,15 @@ export function MegaToggle({ mega, onChange, species, item }: Props) {
   return null;
 }
 
-function SegBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function SegBtn({ active, onClick, ariaLabel, children }: { active: boolean; onClick: () => void; ariaLabel: string; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className={`px-2.5 py-1.5 ${active ? 'bg-accent-gradient text-white' : 'bg-surface opacity-70'}`}>
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel}
+      aria-pressed={active}
+      style={{ touchAction: 'manipulation' }}
+      className={`min-w-9 min-h-9 px-2 ${active ? 'bg-accent-gradient text-white' : 'bg-surface opacity-70'}`}
+    >
       {children}
     </button>
   );

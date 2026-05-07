@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { abilityDescription, moveDescription, type DescPair } from '@/data/pkmn';
+import { abilityDescription, itemDescription, moveDescription, type DescPair } from '@/data/pkmn';
 
 /** Loading state for an async @pkmn/data prose fetch. */
 export type ProseState =
@@ -9,7 +9,7 @@ export type ProseState =
   | { kind: 'ready'; pair: DescPair }
   | { kind: 'error' };
 
-export type DescriptionKind = 'move' | 'ability';
+export type DescriptionKind = 'move' | 'ability' | 'item';
 
 /**
  * Fetch the @pkmn/data short+full description for a move or ability while a
@@ -27,7 +27,7 @@ export function useDescription(name: string | null, kind: DescriptionKind, open:
     }
     let cancelled = false;
     setState({ kind: 'loading' });
-    const fetcher = kind === 'move' ? moveDescription : abilityDescription;
+    const fetcher = kind === 'move' ? moveDescription : kind === 'item' ? itemDescription : abilityDescription;
     fetcher(name)
       .then((pair) => {
         if (!cancelled) setState({ kind: 'ready', pair });

@@ -45,8 +45,8 @@ export function MatchupMatrix({ team, threatList }: Props) {
 
   const grid = useMemo<CellInfo[][]>(() => {
     if (yourMons.length === 0 || threats.length === 0) return [];
-    return yourMons.map((you) => threats.map((threat) => bestCellInfo(you, threat, battleField)));
-  }, [team?.id, team?.updatedAt, threatList?.id, threatList?.updatedAt, battleField]);
+    return yourMons.map((you) => threats.map((threat) => bestCellInfo(you, threat, battleField, team?.format)));
+  }, [team?.id, team?.updatedAt, team?.format, threatList?.id, threatList?.updatedAt, battleField]);
 
   // Cell tap → drill-down sheet showing the best move's full range and
   // KO chance text, plus the species names so the user knows which side
@@ -296,9 +296,9 @@ function cellStyle(pct: number): { cls: string; label: string } {
  * detail sheet (range, raw damage, KO text). Returns an empty cell when
  * the attacker has no damaging moves or when the calc throws.
  */
-function bestCellInfo(you: SavedMon, threat: SavedMon, field: FieldState): CellInfo {
+function bestCellInfo(you: SavedMon, threat: SavedMon, field: FieldState, format: 'singles' | 'doubles' = 'singles'): CellInfo {
   try {
-    const res = calculateMatchup(you, threat, field);
+    const res = calculateMatchup(you, threat, field, format);
     let best: MoveResult | null = null;
     for (const m of res.attackerMoves) {
       if (!m.moveName || m.isStatus) continue;
