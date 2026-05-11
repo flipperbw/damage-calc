@@ -10,9 +10,23 @@ interface CarouselProps {
    * activate a team.
    */
   onAddMon?: (slotIndex: number) => void;
+  /**
+   * When true, no slot is rendered with the "active" highlight even though
+   * `activeMonIndex` still points somewhere. Used by BattleScreen during
+   * ad-hoc-you mode so the carousel doesn't visually claim the team mon
+   * is selected — the displayed your-side is an override, not the team mon.
+   */
+  suppressActive?: boolean;
+  /**
+   * Fired after a filled slot is tapped (and after activeMonIndex updates).
+   * BattleScreen uses this to clear the ad-hoc override even when the user
+   * taps the slot the override was anchored to (same activeIndex, no change
+   * in the slice).
+   */
+  onSlotTap?: (slotIndex: number) => void;
 }
 
-export function TeamCarousel({ vertical = false, onAddMon }: CarouselProps) {
+export function TeamCarousel({ vertical = false, onAddMon, suppressActive = false, onSlotTap }: CarouselProps) {
   const team = useStore((s) => s.teams.find((t) => t.id === s.activeTeamId));
   const activeIndex = useStore((s) => s.activeMonIndex);
   const setActiveMonIndex = useStore((s) => s.setActiveMonIndex);
@@ -27,7 +41,7 @@ export function TeamCarousel({ vertical = false, onAddMon }: CarouselProps) {
   return (
     <div className={containerCls}>
       {slots.map((mon, i) => {
-        const active = !!mon && i === activeIndex;
+        const active = !suppressActive && !!mon && i === activeIndex;
         if (!mon) {
           return (
             <button
@@ -47,7 +61,10 @@ export function TeamCarousel({ vertical = false, onAddMon }: CarouselProps) {
         return (
           <button
             key={i}
-            onClick={() => setActiveMonIndex(i)}
+            onClick={() => {
+              setActiveMonIndex(i);
+              onSlotTap?.(i);
+            }}
             className={`${slotBaseCls} rounded-xl flex items-center justify-center relative ${
               active ? 'bg-accent/20 border-1.5 border-accent shadow-[0_0_20px_rgba(124,92,255,0.3)]' : 'bg-surface border border-surface-hi'
             } ${fainted ? 'opacity-30' : ''}`}

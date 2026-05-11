@@ -208,10 +208,10 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
   return (
     <div className="fixed inset-0 z-30 bg-black/60 flex items-end md:items-center md:justify-end" onClick={onClose}>
       <div
-        className="w-full md:w-[420px] md:h-screen bg-bg-base bg-panel-gradient border border-surface-hi rounded-t-card md:rounded-none p-4 max-h-[90vh] md:max-h-screen overflow-y-auto"
+        className="w-full md:w-[420px] md:h-screen bg-bg-base bg-panel-gradient border border-surface-hi rounded-t-card md:rounded-none max-h-[90vh] md:max-h-screen flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center px-4 pt-4 mb-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -254,6 +254,10 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
             ) : null}
           </div>
         </div>
+
+        {/* Scrollable body. Save lives outside this so it stays visible while
+            the user scrolls through SP grid / moves / effective stats. */}
+        <div className="flex-1 overflow-y-auto px-4 [overscroll-behavior:contain]">
 
         {/* Hero */}
         <div className="flex gap-3 items-center mb-4 p-3 bg-danger/10 border border-danger/20 rounded-card">
@@ -306,14 +310,22 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
           <MoveSlots species={draft.species} moves={draft.moves} isForOpponent={isForOpponent} onChange={(moves) => patch({ moves })} />
         </div>
 
-        {/* Save */}
-        <button
-          disabled={!valid}
-          onClick={() => onSave(draft)}
-          className={`w-full py-3 rounded-card font-bold text-base ${valid ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
+        </div>
+
+        {/* Sticky Save footer. Lives outside the scroll body so it's always
+            on screen no matter how far down the user has scrolled. iOS
+            safe-area-bottom padding keeps it above the home indicator. */}
+        <div
+          className="shrink-0 px-4 pt-3 pb-[calc(1rem+var(--safe-bottom,0px))] border-t border-surface-hi bg-bg-base"
         >
-          Save
-        </button>
+          <button
+            disabled={!valid}
+            onClick={() => onSave(draft)}
+            className={`w-full py-3 rounded-card font-bold text-base ${valid ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
+          >
+            Save
+          </button>
+        </div>
 
         <SpeciesPicker open={picker === 'species'} onClose={() => setPicker(null)} showRecents={false} onPick={handleSpeciesPick} />
         <ItemPicker open={picker === 'item'} species={draft.species} onClose={() => setPicker(null)} onPick={(item) => patch({ item })} />

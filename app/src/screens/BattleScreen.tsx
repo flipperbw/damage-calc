@@ -10,6 +10,7 @@ import { SpeedDivider } from '@/components/SpeedDivider';
 import { TeamCarousel } from '@/components/TeamCarousel';
 import { useStore } from '@/store';
 import { defaultOpponentMon, defaultTeamMon } from '@/store/factories';
+import type { SavedMon } from '@/types';
 
 export function BattleScreen() {
   const team = useStore((s) => s.teams.find((t) => t.id === s.activeTeamId));
@@ -33,6 +34,19 @@ export function BattleScreen() {
   // (rather than picking an opponent). Tapping an empty slot in the team
   // carousel routes here.
   const [addMonPicker, setAddMonPicker] = useState(false);
+  // Quick "swap me" picker for ad-hoc what-if calcs - tapping the your-side
+  // card surface (not sprite/name, which stay wired to edit) opens this.
+  const [youPicker, setYouPicker] = useState(false);
+  // Ad-hoc you-side override: when set, displaces the active team mon for
+  // calc + UI without writing to the team. HP/mega/status/boost edits flow
+  // here instead of upsertMon. Cleared by the "Restore" pill or by switching
+  // active mons in the team carousel. Local-state-only - intentionally NOT
+  // persisted; ad-hoc by name and behavior.
+  const [youOverride, setYouOverride] = useState<SavedMon | null>(null);
+  // Editor-open flag for the ad-hoc you mon. Editor target lives in the store
+  // for team / opponent paths, but the override is local-only so we keep this
+  // alongside it. Tapping sprite/name on an ad-hoc mon flips this true.
+  const [youOverrideEditing, setYouOverrideEditing] = useState(false);
 
   // Resolve the persisted editor target into the live mon to edit. If the
   // target has gone stale (team deleted, opponent cleared), the resolution
@@ -46,7 +60,17 @@ export function BattleScreen() {
     return null;
   })();
 
-  const you = team?.mons[activeIndex];
+  const teamYou = team?.mons[activeIndex];
+  // Drop the ad-hoc override whenever the team-side identity changes (user
+  // switches active slot, deletes the active mon, switches teams). The
+  // override is bound to "the slot that was active when I picked it"; once
+  // the user is meaningfully on a different slot, the ad-hoc context is gone.
+  if (youOverride && (!teamYou || teamYou.id !== youOverride.id.replace(/^adhoc-of-/, ''))) {
+    // Synchronously clear; the React reconciler picks it up next render.
+    setYouOverride(null);
+    setYouOverrideEditing(false);
+  }
+  const you = youOverride ?? teamYou;
 
   // Memo so we don't recompute when unrelated store slices change. Pass the
   // team's format so calc applies the Doubles 0.75x spread reduction to
@@ -169,7 +193,11 @@ export function BattleScreen() {
   return (
     <div className="max-w-[1100px] mx-auto">
       <FieldBar />
-      <TeamCarousel onAddMon={() => setAddMonPicker(true)} />
+      <TeamCarousel
+        onAddMon={() => setAddMonPicker(true)}
+        suppressActive={!!youOverride}
+        onSlotTap={() => setYouOverride(null)}
+      />
       <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
 
       <div className="md:grid md:grid-cols-2 md:gap-4">
@@ -180,12 +208,37 @@ export function BattleScreen() {
             maxHp={matchup.attackerMaxHp}
             stats={matchup.attackerStats}
             side="you"
-            onEdit={() => setEditor({ kind: 'team-mon', teamId: team.id, monId: you.id })}
-            onChangeHp={(hp) => upsertMon(team.id, { ...you, currentHp: hp })}
-            onChangeMega={(mega) => upsertMon(team.id, { ...you, mega })}
-            onChangeStatus={(status) => upsertMon(team.id, { ...you, status })}
-            onChangeBoosts={(boosts) => upsertMon(team.id, { ...you, boosts })}
+            onEdit={
+              youOverride ? () => setYouOverrideEditing(true) : () => setEditor({ kind: 'team-mon', teamId: team.id, monId: you!.id })
+            }
+            onSwap={() => setYouPicker(true)}
+            onChangeHp={(hp) =>
+              youOverride ? setYouOverride({ ...youOverride, currentHp: hp }) : upsertMon(team.id, { ...you!, currentHp: hp })
+            }
+            onChangeMega={(mega) =>
+              youOverride ? setYouOverride({ ...youOverride, mega }) : upsertMon(team.id, { ...you!, mega })
+            }
+            onChangeStatus={(status) =>
+              youOverride ? setYouOverride({ ...youOverride, status }) : upsertMon(team.id, { ...you!, status })
+            }
+            onChangeBoosts={(boosts) =>
+              youOverride ? setYouOverride({ ...youOverride, boosts }) : upsertMon(team.id, { ...you!, boosts })
+            }
+            onChangeAbility={
+              youOverride ? (ability) => setYouOverride({ ...youOverride, ability }) : undefined
+            }
           />
+          {youOverride && (
+            <button
+              type="button"
+              onClick={() => setYouOverride(null)}
+              data-testid="you-adhoc-restore"
+              className="w-full -mt-1 mb-2.5 flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-warn/10 border border-warn/30 text-warn text-[11px] font-semibold hover:bg-warn/20"
+            >
+              <span>Ad-hoc — replaces team for this session</span>
+              <span aria-hidden>· Restore ✕</span>
+            </button>
+          )}
           <div>
             <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Your moves → opponent</div>
             {matchup.attackerMoves.map((r, i) => (
@@ -241,6 +294,26 @@ export function BattleScreen() {
         />
       )}
 
+      {youOverride && youOverrideEditing && (
+        <MonEditor
+          open
+          initial={youOverride}
+          onClose={() => setYouOverrideEditing(false)}
+          onSave={(mon) => {
+            // Stamp the special id back so the auto-clear effect that watches
+            // for "user moved off this slot" still recognises this as ad-hoc.
+            setYouOverride({ ...mon, id: youOverride.id });
+            setYouOverrideEditing(false);
+          }}
+          onDelete={() => {
+            // "Delete" on an ad-hoc mon means "drop the override", not delete
+            // a team entry. Equivalent to tapping Restore.
+            setYouOverride(null);
+            setYouOverrideEditing(false);
+          }}
+        />
+      )}
+
       <SpeciesPicker open={oppPicker} onClose={() => setOppPicker(false)} onPick={(s) => setOpponent(defaultOpponentMon(s))} />
       <SpeciesPicker
         open={addMonPicker}
@@ -251,6 +324,19 @@ export function BattleScreen() {
           upsertMon(team.id, mon);
           setAddMonPicker(false);
           setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
+        }}
+      />
+      <SpeciesPicker
+        open={youPicker}
+        onClose={() => setYouPicker(false)}
+        showRecents={false}
+        onPick={(species) => {
+          // Build an ad-hoc mon with a special id keyed off the active team
+          // mon's id - so the auto-clear effect can detect when the user has
+          // moved to a different slot. The team mon is NOT touched.
+          const fresh = defaultTeamMon(species);
+          setYouOverride({ ...fresh, id: `adhoc-of-${you!.id}` });
+          setYouPicker(false);
         }}
       />
     </div>
