@@ -1,0 +1,27 @@
+# Normalize line endings to LF on commit, regardless of platform.
+# The standard for JS/TS projects; matches what every npm dep ships.
+# Stops Git for Windows' autocrlf=true from spamming
+# "LF will be replaced by CRLF" on every commit.
+* text=auto eol=lf
+
+# Defensive: Windows batch scripts must be CRLF to run. None today, but
+# if anyone ever adds a .bat or .cmd, it'll be tagged correctly.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary file types — never normalize. Most are auto-detected, but
+# spelling them out blocks any false positives.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.gz binary
