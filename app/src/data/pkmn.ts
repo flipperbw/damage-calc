@@ -81,6 +81,14 @@ const PRIORITY_CACHE: Map<string, number> = new Map();
 let prioritiesLoaded = false;
 
 /**
+ * Sync accuracy lookup, sourced from @pkmn/data. Calc's gen-0 move data
+ * doesn't carry accuracy at all (it's a BP/category-only table), so this
+ * is the only path to "Hydro Pump is 80%" in the UI. Numbers are 1-100;
+ * `true` means the move always hits (Aerial Ace, Swift, etc.).
+ */
+const ACCURACY_CACHE: Map<string, number | true> = new Map();
+
+/**
  * Sync caches for move stat-change behavior. `BOOSTS_USER` is true for moves
  * that raise a user stat (Swords Dance, Agility, Calm Mind, Bulk Up, etc.).
  * `LOWERS_TARGET` is true for moves that lower a target stat - including
@@ -119,6 +127,10 @@ function loadPkmnGen(): Promise<PkmnApi> {
           if (!m.id) continue;
           if (typeof m.priority === 'number' && m.priority !== 0) {
             PRIORITY_CACHE.set(m.id, m.priority);
+          }
+          const acc = (m as { accuracy?: number | true }).accuracy;
+          if (acc === true || typeof acc === 'number') {
+            ACCURACY_CACHE.set(m.id, acc);
           }
           if (movePositiveBoostsUser(m)) BOOSTS_USER.add(m.id);
           if (moveNegativelyAffectsTarget(m)) LOWERS_TARGET.add(m.id);
@@ -205,6 +217,16 @@ export function moveBoostsUser(moveName: string): boolean {
 export function moveLowersTarget(moveName: string): boolean {
   if (!prioritiesLoaded) return false;
   return LOWERS_TARGET.has(toID(moveName) as unknown as string);
+}
+
+/**
+ * Sync accuracy lookup for a move. Calc's gen-0 doesn't ship accuracy,
+ * so callers must use this instead of reading `move.accuracy` directly.
+ * Returns `null` when the cache is cold or the move is unknown.
+ */
+export function moveAccuracy(moveName: string): number | true | null {
+  if (!prioritiesLoaded) return null;
+  return ACCURACY_CACHE.get(toID(moveName) as unknown as string) ?? null;
 }
 
 /**

@@ -4,6 +4,7 @@ import type { MoveResult } from '@/calc/adapter';
 import { effectivenessBadge, koBadge, koTagFromText, priorityFlag, sturdyWarning } from '@/calc/format';
 import { MoveDetailSheet } from '@/components/MoveDetailSheet';
 import { TypeBadge } from '@/components/TypeBadge';
+import { moveAccuracy } from '@/data/pkmn';
 import type { SavedMon } from '@/types';
 
 interface Props {
@@ -59,7 +60,14 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
             <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${koBadge(koKind).cls}`}>{koLabel}</span>
           )}
           {sturdyApplies && <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-warn/30 text-warn">Sturdy</span>}
-          {result.isStatus ? (
+          {(() => {
+            const acc = moveAccuracy(result.moveName);
+            if (typeof acc === 'number' && acc < 100) {
+              return <span className="text-[10px] opacity-55 tabular-nums">acc {acc}%</span>;
+            }
+            return null;
+          })()}
+          {result.isStatus || result.isImmune ? (
             <span className="opacity-40 text-sm">-</span>
           ) : (
             <span className="font-bold tabular-nums text-[13px] min-w-[60px] text-right">

@@ -301,7 +301,7 @@ function bestCellInfo(you: SavedMon, threat: SavedMon, field: FieldState, format
     const res = calculateMatchup(you, threat, field, format);
     let best: MoveResult | null = null;
     for (const m of res.attackerMoves) {
-      if (!m.moveName || m.isStatus) continue;
+      if (!m.moveName || m.isStatus || m.isImmune) continue;
       if (!best || m.percentRange[1] > best.percentRange[1]) best = m;
     }
     if (!best) return emptyCell();

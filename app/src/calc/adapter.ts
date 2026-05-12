@@ -22,7 +22,14 @@ export interface MoveResult {
   damageRange: [number, number]; // raw HP damage
   percentRange: [number, number]; // % of defender max HP, integer
   koChanceText: string; // e.g. "guaranteed OHKO", "44.5% chance to 2HKO"
+  /** True iff move.category === 'Status' (Swords Dance, Roar, Thunder Wave). */
   isStatus: boolean;
+  /**
+   * True iff the move is damaging but deals 0 to this defender (ability
+   * immunity like Flash Fire, type immunity like Normal vs Ghost). Distinct
+   * from isStatus so the UI can render "Immune" instead of "-".
+   */
+  isImmune: boolean;
   /**
    * Type-effectiveness multiplier of this move's type vs the defender's
    * types. 0/0.25/0.5/1/2/4. Defaults to 1 for status moves or when the
@@ -146,15 +153,36 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
   const result = calculate(GEN, attacker, defender, move, field);
   const range = result.range(); // [min, max] raw damage
   const maxHp = defender.maxHP();
-  const isStatus = move.category === 'Status' || range[1] === 0;
-  const percent: [number, number] = isStatus ? [0, 0] : [Math.floor((range[0] / maxHp) * 100), Math.floor((range[1] / maxHp) * 100)];
+  const isStatus = move.category === 'Status';
+  // "Immune" = damaging move that deals 0 to this defender (type chart
+  // immunity OR ability immunity). Distinct from isStatus so the UI can
+  // show the Immune badge rather than suppressing damage entirely.
+  const isImmune = !isStatus && range[1] === 0;
+  const noDamage = isStatus || isImmune;
+  const percent: [number, number] = noDamage ? [0, 0] : [Math.floor((range[0] / maxHp) * 100), Math.floor((range[1] / maxHp) * 100)];
   let koText = '';
   try {
-    koText = isStatus ? '' : result.kochance().text;
+    koText = noDamage ? '' : result.kochance().text;
   } catch {
     koText = '';
   }
-  const effectiveness = move.category === 'Status' ? 1 : typeEffectiveness(move.type as string, defender.species.types as readonly string[]);
+  // Effectiveness shown on the row uses the type chart but cross-checks
+  // against calc's actual damage range so ability overrides land correctly:
+  //   - Scrappy / Mind's Eye let Normal & Fighting hit Ghost — chart says
+  //     0, range is positive, so display neutral (1x).
+  //   - Levitate / Flash Fire / Volt Absorb / Sap Sipper / etc. — chart
+  //     may say 1x+ but calc returns 0 damage; display Immune.
+  const chartEff = typeEffectiveness(move.type as string, defender.species.types as readonly string[]);
+  let effectiveness: number;
+  if (move.category === 'Status') {
+    effectiveness = 1;
+  } else if (range[1] === 0) {
+    effectiveness = 0;
+  } else if (chartEff === 0) {
+    effectiveness = 1;
+  } else {
+    effectiveness = chartEff;
+  }
   // Calc's Champions (gen-0) move data omits priority for several
   // Champions-legal moves (Trick Room, Roar, Whirlwind, …), reporting 0
   // where the real priority is non-zero. When @pkmn/data has a non-zero
@@ -167,10 +195,11 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
     type: move.type,
     category: move.category,
     priority,
-    damageRange: isStatus ? [0, 0] : [range[0], range[1]],
+    damageRange: noDamage ? [0, 0] : [range[0], range[1]],
     percentRange: percent,
     koChanceText: koText,
     isStatus,
+    isImmune,
     effectiveness,
   };
 }
@@ -185,6 +214,7 @@ function emptyMoveResult(): MoveResult {
     percentRange: [0, 0],
     koChanceText: '',
     isStatus: true,
+    isImmune: false,
     effectiveness: 1,
   };
 }

@@ -7,7 +7,7 @@ import { PickerShell } from '@/components/pickers/PickerShell';
 import { ProseBlock } from '@/components/ProseBlock';
 import { TypeBadge } from '@/components/TypeBadge';
 import { useDescription } from '@/components/useDescription';
-import { priorityOverride } from '@/data/pkmn';
+import { moveAccuracy, priorityOverride } from '@/data/pkmn';
 
 interface Props {
   open: boolean;
@@ -40,6 +40,13 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
   const calcPriority = move.priority ?? 0;
   const priorityFromPkmn = priorityOverride(move.name as string);
   const priority = calcPriority === 0 && priorityFromPkmn !== null ? priorityFromPkmn : calcPriority;
+  // Accuracy is sourced from @pkmn/data via moveAccuracy() — calc's gen-0
+  // table doesn't carry it. `true` = bypass accuracy check; only worth
+  // calling out for damaging moves (Aerial Ace, Swift, Shadow Punch, …).
+  // Status moves are auto-hit as a class so we don't repeat the obvious.
+  const acc = moveAccuracy(move.name as string);
+  const accuracyLabel =
+    acc === true ? (category === 'Status' ? '-' : 'Always hits') : typeof acc === 'number' ? `${acc}%` : '-';
   const flags = move.flags ?? {};
 
   const multihit = move.multihit;
@@ -93,8 +100,15 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
             does in mechanical terms. */}
         <ProseBlock state={prose} testId="move-prose" />
 
+        {result?.isImmune && (
+          <div className="mb-3 p-3 rounded-card bg-surface border border-surface-hi text-sm" data-testid="move-immune">
+            <span className="font-bold opacity-90">Immune</span>
+            <span className="opacity-60"> — this move does no damage to the current opponent (type or ability immunity).</span>
+          </div>
+        )}
+
         {/* Live matchup info, when available */}
-        {result && !result.isStatus && (
+        {result && !result.isStatus && !result.isImmune && (
           <div className="mb-3 p-3 rounded-card bg-surface border border-surface-hi">
             <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Vs current opponent</div>
             <div className="flex items-baseline justify-between mb-1">
@@ -116,8 +130,9 @@ export function MoveDetailSheet({ open, moveName, result, onClose }: Props) {
         )}
 
         {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="grid grid-cols-3 gap-2 mb-3">
           <Stat label="Base Power" value={bp > 0 ? String(bp) : '-'} />
+          <Stat label="Accuracy" value={accuracyLabel} />
           <Stat label="Priority" value={priority === 0 ? '0' : (priorityFlag(priority) ?? '0')} />
         </div>
 

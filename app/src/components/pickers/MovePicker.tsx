@@ -5,7 +5,7 @@ import { GEN, toID } from '@/calc/gen';
 import { MoveDetailSheet } from '@/components/MoveDetailSheet';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { TypeBadge } from '@/components/TypeBadge';
-import { getLearnableMoveIds, moveBoostsUser, moveLowersTarget, priorityOverride, usePkmnReady } from '@/data/pkmn';
+import { getLearnableMoveIds, moveAccuracy, moveBoostsUser, moveLowersTarget, priorityOverride, usePkmnReady } from '@/data/pkmn';
 import { ALL_TYPES, type TypeName } from '@/data/poke-types';
 import { getKnownMovesForSpecies } from '@/data/setdex-champions';
 
@@ -29,6 +29,8 @@ interface MoveOption {
   category: 'Physical' | 'Special' | 'Status';
   bp: number;
   priority: number;
+  /** Move accuracy: 1-100 = percent, `true` = always hits, 0/undefined = unknown. */
+  accuracy: number | true | null;
   isStatus: boolean;
   /** True iff move's `self.boosts` raises any stat. */
   boostsUser: boolean;
@@ -57,12 +59,16 @@ function moveOption(name: string): MoveOption {
   // the safest default (no false negatives in the active session).
   const boostsUser = moveBoostsUser(name);
   const lowersTarget = moveLowersTarget(name);
+  // Accuracy is sourced from @pkmn/data via moveAccuracy() — calc's gen-0
+  // table doesn't carry it. Returns null until preloadPkmn() resolves.
+  const accuracy = moveAccuracy(name);
   return {
     name,
     type: (m?.type as string) ?? '???',
     category,
     bp,
     priority,
+    accuracy,
     isStatus,
     boostsUser,
     lowersTarget,
@@ -94,13 +100,17 @@ interface FilterState {
   sort: SortMode;
 }
 
-function emptyFilters(isForOpponent: boolean | undefined): FilterState {
+function emptyFilters(_isForOpponent: boolean | undefined): FilterState {
+  // No filter starts on by default. The "lowers target" chip is still
+  // available if the user wants it for opponent move-picking, but it's
+  // opt-in rather than imposed - and Clear always returns to this
+  // genuinely-empty state.
   return {
     types: new Set(),
     priority: 'any',
     category: 'any',
     boostsUser: false,
-    lowersTarget: !!isForOpponent,
+    lowersTarget: false,
     sort: 'az',
   };
 }
@@ -263,7 +273,9 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
   }
 
   function clearFilters() {
-    setFilters(emptyFilters(isForOpponent));
+    // Truly empty — ignore isForOpponent's default-on bias for lowersTarget.
+    // "Clear" should mean every chip off, not "reset to my starting state".
+    setFilters(emptyFilters(false));
   }
 
   const filtersSlot = (
@@ -562,6 +574,12 @@ function Row({ option, onPick, onInfo }: { option: MoveOption; onPick: () => voi
           </span>
         )}
         {!option.isStatus && option.bp > 0 && <span className="text-[10px] tabular-nums opacity-60">BP {option.bp}</span>}
+        {/* Accuracy: skip 100% and always-hits to avoid clutter; show
+            sub-100 values so the user spots Hydro Pump / Stone Edge at a
+            glance. ∞ for always-hits is intentionally absent. */}
+        {typeof option.accuracy === 'number' && option.accuracy < 100 && (
+          <span className="text-[10px] tabular-nums opacity-60">{option.accuracy}%</span>
+        )}
         <span className={`text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded ${cat.cls}`}>{cat.label}</span>
       </button>
     </div>
