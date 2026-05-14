@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 import { calculateMatchup } from '@/calc/adapter';
+import { findHardestHitter, findTankiestBuild } from '@/calc/worst-case';
 import { MonEditor } from '@/components/editor/MonEditor';
 import { FieldBar } from '@/components/FieldBar';
 import { MonCard } from '@/components/MonCard';
@@ -47,6 +49,14 @@ export function BattleScreen() {
   // for team / opponent paths, but the override is local-only so we keep this
   // alongside it. Tapping sprite/name on an ad-hoc mon flips this true.
   const [youOverrideEditing, setYouOverrideEditing] = useState(false);
+  // Pre-worst-case opponent snapshot. Set when the user taps either of the
+  // worst-case buttons; consumed by Revert. Local-only so reloads don't
+  // strand the user with a "Revert" pill that points at a stale snapshot.
+  const [oppPreWorstCase, setOppPreWorstCase] = useState<SavedMon | null>(null);
+  // Which worst-case mode is currently applied. Drives the active-button
+  // styling and prevents redundant re-clicks. Cleared by Revert or when
+  // either button switches modes (one snapshot covers the whole session).
+  const [oppMode, setOppMode] = useState<'hardest' | 'tankiest' | null>(null);
 
   // Resolve the persisted editor target into the live mon to edit. If the
   // target has gone stale (team deleted, opponent cleared), the resolution
@@ -271,6 +281,89 @@ export function BattleScreen() {
             onChangeBoosts={(boosts) => updateOpponent({ boosts })}
             onChangeAbility={(ability) => updateOpponent({ ability })}
           />
+          <div className="flex gap-1.5 -mt-1 mb-2.5">
+            <button
+              type="button"
+              disabled={oppMode === 'hardest'}
+              onClick={() => {
+                const res = findHardestHitter(opponent.species, you!, field, team?.format);
+                if (!res) {
+                  toast.error(`No worst-case build available for ${opponent.species}`);
+                  return;
+                }
+                if (!oppPreWorstCase) setOppPreWorstCase(opponent);
+                // Preserve user-tweaked battle state (HP/mega/status/boosts);
+                // only the build itself swaps. Stable id keeps the slot from
+                // re-rendering as a new entity.
+                setOpponent({
+                  ...res.mon,
+                  id: opponent.id,
+                  currentHp: opponent.currentHp,
+                  mega: opponent.mega,
+                  status: opponent.status,
+                  boosts: opponent.boosts,
+                });
+                setOppMode('hardest');
+              }}
+              data-testid="opp-hardest-hitter"
+              aria-pressed={oppMode === 'hardest'}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border text-[11px] font-semibold transition-colors ${
+                oppMode === 'hardest'
+                  ? 'bg-danger/30 border-danger text-danger cursor-not-allowed shadow-[inset_0_0_0_1px_rgba(255,107,107,0.35)]'
+                  : 'bg-danger/10 border-danger/30 text-danger hover:bg-danger/20'
+              }`}
+            >
+              <span aria-hidden>🔥</span>
+              <span>Hardest hitter</span>
+            </button>
+            <button
+              type="button"
+              disabled={oppMode === 'tankiest'}
+              onClick={() => {
+                const res = findTankiestBuild(opponent.species, you!, field, team?.format);
+                if (!res) {
+                  toast.error(`No tankiest build available for ${opponent.species}`);
+                  return;
+                }
+                if (!oppPreWorstCase) setOppPreWorstCase(opponent);
+                setOpponent({
+                  ...res.mon,
+                  id: opponent.id,
+                  currentHp: opponent.currentHp,
+                  mega: opponent.mega,
+                  status: opponent.status,
+                  boosts: opponent.boosts,
+                });
+                setOppMode('tankiest');
+              }}
+              data-testid="opp-tankiest"
+              aria-pressed={oppMode === 'tankiest'}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border text-[11px] font-semibold transition-colors ${
+                oppMode === 'tankiest'
+                  ? 'bg-accent-2/30 border-accent-2 text-accent-2 cursor-not-allowed shadow-[inset_0_0_0_1px_rgba(92,140,255,0.35)]'
+                  : 'bg-accent-2/10 border-accent-2/30 text-accent-2 hover:bg-accent-2/20'
+              }`}
+            >
+              <span aria-hidden>🛡</span>
+              <span>Tankiest</span>
+            </button>
+            {oppPreWorstCase && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpponent(oppPreWorstCase);
+                  setOppPreWorstCase(null);
+                  setOppMode(null);
+                }}
+                data-testid="opp-revert"
+                className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-surface border border-surface-hi text-[11px] font-semibold opacity-80 hover:opacity-100"
+                aria-label="Revert opponent build"
+              >
+                <span aria-hidden>↺</span>
+                <span>Revert</span>
+              </button>
+            )}
+          </div>
           <div>
             <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Their moves → you</div>
             {matchup.defenderMoves.map((r, i) => (

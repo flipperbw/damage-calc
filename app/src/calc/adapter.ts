@@ -82,8 +82,13 @@ function buildPokemon(mon: SavedMon) {
   // ability (Mega Charizard X = Tough Claws, etc.). The base ability is
   // preserved on the saved mon — this is purely a calc-time substitution.
   const ability = effectiveAbility(mon.species, mon.mega, mon.ability);
+  // Guard against items that aren't in Champions' gen-0 item table (e.g.
+  // Choice Band, Choice Specs, Life Orb, Assault Vest). Passing one of
+  // those crashes calc when it later dereferences the item record. Pass
+  // undefined instead so the matchup still resolves.
+  const itemKnown = mon.item ? !!GEN.items.get(toID(mon.item) as any) : false;
   return new Pokemon(GEN, speciesForCalc(mon), {
-    item: mon.item || undefined,
+    item: itemKnown ? mon.item : undefined,
     ability: ability || undefined,
     nature: mon.nature,
     evs: mon.sps, // Champions: sps map onto evs (verified in spike)
@@ -149,8 +154,20 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
   if (!moveName) {
     return emptyMoveResult();
   }
-  const move = new Move(GEN, moveName);
-  const result = calculate(GEN, attacker, defender, move, field);
+  let move: Move;
+  let result: ReturnType<typeof calculate>;
+  try {
+    move = new Move(GEN, moveName);
+    result = calculate(GEN, attacker, defender, move, field);
+  } catch (err) {
+    // Calc can throw when its internal data lookups fail (e.g. an unknown
+    // item that earlier got past our buildPokemon guard, an unknown move
+    // name, a species without baseStats). Yield an empty result so one
+    // bad row doesn't blow up the whole BattleScreen.
+    // eslint-disable-next-line no-console
+    console.warn(`calc failed for move "${moveName}":`, err);
+    return emptyMoveResult();
+  }
   const range = result.range(); // [min, max] raw damage
   const maxHp = defender.maxHP();
   const isStatus = move.category === 'Status';
