@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { GEN, toID } from '@/calc/gen';
+import { AbilityDetailSheet } from '@/components/AbilityDetailSheet';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { BuildDropdown } from '@/components/editor/BuildDropdown';
-import { EffectiveStats } from '@/components/editor/EffectiveStats';
+import { EffectiveStats, megaFormeFromItem } from '@/components/editor/EffectiveStats';
 import { MoveSlots } from '@/components/editor/MoveSlots';
 import { SpGrid } from '@/components/editor/SpGrid';
 import { MegaToggle } from '@/components/MegaToggle';
@@ -82,6 +83,9 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
   useEffect(() => setDraft(initial), [initial]);
 
   const [picker, setPicker] = useState<'species' | 'item' | 'ability' | 'nature' | null>(null);
+  // Detail-sheet target for read-only ability descriptions (Mega ability
+  // hint below the Ability field uses this).
+  const [abilityDetailName, setAbilityDetailName] = useState<string | null>(null);
   // Brief inline confirmation chip after a successful clipboard copy. Kept
   // alongside the toast so the editor itself shows feedback even if the
   // toast is dismissed/missed by the user.
@@ -292,6 +296,30 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
         {/* Item / Ability / Nature */}
         <Field label="Item" value={draft.item ?? '- none -'} onClick={() => setPicker('item')} />
         <Field label="Ability" value={draft.ability ?? '- none -'} onClick={() => setPicker('ability')} />
+        {(() => {
+          // If the held item is a mega stone for this species, surface the
+          // ability the mon will switch to on mega-evolution when it differs
+          // from the base. Lets the user see e.g. "Mega: Tough Claws" while
+          // looking at Charizard's base ability of Blaze.
+          const forme = megaFormeFromItem(draft.species, draft.item);
+          if (!forme) return null;
+          const sp = GEN.species.get(toID(forme) as any);
+          const megaAb = sp?.abilities ? (Object.values(sp.abilities)[0] as string | undefined) : undefined;
+          if (!megaAb || megaAb === draft.ability) return null;
+          return (
+            <button
+              type="button"
+              onClick={() => setAbilityDetailName(megaAb)}
+              data-testid="mega-ability-hint"
+              aria-label={`${megaAb} details`}
+              className="-mt-1 mb-2 px-1 text-[10px] opacity-70 italic flex items-center gap-1 hover:opacity-100"
+            >
+              <span>✦ Mega:</span>
+              <span className="font-semibold not-italic underline decoration-dotted underline-offset-2">{megaAb}</span>
+              <span aria-hidden className="opacity-60">→</span>
+            </button>
+          );
+        })()}
         <Field label="Nature" value={draft.nature} onClick={() => setPicker('nature')} />
 
         {/* SP grid */}
@@ -331,6 +359,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
         <ItemPicker open={picker === 'item'} species={draft.species} onClose={() => setPicker(null)} onPick={(item) => patch({ item })} />
         <AbilityPicker open={picker === 'ability'} species={draft.species} onClose={() => setPicker(null)} onPick={(ability) => patch({ ability })} />
         <NaturePicker open={picker === 'nature'} onClose={() => setPicker(null)} onPick={(nature) => patch({ nature })} />
+        <AbilityDetailSheet open={abilityDetailName !== null} abilityName={abilityDetailName} onClose={() => setAbilityDetailName(null)} />
       </div>
     </div>
   );

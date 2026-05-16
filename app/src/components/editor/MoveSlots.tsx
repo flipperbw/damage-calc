@@ -120,6 +120,9 @@ export function MoveSlots({ moves, onChange, species, isForOpponent }: Props) {
         onClose={() => setEditing(null)}
         species={species}
         isForOpponent={isForOpponent}
+        // Exclude the moves already on this Pokemon (other slots only — the
+        // slot being edited can re-pick its own move without disappearing).
+        excludeMoves={editing === null ? undefined : moves.filter((_, idx) => idx !== editing)}
         onPick={(name) => {
           if (editing === null) return;
           const next = [...moves] as [string, string, string, string];

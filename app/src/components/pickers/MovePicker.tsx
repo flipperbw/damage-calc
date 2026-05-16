@@ -21,6 +21,13 @@ interface Props {
    * state.
    */
   isForOpponent?: boolean;
+  /**
+   * Move names already on the same Pokemon (in other slots). These are
+   * filtered out of the picker so the user can't accidentally double-up.
+   * The slot's own current move is NOT included so the row can re-pick
+   * itself without disappearing from the list.
+   */
+  excludeMoves?: readonly string[];
 }
 
 interface MoveOption {
@@ -167,9 +174,13 @@ function catRank(m: MoveOption, mode: 'phys' | 'spec'): number {
   return order[m.category];
 }
 
-export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Props) {
+export function MovePicker({ open, onClose, onPick, species, isForOpponent, excludeMoves }: Props) {
   const pkmnReady = usePkmnReady();
   const ALL_MOVES = useMemo(() => buildAllMoves(), [pkmnReady]);
+  // Filter out moves already assigned to other slots on this Pokemon.
+  // Empty string in excludeMoves (from a not-yet-set slot) is ignored.
+  const excluded = useMemo(() => new Set((excludeMoves ?? []).filter(Boolean).map((m) => toID(m) as unknown as string)), [excludeMoves]);
+  const AVAILABLE_MOVES = useMemo(() => (excluded.size === 0 ? ALL_MOVES : ALL_MOVES.filter((m) => !excluded.has(toID(m.name) as unknown as string))), [ALL_MOVES, excluded]);
   const [detailMove, setDetailMove] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   // "Show all moves" override - when on, the learnset filter is bypassed and
@@ -225,13 +236,13 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
   }, [species, pkmnReady]);
 
   const filteredCommon = useMemo(() => {
-    let base = common;
+    let base = excluded.size === 0 ? common : common.filter((m) => !excluded.has(toID(m.name) as unknown as string));
     if (query) {
       const q = query.toLowerCase();
       base = base.filter((m) => m.name.toLowerCase().includes(q));
     }
     return applyFilters(base, filters);
-  }, [common, query, filters]);
+  }, [common, query, filters, excluded]);
 
   /**
    * The "main list" - either learnable-only or unfiltered, depending on
@@ -242,16 +253,16 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
     let base: MoveOption[];
     if (useLearnsetFilter) {
       const ids = (learnset as { ids: Set<string> }).ids;
-      base = ALL_MOVES.filter((m) => ids.has(toID(m.name) as unknown as string));
+      base = AVAILABLE_MOVES.filter((m) => ids.has(toID(m.name) as unknown as string));
     } else {
-      base = ALL_MOVES;
+      base = AVAILABLE_MOVES;
     }
     if (query) {
       const q = query.toLowerCase();
       base = base.filter((m) => m.name.toLowerCase().includes(q));
     }
     return applyFilters(base, filters);
-  }, [query, species, showAll, learnset, filters, ALL_MOVES]);
+  }, [query, species, showAll, learnset, filters, AVAILABLE_MOVES]);
 
   const showCommonHeader = species && filteredCommon.length > 0;
   const mainHeader = species && !showAll && learnset.kind === 'ready' ? 'Learnable' : 'All';
@@ -502,6 +513,19 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent }: Pr
       search={{ value: query, onChange: setQuery, placeholder: 'Search moves' }}
       filters={filtersSlot}
     >
+      {!query && (
+        <button
+          type="button"
+          onClick={() => {
+            onPick('');
+            onClose();
+          }}
+          data-testid="move-row-pick-none"
+          className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm opacity-70"
+        >
+          (none)
+        </button>
+      )}
       {showCommonHeader && (
         <>
           <div className="text-xxs uppercase tracking-wider opacity-50 px-2 mb-1.5">Common</div>
