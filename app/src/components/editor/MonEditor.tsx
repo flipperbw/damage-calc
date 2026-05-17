@@ -13,6 +13,7 @@ import { AbilityPicker } from '@/components/pickers/AbilityPicker';
 import { ItemPicker } from '@/components/pickers/ItemPicker';
 import { NaturePicker } from '@/components/pickers/NaturePicker';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
+import { ShowdownImportDialog } from '@/components/ShowdownImportDialog';
 import { TypeBadge } from '@/components/TypeBadge';
 import { getBuildsForSpecies } from '@/data/setdex-champions';
 import { spriteUrl } from '@/data/sprites';
@@ -83,6 +84,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
   useEffect(() => setDraft(initial), [initial]);
 
   const [picker, setPicker] = useState<'species' | 'item' | 'ability' | 'nature' | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   // Detail-sheet target for read-only ability descriptions (Mega ability
   // hint below the Ability field uses this).
   const [abilityDetailName, setAbilityDetailName] = useState<string | null>(null);
@@ -248,6 +250,17 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
               <span className="text-base" style={{ pointerEvents: 'none' }}>📋</span>
               <span className="text-xs font-semibold" style={{ pointerEvents: 'none' }}>Copy</span>
             </button>
+            <button
+              type="button"
+              aria-label="Paste from Showdown"
+              onClick={() => setImportOpen(true)}
+              data-testid="paste-mon"
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.25)' }}
+              className="min-h-[44px] px-2.5 flex items-center justify-center gap-1.5 rounded-lg select-none cursor-pointer bg-surface border border-surface-hi"
+            >
+              <span className="text-base" style={{ pointerEvents: 'none' }}>📥</span>
+              <span className="text-xs font-semibold" style={{ pointerEvents: 'none' }}>Paste</span>
+            </button>
             {onDelete ? (
               <button
                 type="button"
@@ -371,6 +384,16 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
         />
         <NaturePicker open={picker === 'nature'} onClose={() => setPicker(null)} onPick={(nature) => patch({ nature })} />
         <AbilityDetailSheet open={abilityDetailName !== null} abilityName={abilityDetailName} onClose={() => setAbilityDetailName(null)} />
+        <ShowdownImportDialog
+          mode="slot"
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          onPick={(parsedDraft) => {
+            // Keep the existing slot's id so Save replaces this slot in place;
+            // clear buildName because pasted data isn't a curated build.
+            setDraft({ id: draft.id, ...parsedDraft, buildName: undefined });
+          }}
+        />
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { ActionMenu } from '@/components/ActionMenu';
 import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
 import { MonEditor } from '@/components/editor/MonEditor';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
+import { ShowdownImportDialog } from '@/components/ShowdownImportDialog';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
 import { teamToShowdownText } from '@/store/exporters';
@@ -30,6 +31,7 @@ export function TeamsScreen() {
   const prompt = usePrompt();
 
   const [picker, setPicker] = useState<{ teamId: string; slotIndex: number } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   // Editor target lives in the store so it survives iOS unloading the tab.
   // We resolve teamId/monId back to a live SavedMon below; if the target
   // has gone stale (team or mon removed) the editor stays closed.
@@ -97,21 +99,33 @@ export function TeamsScreen() {
     <>
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-3">Teams</h2>
-        <button
-          type="button"
-          onClick={handleCreateTeam}
-          aria-label="Create team"
-          data-testid="create-team"
-          // Bare-bones styling - no gradient, no active-scale transform, no
-          // backdrop blur. Some iOS browsers (Brave especially) have flaky
-          // hit-testing on transformed/blurred elements. touch-action +
-          // tap-highlight-color make taps deterministic on WebKit.
-          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-          className="w-full min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer"
-        >
-          <span className="text-xl leading-none">+</span>
-          <span>Create Team</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleCreateTeam}
+            aria-label="Create team"
+            data-testid="create-team"
+            // Bare-bones styling - no gradient, no active-scale transform, no
+            // backdrop blur. Some iOS browsers (Brave especially) have flaky
+            // hit-testing on transformed/blurred elements. touch-action +
+            // tap-highlight-color make taps deterministic on WebKit.
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
+            className="flex-1 min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer"
+          >
+            <span className="text-xl leading-none">+</span>
+            <span>Create Team</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            aria-label="Import team from Showdown"
+            data-testid="import-team"
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
+            className="min-h-[52px] px-4 rounded-card bg-surface border border-surface-hi text-sm font-semibold select-none cursor-pointer"
+          >
+            Import
+          </button>
+        </div>
       </div>
 
       {teams.map((t) => (
@@ -207,6 +221,8 @@ export function TeamsScreen() {
           }}
         />
       )}
+
+      <ShowdownImportDialog mode="team" open={importOpen} onClose={() => setImportOpen(false)} />
 
       <ActionMenu
         open={!!menuTeam}
