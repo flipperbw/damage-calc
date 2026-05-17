@@ -1,7 +1,7 @@
 import { buildSeedThreatLists } from '@/data/seed-threats';
 import type { AppState } from '@/types';
 
-export const CURRENT_VERSION = 4;
+export const CURRENT_VERSION = 5;
 
 export interface PersistedShape {
   version: number;
@@ -53,6 +53,13 @@ const MIGRATORS: Record<number, Migrator> = {
     const existing = Array.isArray(s.threatLists) ? s.threatLists : [];
     const threatLists = existing.length > 0 ? existing : buildSeedThreatLists();
     return { ...s, threatLists };
+  },
+  // v4 -> v5: introduce pinnedFieldKeys slice for the FieldBar quick-toggle
+  // chips. Empty default - users opt in via FieldDrawer's edit-pins mode.
+  5: (s: any) => {
+    if (!s || typeof s !== 'object') return s;
+    if (Array.isArray(s.pinnedFieldKeys)) return s;
+    return { ...s, pinnedFieldKeys: [] };
   },
 };
 

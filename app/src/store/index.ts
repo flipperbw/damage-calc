@@ -25,6 +25,7 @@ export const PERSISTED_KEYS = [
   'recentOpponents',
   'threatLists',
   'field',
+  'pinnedFieldKeys',
   'notation',
   'editor',
 ] as const;
@@ -62,6 +63,7 @@ interface Actions {
   ensureSeedThreatLists: () => void;
   // Field
   setField: (patch: Partial<FieldState>) => void;
+  togglePinnedFieldKey: (key: string) => void;
   // UI
   setTab: (t: Tab) => void;
   setNotation: (n: Notation) => void;
@@ -86,6 +88,7 @@ function buildInitialAppState(): AppState {
     recentOpponents: [],
     threatLists: buildSeedThreatLists(),
     field: emptyField(),
+    pinnedFieldKeys: [],
     notation: 'percent',
     tab: 'battle',
     editor: null,
@@ -255,6 +258,11 @@ export const useStore = create<AppState & Actions>()(
         }),
 
       setField: (patch) => set((s) => ({ field: { ...s.field, ...patch } })),
+      togglePinnedFieldKey: (key) =>
+        set((s) => {
+          const has = s.pinnedFieldKeys.includes(key);
+          return { pinnedFieldKeys: has ? s.pinnedFieldKeys.filter((k) => k !== key) : [...s.pinnedFieldKeys, key] };
+        }),
 
       setTab: (tab) => set({ tab }),
       setNotation: (notation) => set({ notation }),

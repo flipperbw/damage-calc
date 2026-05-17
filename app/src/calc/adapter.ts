@@ -106,6 +106,7 @@ function buildField(state: FieldState, gameType: 'Singles' | 'Doubles' = 'Single
     isMagicRoom: state.isMagicRoom,
     isWonderRoom: state.isWonderRoom,
     isGravity: state.isGravity,
+    isFairyAura: state.isFairyAura,
     attackerSide: buildSide(state.yourSide),
     defenderSide: buildSide(state.oppSide),
   });
@@ -121,11 +122,10 @@ function buildSide(s: SideState) {
     isTailwind: !!s.tailwind,
     isProtected: !!s.protect,
     isSeeded: !!s.leechSeed,
-    isSaltCure: !!s.saltCure,
+    isSaltCured: !!s.saltCure,
     isHelpingHand: !!s.helpingHand,
     isPowerTrick: !!s.isPowerTrick,
     isFriendGuard: !!s.friendGuard,
-    isStatBoost: !!s.isStatBoost,
     isSwitching: s.isSwitching ? ('out' as const) : undefined,
   };
 }
@@ -221,6 +221,55 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
   };
 }
 
+/**
+ * Compute the in-battle speed for a Pokemon, accounting for field/side/item
+ * /ability/status modifiers. Mirrors calc's internal `getFinalSpeed` for
+ * the Champions (gen 0) generation, which uses post-gen-7 mechanics: 50%
+ * paralysis penalty, Choice Scarf 1.5x, weather-ability 2x, etc.
+ */
+function effectiveSpeed(pokemon: Pokemon, field: FieldState, side: SideState): number {
+  // Pokemon.rawStats.spe is the post-nature/SP base; pokemon.boosts.spe is
+  // the -6..+6 stage. We layer the modifiers calc would apply on top.
+  let speed = withBoostStage((pokemon as unknown as { rawStats: { spe: number } }).rawStats.spe, pokemon.boosts.spe ?? 0);
+  const weather = field.weather;
+  const terrain = field.terrain;
+  const ability = ((pokemon as unknown as { ability?: string }).ability ?? '').toString();
+  const item = ((pokemon as unknown as { item?: string }).item ?? '').toString();
+  const status = ((pokemon as unknown as { status?: string }).status ?? '').toString();
+
+  // Tailwind doubles speed for the user's side.
+  if (side.tailwind) speed = Math.floor(speed * 2);
+
+  // Weather/terrain speed abilities.
+  const weatherAbility =
+    (ability === 'Chlorophyll' && weather === 'Sun') ||
+    (ability === 'Sand Rush' && weather === 'Sand') ||
+    (ability === 'Swift Swim' && weather === 'Rain') ||
+    (ability === 'Slush Rush' && weather === 'Snow') ||
+    (ability === 'Surge Surfer' && terrain === 'Electric');
+  if (weatherAbility) speed = Math.floor(speed * 2);
+  else if (ability === 'Quick Feet' && status && status !== '') speed = Math.floor(speed * 1.5);
+
+  // Item-based modifiers. Choice Scarf: 1.5x. Iron Ball: 0.5x. Quick Powder
+  // doubles speed but only on Ditto (rare; we skip the species check since
+  // setting Quick Powder on anything else is user error).
+  if (item === 'Choice Scarf') speed = Math.floor(speed * 1.5);
+  else if (item === 'Iron Ball') speed = Math.floor(speed * 0.5);
+
+  // Paralysis: 50% in gen 7+ (Champions is gen 0 with post-gen-7 mechanics).
+  // Quick Feet immunes the penalty (handled above by giving the +50%).
+  if (status === 'par' && ability !== 'Quick Feet') speed = Math.floor(speed * 0.5);
+
+  return Math.max(0, speed);
+}
+
+function withBoostStage(stat: number, stage: number): number {
+  if (stage === 0) return stat;
+  const num = stage > 0 ? 2 + stage : 2;
+  const den = stage < 0 ? 2 - stage : 2;
+  return Math.floor((stat * num) / den);
+}
+
 function emptyMoveResult(): MoveResult {
   return {
     moveName: '',
@@ -251,8 +300,14 @@ export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState
   const attackerMoves = you.moves.map((m) => buildMoveResult(m, attacker.clone(), defender.clone(), yourSide));
   const defenderMoves = opp.moves.map((m) => buildMoveResult(m, defender.clone(), attacker.clone(), oppSide));
 
-  const attackerSpe = attacker.stats.spe;
-  const defenderSpe = defender.stats.spe;
+  // Effective speed accounts for Tailwind, Choice Scarf, Iron Ball,
+  // paralysis, Chlorophyll/Swift Swim/Sand Rush/Slush Rush in the right
+  // weather, Surge Surfer in Electric terrain, Quick Feet with status.
+  // Calc's internal getFinalSpeed handles all of this when calculate()
+  // runs, but it operates on clones — the originals retain raw stats.spe.
+  // Computing it explicitly here keeps the SpeedDivider truthful.
+  const attackerSpe = effectiveSpeed(attacker, field, field.yourSide);
+  const defenderSpe = effectiveSpeed(defender, field, field.oppSide);
 
   // Trick Room reverses speed order - the slower mon moves first. We expose
   // `attackerOutspeeds` as "you act first this turn" so the UI reads naturally.

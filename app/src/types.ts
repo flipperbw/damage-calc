@@ -82,7 +82,6 @@ export interface SideState {
   helpingHand?: boolean;
   isPowerTrick?: boolean;
   friendGuard?: boolean;
-  isStatBoost?: boolean;
   isSwitching?: boolean;
 }
 
@@ -93,6 +92,13 @@ export interface FieldState {
   isWonderRoom?: boolean;
   isTrickRoom?: boolean;
   isGravity?: boolean;
+  /**
+   * Set when a non-active ally has Fairy Aura. Calc's Champions mechanics
+   * applies a 4/3 BP boost on Fairy moves when this is true. Champions has
+   * Fairy Aura in its ability allowlist; the corresponding Dark Aura is not
+   * Champions-legal and is intentionally not modelled.
+   */
+  isFairyAura?: boolean;
   yourSide: SideState;
   oppSide: SideState;
 }
@@ -131,6 +137,13 @@ export interface AppState {
   recentOpponents: RecentOpponent[]; // capped 30, LRU
   threatLists: ThreatList[]; // seeded by v4 migration
   field: FieldState;
+  /**
+   * Pinned field-state shortcuts. Each entry is a pin key from
+   * `@/data/field-pins`. Surfaced as one-tap toggle chips above the
+   * "+ Field" button so users running a Trick Room or Tailwind team can
+   * flip those flags without opening the full drawer.
+   */
+  pinnedFieldKeys: string[];
   notation: Notation;
   tab: Tab;
   editor: EditorTarget; // persisted: survives iOS reload-on-unload

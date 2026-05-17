@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { FieldDrawer } from '@/components/FieldDrawer';
+import { applyPinToggle, isPinActive, isValidPinKey, pinChipLabel } from '@/data/field-pins';
 import { useStore } from '@/store';
 import { emptyField } from '@/store/factories';
 import type { FieldState } from '@/types';
@@ -8,6 +9,7 @@ import type { FieldState } from '@/types';
 export function FieldBar() {
   const field = useStore((s) => s.field);
   const setField = useStore((s) => s.setField);
+  const pinnedKeys = useStore((s) => s.pinnedFieldKeys);
   const [open, setOpen] = useState(false);
 
   // Compact summary chips inside the Field button. We list the active flags
@@ -54,8 +56,39 @@ export function FieldBar() {
     }
   }
 
+  // Pinned chips render above the main "+ Field" row. Each chip is a
+  // one-tap toggle for its specific value (e.g. ★ Trick Room flips
+  // isTrickRoom). Invalid keys (e.g. from a future format we don't
+  // recognise) are filtered out defensively.
+  const validPins = useMemo(() => pinnedKeys.filter(isValidPinKey), [pinnedKeys]);
+
   return (
     <>
+      {validPins.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2" data-testid="pinned-field-bar">
+          {validPins.map((k) => {
+            const active = isPinActive(field, k);
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setField(applyPinToggle(field, k))}
+                aria-pressed={active}
+                data-testid={`pinned-field-${k}`}
+                style={{ touchAction: 'manipulation' }}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${
+                  active
+                    ? 'bg-warn/25 text-warn border-warn'
+                    : 'bg-surface border-surface-hi opacity-70 hover:opacity-100'
+                }`}
+              >
+                <span aria-hidden>★</span>
+                <span>{pinChipLabel(k)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="flex items-stretch gap-1.5 mb-3.5">
         <button
           type="button"
@@ -153,7 +186,6 @@ function countSideFlags(s: import('@/types').SideState): number {
   if (s.helpingHand) n++;
   if (s.isPowerTrick) n++;
   if (s.friendGuard) n++;
-  if (s.isStatBoost) n++;
   if (s.isSwitching) n++;
   return n;
 }

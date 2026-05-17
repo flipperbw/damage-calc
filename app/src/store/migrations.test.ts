@@ -133,7 +133,7 @@ describe('migrate', () => {
     expect(out.state.threatLists[0].id).toBe('user-1');
   });
 
-  it('migrating an already-v4 state is a no-op', () => {
+  it('v4 -> v5 adds an empty pinnedFieldKeys slice when missing', () => {
     const seeds: ThreatList[] = [{ id: 's1', name: 'Seed', format: 'any', mons: [], isSeed: true, createdAt: 0, updatedAt: 0 }];
     const v4 = {
       version: 4,
@@ -149,8 +149,30 @@ describe('migrate', () => {
       },
     };
     const out = migrate(v4)!;
-    expect(out.version).toBe(4);
+    expect(out.version).toBe(CURRENT_VERSION);
     expect(out.state.threatLists).toEqual(seeds);
+    expect(out.state.pinnedFieldKeys).toEqual([]);
+  });
+
+  it('migrating an already-current state preserves pinnedFieldKeys', () => {
+    const seeds: ThreatList[] = [{ id: 's1', name: 'Seed', format: 'any', mons: [], isSeed: true, createdAt: 0, updatedAt: 0 }];
+    const current = {
+      version: CURRENT_VERSION,
+      state: {
+        teams: [],
+        activeTeamId: null,
+        activeMonIndex: 0,
+        opponent: null,
+        recentOpponents: [],
+        notation: 'percent',
+        editor: null,
+        threatLists: seeds,
+        pinnedFieldKeys: ['tr', 'weather:Rain'],
+      },
+    };
+    const out = migrate(current)!;
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.state.pinnedFieldKeys).toEqual(['tr', 'weather:Rain']);
   });
 
   it('v3 -> v4 with empty threatLists array still injects seeds', () => {
