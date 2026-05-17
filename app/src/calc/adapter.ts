@@ -65,19 +65,49 @@ export interface MatchupResult {
   defenderStats: ComputedStats;
 }
 
-function speciesForCalc(mon: SavedMon): string {
-  // The mega flag is a UI affordance; calc identifies mega by species suffix.
-  // Resolve to a mega forme based on mon.mega and validate the species exists
-  // in the calc's species DB; if not, fall back to the base species.
-  const candidate = megaFormeName(mon.species, mon.mega);
-  if (candidate === mon.species) return mon.species;
-  if (GEN.species.get(toID(candidate) as any)) return candidate;
-  // eslint-disable-next-line no-console
-  console.warn(`Mega forme "${candidate}" not found; falling back to "${mon.species}".`);
-  return mon.species;
+type CalcRole = 'attacker' | 'defender';
+
+/**
+ * Mid-battle forme switch: pre-activation form is what the user team-builds
+ * with (and what the species picker exposes), but the activated form's stats
+ * are what apply during the calculation. Role-aware because some species only
+ * switch in one direction:
+ *
+ *   - Aegislash (Stance Change): Shield ↔ Blade flips per attacking move.
+ *     When attacking, use Blade (140 Atk / 140 SpA, 50 Def / 50 SpD). When
+ *     defending, stay in Shield (50/50 offensive, 140/140 defensive).
+ *   - Palafin (Zero to Hero): Zero → Hero is a permanent one-way switch after
+ *     the first switch-out. By the time a matchup is being calc'd it's almost
+ *     always already activated, so substitute Hero in both roles.
+ *
+ * Mimikyu-Busted, Morpeko-Hangry, Castform-Sunny/Rainy/Snowy are mid-battle
+ * formes too but share base stats with their parent, so calc doesn't care.
+ */
+function inBattleForme(species: string, role: CalcRole): string {
+  if (role === 'attacker') {
+    if (species === 'Aegislash' || species === 'Aegislash-Shield') return 'Aegislash-Blade';
+    if (species === 'Palafin') return 'Palafin-Hero';
+  } else {
+    if (species === 'Palafin') return 'Palafin-Hero';
+  }
+  return species;
 }
 
-function buildPokemon(mon: SavedMon) {
+function speciesForCalc(mon: SavedMon, role: CalcRole): string {
+  // First apply the in-battle forme switch so the calc sees the form whose
+  // stats actually matter in this role. Then layer the mega-stone suffix on
+  // top — Aegislash / Palafin don't have megas, so the two stages don't
+  // overlap in practice, but order it this way for safety.
+  const base = inBattleForme(mon.species, role);
+  const candidate = megaFormeName(base, mon.mega);
+  if (candidate === base) return base;
+  if (GEN.species.get(toID(candidate) as any)) return candidate;
+  // eslint-disable-next-line no-console
+  console.warn(`Mega forme "${candidate}" not found; falling back to "${base}".`);
+  return base;
+}
+
+function buildPokemon(mon: SavedMon, role: CalcRole) {
   // When mega'd, override the user's base-form ability with the mega forme's
   // ability (Mega Charizard X = Tough Claws, etc.). The base ability is
   // preserved on the saved mon — this is purely a calc-time substitution.
@@ -87,7 +117,7 @@ function buildPokemon(mon: SavedMon) {
   // those crashes calc when it later dereferences the item record. Pass
   // undefined instead so the matchup still resolves.
   const itemKnown = mon.item ? !!GEN.items.get(toID(mon.item) as any) : false;
-  return new Pokemon(GEN, speciesForCalc(mon), {
+  return new Pokemon(GEN, speciesForCalc(mon, role), {
     item: itemKnown ? mon.item : undefined,
     ability: ability || undefined,
     nature: mon.nature,
@@ -294,11 +324,19 @@ export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState
   // Field is asymmetric - attacker/defender perspective swaps. Build twice.
   const oppSide = buildField({ ...field, yourSide: field.oppSide, oppSide: field.yourSide }, gameType);
 
-  const attacker = buildPokemon(you);
-  const defender = buildPokemon(opp);
+  // Build attacker-role and defender-role variants of each mon so the
+  // Aegislash / Palafin in-battle forme switch lands in the right place:
+  //   - your moves vs opp: you in attacker role, opp in defender role
+  //   - opp's moves vs you: opp in attacker role, you in defender role
+  // For mons without a mid-battle forme switch the two variants are
+  // identical and the extra construction is cheap.
+  const yourAsAttacker = buildPokemon(you, 'attacker');
+  const yourAsDefender = buildPokemon(you, 'defender');
+  const oppAsAttacker = buildPokemon(opp, 'attacker');
+  const oppAsDefender = buildPokemon(opp, 'defender');
 
-  const attackerMoves = you.moves.map((m) => buildMoveResult(m, attacker.clone(), defender.clone(), yourSide));
-  const defenderMoves = opp.moves.map((m) => buildMoveResult(m, defender.clone(), attacker.clone(), oppSide));
+  const attackerMoves = you.moves.map((m) => buildMoveResult(m, yourAsAttacker.clone(), oppAsDefender.clone(), yourSide));
+  const defenderMoves = opp.moves.map((m) => buildMoveResult(m, oppAsAttacker.clone(), yourAsDefender.clone(), oppSide));
 
   // Effective speed accounts for Tailwind, Choice Scarf, Iron Ball,
   // paralysis, Chlorophyll/Swift Swim/Sand Rush/Slush Rush in the right
@@ -306,8 +344,10 @@ export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState
   // Calc's internal getFinalSpeed handles all of this when calculate()
   // runs, but it operates on clones — the originals retain raw stats.spe.
   // Computing it explicitly here keeps the SpeedDivider truthful.
-  const attackerSpe = effectiveSpeed(attacker, field, field.yourSide);
-  const defenderSpe = effectiveSpeed(defender, field, field.oppSide);
+  // Use the attacker-role variant — Spe is the same across our forme
+  // substitutions (Aegislash both formes: 60; Palafin both formes: 100).
+  const attackerSpe = effectiveSpeed(yourAsAttacker, field, field.yourSide);
+  const defenderSpe = effectiveSpeed(oppAsAttacker, field, field.oppSide);
 
   // Trick Room reverses speed order - the slower mon moves first. We expose
   // `attackerOutspeeds` as "you act first this turn" so the UI reads naturally.
@@ -325,10 +365,15 @@ export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState
       delta: attackerSpe - defenderSpe,
       trickRoom,
     },
-    attackerMaxHp: attacker.maxHP(),
-    defenderMaxHp: defender.maxHP(),
-    attackerStats: pickStats(attacker.stats),
-    defenderStats: pickStats(defender.stats),
+    // The displayed stats / max HP on the BattleScreen MonCards reflect the
+    // form each mon is in *when attacking*. For Aegislash-Shield the user
+    // sees Blade's huge Atk/SpA, which lines up with the "your moves → opp"
+    // damage rows. HP is identical across both formes for the substitutions
+    // we apply, so the HP bar doesn't drift between perspectives.
+    attackerMaxHp: yourAsAttacker.maxHP(),
+    defenderMaxHp: oppAsAttacker.maxHP(),
+    attackerStats: pickStats(yourAsAttacker.stats),
+    defenderStats: pickStats(oppAsAttacker.stats),
   };
 }
 

@@ -18,6 +18,44 @@ interface Props {
 // "-Mega-Y", and ZA's "-Mega-Z" suffixes.
 const MEGA_SUFFIX = /-Mega(-[XYZ])?$/;
 
+// Calc's gen-0 species table contains a handful of formes that aren't useful
+// to pick into a team:
+//
+//   1. Calc-internal aggregator with no PS sprite:
+//        Aegislash-Both
+//   2. Cosmetic-only — share base stats and typing with the parent species:
+//        Polteageist-Antique, Sinistcha-Masterpiece, Maushold-Four,
+//        Vivillon-Fancy, Vivillon-Pokeball
+//   3. Mid-battle activated formes — you team-build with the base, the
+//      engine flips to the activated form during play (Stance Change,
+//      Zero to Hero, Disguise, Hunger Switch, Forecast). Picking these
+//      directly would skip the base form's pre-activation stats.
+//        Aegislash-Blade (base: Aegislash-Shield)
+//        Palafin-Hero (base: Palafin)
+//        Mimikyu-Busted (base: Mimikyu)
+//        Morpeko-Hangry (base: Morpeko)
+//        Castform-Sunny / -Rainy / -Snowy (base: Castform)
+//
+// Note: this only hides them from the picker. The calc adapter still treats
+// any saved mon whose species matches one of these names normally — so a
+// future "auto-substitute Blade-form stats on offensive moves" tweak can
+// land in the adapter without touching the picker.
+const HIDDEN_FORMES = new Set<string>([
+  'Aegislash-Both',
+  'Aegislash-Blade',
+  'Palafin-Hero',
+  'Mimikyu-Busted',
+  'Morpeko-Hangry',
+  'Castform-Sunny',
+  'Castform-Rainy',
+  'Castform-Snowy',
+  'Polteageist-Antique',
+  'Sinistcha-Masterpiece',
+  'Maushold-Four',
+  'Vivillon-Fancy',
+  'Vivillon-Pokeball',
+]);
+
 type SortMode = 'az' | 'power' | 'bulk' | 'speed';
 
 interface SpeciesEntry {
@@ -35,6 +73,7 @@ function buildAllSpecies(): SpeciesEntry[] {
   const out: SpeciesEntry[] = [];
   for (const sp of GEN.species) {
     if (MEGA_SUFFIX.test(sp.name)) continue;
+    if (HIDDEN_FORMES.has(sp.name)) continue;
     const base = (sp as any).baseStats ?? {};
     out.push({
       name: sp.name,

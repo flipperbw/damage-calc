@@ -161,6 +161,73 @@ describe('priority override propagates through the adapter', () => {
     const eq = m.attackerMoves.find((r) => r.moveName === 'Earthquake')!;
     expect(eq.priority).toBe(0);
   });
+
+  it('Aegislash-Shield uses Blade-form stats when attacking', () => {
+    const aegi: SavedMon = {
+      id: 'aegi',
+      species: 'Aegislash-Shield',
+      ability: 'Stance Change',
+      nature: 'Adamant',
+      sps: { atk: 32 },
+      moves: ['Iron Head', '', '', ''],
+      mega: '',
+      boosts: {},
+    };
+    const m = calculateMatchup(aegi, tyranitar, blankField());
+    // Shield-form Atk is 50; Blade's is 140. After Adamant nature + 32 SP at
+    // level 50, the calc'd Atk should be in Blade's range (130+), not
+    // Shield's range (~70).
+    expect(m.attackerStats.atk).toBeGreaterThan(120);
+    // Iron Head's damage should reflect Blade's massive Atk, not Shield's.
+    const ih = m.attackerMoves.find((r) => r.moveName === 'Iron Head')!;
+    expect(ih.damageRange[1]).toBeGreaterThan(0);
+  });
+
+  it('Aegislash-Shield keeps Shield-form bulk when defending', () => {
+    // Shield-form has 140/140 Def/SpD; Blade has 50/50. A neutral physical
+    // hit (Earthquake from Garchomp) against Aegislash should land much
+    // lower than against a paper-thin Blade-statted defender would suggest.
+    const aegi: SavedMon = {
+      id: 'aegi',
+      species: 'Aegislash-Shield',
+      ability: 'Stance Change',
+      nature: 'Bold',
+      sps: { hp: 32, def: 32 },
+      moves: ['', '', '', ''],
+      mega: '',
+      boosts: {},
+    };
+    const m = calculateMatchup(garchomp, aegi, blankField());
+    // Earthquake from Garchomp vs Aegislash-Shield should hit for far less
+    // than 100% even at the high end. (Shield bulk + neutral hit.)
+    const eq = m.attackerMoves.find((r) => r.moveName === 'Earthquake')!;
+    expect(eq.percentRange[1]).toBeLessThan(100);
+  });
+
+  it('Palafin uses Hero-form stats in both attacker and defender roles', () => {
+    // Palafin-Zero: 70 Atk. Palafin-Hero: 160 Atk. We expect Hero's stats
+    // when Palafin is the attacker — and Hero's bulk when defending.
+    const palafin: SavedMon = {
+      id: 'pal',
+      species: 'Palafin',
+      ability: 'Zero to Hero',
+      nature: 'Adamant',
+      sps: { atk: 32, spe: 32 },
+      moves: ['Jet Punch', '', '', ''],
+      mega: '',
+      boosts: {},
+    };
+    const asAttacker = calculateMatchup(palafin, tyranitar, blankField());
+    // Hero-form Atk after Adamant + 32 SP should be well above Zero's ~95.
+    expect(asAttacker.attackerStats.atk).toBeGreaterThan(180);
+
+    const asDefender = calculateMatchup(garchomp, palafin, blankField());
+    // Hero-form Def 97 vs Zero-form Def 72 — defender HP/Def are higher,
+    // so Earthquake's percent range should be lower against Hero than it
+    // would be against Zero. Sanity-check it's not catastrophically high.
+    const eq = asDefender.attackerMoves.find((r) => r.moveName === 'Earthquake')!;
+    expect(eq.percentRange[1]).toBeLessThan(100);
+  });
 });
 
 describe('typeEffectiveness', () => {
