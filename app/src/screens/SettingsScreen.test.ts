@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isImportShape } from '@/screens/SettingsScreen';
+import { isImportShape } from '@/store/import-shape';
 
 describe('isImportShape', () => {
   it('accepts an empty object', () => {
