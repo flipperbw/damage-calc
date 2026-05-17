@@ -330,10 +330,27 @@ export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState
   //   - opp's moves vs you: opp in attacker role, you in defender role
   // For mons without a mid-battle forme switch the two variants are
   // identical and the extra construction is cheap.
-  const yourAsAttacker = buildPokemon(you, 'attacker');
-  const yourAsDefender = buildPokemon(you, 'defender');
-  const oppAsAttacker = buildPokemon(opp, 'attacker');
-  const oppAsDefender = buildPokemon(opp, 'defender');
+  //
+  // Pokemon construction can throw when the saved species name doesn't
+  // resolve in calc's species DB — e.g. a typo that got past an older
+  // importer ("erg"), or a forme calc doesn't ship for gen 0. Catch the
+  // throw and return a degraded matchup rather than letting it unwind
+  // through React's render and brick the page. The UI still renders the
+  // mons by name + sprite; only the calc'd damage rows go blank.
+  let yourAsAttacker: Pokemon;
+  let yourAsDefender: Pokemon;
+  let oppAsAttacker: Pokemon;
+  let oppAsDefender: Pokemon;
+  try {
+    yourAsAttacker = buildPokemon(you, 'attacker');
+    yourAsDefender = buildPokemon(you, 'defender');
+    oppAsAttacker = buildPokemon(opp, 'attacker');
+    oppAsDefender = buildPokemon(opp, 'defender');
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('calc setup failed (likely an invalid species):', err);
+    return emptyMatchup();
+  }
 
   const attackerMoves = you.moves.map((m) => buildMoveResult(m, yourAsAttacker.clone(), oppAsDefender.clone(), yourSide));
   const defenderMoves = opp.moves.map((m) => buildMoveResult(m, oppAsAttacker.clone(), yourAsDefender.clone(), oppSide));
@@ -379,4 +396,24 @@ export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState
 
 function pickStats(s: { hp: number; atk: number; def: number; spa: number; spd: number; spe: number }): ComputedStats {
   return { hp: s.hp, atk: s.atk, def: s.def, spa: s.spa, spd: s.spd, spe: s.spe };
+}
+
+/**
+ * Empty matchup returned when calc setup fails — e.g. one of the saved mons
+ * has a species name that doesn't exist in calc's species DB (typically a
+ * stale typo in localStorage from before species validation existed). Keeps
+ * the BattleScreen renderable instead of unwinding the React tree on a
+ * thrown calc error.
+ */
+function emptyMatchup(): MatchupResult {
+  const zeroStats: ComputedStats = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+  return {
+    attackerMoves: [emptyMoveResult(), emptyMoveResult(), emptyMoveResult(), emptyMoveResult()],
+    defenderMoves: [emptyMoveResult(), emptyMoveResult(), emptyMoveResult(), emptyMoveResult()],
+    speed: { attackerSpe: 0, defenderSpe: 0, attackerOutspeeds: false, delta: 0, trickRoom: false },
+    attackerMaxHp: 0,
+    defenderMaxHp: 0,
+    attackerStats: zeroStats,
+    defenderStats: zeroStats,
+  };
 }

@@ -126,6 +126,7 @@ export function BuilderScreen() {
           open
           initial={editorTeamMon.mon}
           teamName={editorTeamMon.team.name}
+          excludeSpecies={new Set(editorTeamMon.team.mons.filter((m) => m.id !== editorTeamMon.mon.id).map((m) => m.species))}
           onClose={() => setEditor(null)}
           onSave={(mon) => {
             upsertMon(editorTeamMon.team.id, mon);

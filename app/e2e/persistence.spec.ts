@@ -58,13 +58,13 @@ test('open MonEditor reopens after reload (iOS unload-and-restore)', async ({ pa
 
   // Editor's hero shows the species name. Use a scoped match - "Garchomp"
   // also appears in the team carousel.
-  await expect(page.getByText('Edit Pokémon')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close editor' })).toBeVisible();
   // The hero <div> with text-lg is the species title inside MonEditor.
   await expect(page.locator('div.font-extrabold.text-lg', { hasText: 'Garchomp' })).toBeVisible();
 
   await page.reload();
 
   // Editor should reopen automatically because the target was persisted.
-  await expect(page.getByText('Edit Pokémon')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close editor' })).toBeVisible();
   await expect(page.locator('div.font-extrabold.text-lg', { hasText: 'Garchomp' })).toBeVisible();
 });

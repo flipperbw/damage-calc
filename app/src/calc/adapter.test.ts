@@ -204,6 +204,26 @@ describe('priority override propagates through the adapter', () => {
     expect(eq.percentRange[1]).toBeLessThan(100);
   });
 
+  it('returns a degraded matchup (no throw) when a mon has an invalid species', () => {
+    // Regression guard: stale localStorage from before species validation
+    // could carry a typo'd species name. The BattleScreen render must not
+    // unwind on the resulting Pokemon-constructor throw.
+    const broken: SavedMon = {
+      id: 'x',
+      species: 'NotAPokemon',
+      nature: 'Hardy',
+      sps: {},
+      moves: ['', '', '', ''],
+      mega: '',
+      boosts: {},
+    };
+    expect(() => calculateMatchup(broken, garchomp, blankField())).not.toThrow();
+    expect(() => calculateMatchup(garchomp, broken, blankField())).not.toThrow();
+    const m = calculateMatchup(broken, garchomp, blankField());
+    expect(m.attackerStats.hp).toBe(0);
+    expect(m.attackerMoves.every((mv) => mv.damageRange[1] === 0)).toBe(true);
+  });
+
   it('Palafin uses Hero-form stats in both attacker and defender roles', () => {
     // Palafin-Zero: 70 Atk. Palafin-Hero: 160 Atk. We expect Hero's stats
     // when Palafin is the attacker — and Hero's bulk when defending.

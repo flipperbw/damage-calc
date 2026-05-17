@@ -43,6 +43,13 @@ interface Props {
    * stat-lowering moves the opponent might use against them.
    */
   isForOpponent?: boolean;
+  /**
+   * Species already in the same team (excluding THIS slot's current
+   * species), forwarded to the SpeciesPicker so the user can't tap a
+   * duplicate. Omit for non-team-member edits (the opponent panel,
+   * brand-new mons in flows that don't have a team context).
+   */
+  excludeSpecies?: ReadonlySet<string>;
 }
 
 /**
@@ -79,7 +86,7 @@ function usePressHandlers(action: () => void) {
   };
 }
 
-export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, isForOpponent }: Props) {
+export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, isForOpponent, excludeSpecies }: Props) {
   const [draft, setDraft] = useState<SavedMon>(initial);
   useEffect(() => setDraft(initial), [initial]);
 
@@ -232,7 +239,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
           >
             ←
           </button>
-          <span className="font-bold">Edit Pokémon</span>
+          <span className="font-bold">Edit</span>
           <div className="flex items-center gap-1">
             {copied && (
               <span data-testid="copy-confirmation" className="text-ok text-sm font-semibold mr-1" aria-live="polite">
@@ -373,7 +380,13 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
           </button>
         </div>
 
-        <SpeciesPicker open={picker === 'species'} onClose={() => setPicker(null)} showRecents={false} onPick={handleSpeciesPick} />
+        <SpeciesPicker
+          open={picker === 'species'}
+          onClose={() => setPicker(null)}
+          showRecents={false}
+          excludeSpecies={excludeSpecies}
+          onPick={handleSpeciesPick}
+        />
         <ItemPicker open={picker === 'item'} species={draft.species} onClose={() => setPicker(null)} onPick={(item) => patch({ item })} />
         <AbilityPicker
           open={picker === 'ability'}
@@ -387,6 +400,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
         <ShowdownImportDialog
           mode="slot"
           open={importOpen}
+          excludeSpecies={excludeSpecies}
           onClose={() => setImportOpen(false)}
           onPick={(parsedDraft) => {
             // Keep the existing slot's id so Save replaces this slot in place;

@@ -40,6 +40,13 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
 
   function addSpeciesToTeam(species: string) {
     if (!team || teamFull) return;
+    // Species Clause: the suggestions list isn't pre-filtered against the
+    // current team, so guard at the call site. (If this ever fires, the user
+    // sees a clear toast instead of silently getting a duplicate.)
+    if (team.mons.some((m) => m.species === species)) {
+      toast.error(`${species} is already in ${team.name}`);
+      return;
+    }
     const mon = defaultTeamMon(species);
     upsertMon(team.id, mon);
     toast.success(`Added ${species} to ${team.name}`);

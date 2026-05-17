@@ -256,4 +256,106 @@ describe('parseShowdownText', () => {
     expect(r.mons[0].draft.moves).toEqual(['Earthquake', 'Outrage', 'Stone Edge', 'Fire Fang']);
     expect(r.changes.some((c) => c.kind === 'move-dropped' && c.before === 'Iron Head')).toBe(true);
   });
+
+  it('flags a misspelled species as speciesKnown:false (dialog drops on commit)', () => {
+    const text = ['Primar @ Choice Scarf', 'Ability: Torrent', '- Hydro Pump'].join('\n');
+    const r = parseShowdownText(text);
+    expect(r.mons).toHaveLength(1);
+    expect(r.mons[0].draft.species).toBe('Primar');
+    expect(r.mons[0].speciesKnown).toBe(false);
+  });
+
+  it('sets speciesKnown:true for a real species', () => {
+    const r = parseShowdownText('Garchomp\n- Earthquake');
+    expect(r.mons[0].speciesKnown).toBe(true);
+  });
+
+  it('auto-adds the matching Mega Stone when the head names a mega forme but the item line omits it', () => {
+    const r = parseShowdownText('Gardevoir-Mega\n- Moonblast');
+    expect(r.mons[0].draft.species).toBe('Gardevoir');
+    expect(r.mons[0].draft.item).toBe('Gardevoirite');
+    expect(r.mons[0].draft.mega).toBe('mega');
+    expect(r.mons[0].displayName).toBe('Gardevoir-Mega');
+    // Auto-add is reported as a field-ignored change so the user sees what
+    // we did. Detail mentions the stone name.
+    const note = r.changes.find((c) => c.field === 'item');
+    expect(note?.detail).toMatch(/Gardevoirite/);
+  });
+
+  it('infers Charizardite X / Y from a mega-X / mega-Y head when item is missing', () => {
+    const x = parseShowdownText('Charizard-Mega-X\n- Dragon Claw');
+    expect(x.mons[0].draft.item).toBe('Charizardite X');
+    expect(x.mons[0].draft.mega).toBe('mega-x');
+    const y = parseShowdownText('Charizard-Mega-Y\n- Fire Blast');
+    expect(y.mons[0].draft.item).toBe('Charizardite Y');
+    expect(y.mons[0].draft.mega).toBe('mega-y');
+  });
+
+  it('keeps the existing stone when the head matches and the item is correct (no auto-add change)', () => {
+    const r = parseShowdownText('Gardevoir-Mega @ Gardevoirite\n- Moonblast');
+    expect(r.mons[0].draft.item).toBe('Gardevoirite');
+    expect(r.mons[0].draft.mega).toBe('mega');
+    // No mega auto-add change should fire when the user already supplied the
+    // correct stone.
+    expect(r.changes.some((c) => c.field === 'item' && c.detail?.startsWith('Auto-added'))).toBe(false);
+  });
+
+  it('replaces a non-stone item with the right stone when the head names a mega forme', () => {
+    // User says Gardevoir-Mega + Leftovers; Leftovers is legal in Champions
+    // but isn't a stone. We trust the -Mega intent and inject Gardevoirite.
+    const r = parseShowdownText('Gardevoir-Mega @ Leftovers\n- Moonblast');
+    expect(r.mons[0].draft.item).toBe('Gardevoirite');
+    expect(r.mons[0].draft.mega).toBe('mega');
+  });
+
+  it('handles lowercase -mega suffix and canonicalises the species name', () => {
+    // Real paste shape from a user: "Gardevoir-mega @ Quick Claw". The
+    // lowercase suffix used to slip past stripMegaSuffix and the literal
+    // string "Gardevoir-mega" got saved as the species, bypassing our
+    // species+mega flag model entirely.
+    const text = ['Gardevoir-mega @ Leftovers', 'Ability: Trace', '- Moonblast'].join('\n');
+    const r = parseShowdownText(text);
+    expect(r.mons[0].draft.species).toBe('Gardevoir');
+    expect(r.mons[0].draft.mega).toBe('mega');
+    expect(r.mons[0].draft.item).toBe('Gardevoirite');
+    expect(r.mons[0].speciesKnown).toBe(true);
+  });
+
+  it('canonicalises species casing for non-mega pastes too', () => {
+    // "garchomp" → "Garchomp" so the team list and sprite URL get the right
+    // name without depending on toID-based downstream lookups.
+    const r = parseShowdownText('garchomp\n- Earthquake');
+    expect(r.mons[0].draft.species).toBe('Garchomp');
+  });
+
+  it('treats a directly-typed mega-forme id (no hyphen) as the base species + mega flag', () => {
+    // Edge case: GEN.species.get(toID("gardevoirmega")) resolves to the
+    // mega forme entry. Without canonicalisation we used to save it as
+    // species "Gardevoir-Mega", flag mega=''. Now: base species + mega flag.
+    const r = parseShowdownText('gardevoirmega\n- Moonblast');
+    expect(r.mons[0].draft.species).toBe('Gardevoir');
+    expect(r.mons[0].draft.mega).toBe('mega');
+    expect(r.mons[0].draft.item).toBe('Gardevoirite');
+  });
+
+  it("doesn't infer a stone when the species has no compatible mega forme", () => {
+    // Garchomp-Mega-X doesn't exist (Garchomp only has plain mega). Should
+    // record that the forme is invalid and save as base Garchomp.
+    const r = parseShowdownText('Garchomp-Mega-X\n- Earthquake');
+    expect(r.mons[0].draft.mega).toBe('');
+    expect(r.mons[0].draft.item).toBeUndefined();
+    expect(r.changes.some((c) => c.field === 'mega')).toBe(true);
+  });
+
+  it('parses duplicates as separate mons (dedup is handled by the dialog, not the parser)', () => {
+    // The parser keeps both occurrences; Species Clause enforcement (drop the
+    // second) is the dialog's job, not the parser's. This guards against a
+    // regression where the parser silently merges duplicates and the dialog
+    // never sees them to dim/dedup.
+    const text = ['Venusaur', '- Sludge Bomb', '', 'Venusaur', '- Earthquake'].join('\n');
+    const r = parseShowdownText(text);
+    expect(r.mons).toHaveLength(2);
+    expect(r.mons[0].draft.species).toBe('Venusaur');
+    expect(r.mons[1].draft.species).toBe('Venusaur');
+  });
 });

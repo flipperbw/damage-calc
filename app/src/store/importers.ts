@@ -25,6 +25,14 @@ export interface ImportChange {
 export interface ParsedMon {
   draft: Omit<SavedMon, 'id'>;
   displayName: string;
+  /**
+   * False when the species name on the head line doesn't resolve against
+   * calc's gen-0 species table — typically a typo ("Primar" instead of
+   * "Primarina"). The dialog surfaces these rows as red-chipped and skips
+   * them on commit, so a misspelled team-paste never lands a broken mon
+   * that would crash the BattleScreen adapter.
+   */
+  speciesKnown: boolean;
 }
 
 export interface ParseResult {
@@ -66,10 +74,12 @@ function canonicalNature(name: string): string | undefined {
   return found?.name;
 }
 
-function stripMegaSuffix(species: string): string {
-  if (species.endsWith('-Mega-X') || species.endsWith('-Mega-Y')) return species.slice(0, -7);
-  if (species.endsWith('-Mega')) return species.slice(0, -5);
-  return species;
+function stripMegaSuffix(species: string): { base: string; megaHint: MegaState } {
+  const lower = species.toLowerCase();
+  if (lower.endsWith('-mega-x')) return { base: species.slice(0, -7), megaHint: 'mega-x' };
+  if (lower.endsWith('-mega-y')) return { base: species.slice(0, -7), megaHint: 'mega-y' };
+  if (lower.endsWith('-mega')) return { base: species.slice(0, -5), megaHint: 'mega' };
+  return { base: species, megaHint: '' };
 }
 
 function megaStateForItem(species: string, item: string | undefined): MegaState {
@@ -80,6 +90,24 @@ function megaStateForItem(species: string, item: string | undefined): MegaState 
   if (forme.endsWith('-Mega-X')) return 'mega-x';
   if (forme.endsWith('-Mega-Y')) return 'mega-y';
   return 'mega';
+}
+
+/**
+ * Find the mega stone for a (species, megaState) pair. Used when the paste
+ * names the mega forme on the head line ("Gardevoir-Mega") but doesn't put
+ * the matching stone on the item line — we infer the stone so the mon
+ * actually activates the mega forme during calc.
+ */
+function megaStoneFor(species: string, hint: MegaState): string | null {
+  if (!hint) return null;
+  for (const stone of Object.keys(MEGA_STONES)) {
+    const forme = (MEGA_STONES as Record<string, Record<string, string>>)[stone]?.[species];
+    if (!forme) continue;
+    if (hint === 'mega-x' && forme.endsWith('-Mega-X')) return stone;
+    if (hint === 'mega-y' && forme.endsWith('-Mega-Y')) return stone;
+    if (hint === 'mega' && forme.endsWith('-Mega') && !forme.endsWith('-Mega-X') && !forme.endsWith('-Mega-Y')) return stone;
+  }
+  return null;
 }
 
 const FIELD_IGNORED_PREFIXES: { re: RegExp; field: string }[] = [
@@ -140,7 +168,7 @@ function parseBlock(block: string): RawMon | null {
     // species in parens when the nickname differs. If the parens content
     // resolves to a real species, treat it as the species and the leading
     // text as the nickname. Otherwise the parens content is just a nickname.
-    const innerBase = stripMegaSuffix(inner);
+    const innerBase = stripMegaSuffix(inner).base;
     const isSpecies = !!GEN.species.get(toID(innerBase) as any);
     if (isSpecies) {
       raw.nickname = work.slice(0, nickMatch.index).trim();
@@ -295,10 +323,31 @@ export function parseShowdownText(text: string): ParseResult {
   const mons: ParsedMon[] = [];
 
   parsedRaws.forEach(({ raw }, monIndex) => {
-    const species = stripMegaSuffix(raw.speciesHead).trim();
-    if (!species) {
+    const { base, megaHint } = stripMegaSuffix(raw.speciesHead.trim());
+    if (!base) {
       unparseable.push(raw.rawHead);
       return;
+    }
+    // Resolve to calc's canonical species name (handles casing — "garchomp"
+    // → "Garchomp" — and forme spelling). We deliberately use toID which
+    // strips hyphens too: this means a paste of "Gardevoir-mega" (with the
+    // -mega caught above) and a paste of "gardevoirmega" both land as the
+    // base "Gardevoir" species + megaHint='mega', not as the mega-forme
+    // species entry. Storing the mega-forme directly conflicts with our
+    // model where species is the base form and `mega` is a flag.
+    const speciesRecord = GEN.species.get(toID(base) as any);
+    const speciesKnown = !!speciesRecord;
+    // If the canonical lookup landed on a mega-forme entry (e.g. user typed
+    // "gardevoirmega" with no hyphen), strip back to the base form here too
+    // so the saved mon doesn't drift into the "species is a mega forme"
+    // weird state. The megaHint we then synthesize feeds the auto-stone
+    // inference below.
+    let species = speciesRecord?.name ?? base;
+    let effectiveMegaHint: MegaState = megaHint;
+    const canonicalStripped = stripMegaSuffix(species);
+    if (canonicalStripped.megaHint) {
+      species = canonicalStripped.base;
+      if (!effectiveMegaHint) effectiveMegaHint = canonicalStripped.megaHint;
     }
 
     let item: string | undefined;
@@ -317,7 +366,37 @@ export function parseShowdownText(text: string): ParseResult {
       }
     }
 
-    const mega = megaStateForItem(species, item);
+    let mega = megaStateForItem(species, item);
+    // If the head names a mega forme but the item line didn't give us the
+    // matching stone (missing, dropped as illegal, or a non-stone item like
+    // Leftovers), infer the stone so the mega flag actually activates.
+    // Champions item gates this — mega stones are all legal — but if no
+    // compatible stone exists for this species/variant, leave mega='' and
+    // record the mismatch so the user can see what happened.
+    if (effectiveMegaHint && !mega && speciesKnown) {
+      const inferredStone = megaStoneFor(species, effectiveMegaHint);
+      if (inferredStone) {
+        const previousItem = item;
+        item = inferredStone;
+        mega = effectiveMegaHint;
+        changes.push({
+          monIndex,
+          kind: 'field-ignored',
+          field: 'item',
+          before: previousItem ?? '(none)',
+          after: inferredStone,
+          detail: `Auto-added ${inferredStone} for ${megaFormeName(species, effectiveMegaHint)}`,
+        });
+      } else {
+        changes.push({
+          monIndex,
+          kind: 'field-ignored',
+          field: 'mega',
+          before: raw.speciesHead.trim(),
+          detail: `No Mega Stone exists for that forme — saving as base ${species}`,
+        });
+      }
+    }
 
     let ability: string | undefined;
     if (raw.ability) {
@@ -433,6 +512,7 @@ export function parseShowdownText(text: string): ParseResult {
     mons.push({
       draft,
       displayName: megaFormeName(species, mega),
+      speciesKnown,
     });
   });
 

@@ -60,13 +60,13 @@ test('tap opponent name/sprite to open editor - distinct from swap', async ({ pa
   await setUpBattle(page);
 
   await page.getByTestId('edit-name-opp').click();
-  // The MonEditor sheet opens with "Edit Pokémon" title.
-  await expect(page.getByText('Edit Pokémon')).toBeVisible();
+  // MonEditor sheet open ⇒ its unique "Close editor" back button is visible.
+  await expect(page.getByRole('button', { name: 'Close editor' })).toBeVisible();
 
   // Close, then verify the sprite also opens the editor.
   await page.getByRole('button', { name: 'Close editor' }).click();
   await page.getByTestId('edit-sprite-opp').click();
-  await expect(page.getByText('Edit Pokémon')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close editor' })).toBeVisible();
 });
 
 test('edit opponent HP via slider', async ({ page }) => {

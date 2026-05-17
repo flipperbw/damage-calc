@@ -170,6 +170,7 @@ export function BattleScreen() {
           open={addMonPicker}
           onClose={() => setAddMonPicker(false)}
           showRecents={false}
+          excludeSpecies={new Set(team.mons.map((m) => m.species))}
           onPick={(species) => {
             const mon = defaultTeamMon(species);
             upsertMon(team.id, mon);
@@ -182,6 +183,11 @@ export function BattleScreen() {
             open
             initial={editorMon}
             isForOpponent={editor.kind === 'opponent'}
+            excludeSpecies={
+              editor.kind === 'team-mon'
+                ? new Set(team.mons.filter((m) => m.id !== editorMon.id).map((m) => m.species))
+                : undefined
+            }
             onClose={() => setEditor(null)}
             onSave={(mon) => {
               if (editor.kind === 'team-mon') upsertMon(editor.teamId, mon);
@@ -378,6 +384,11 @@ export function BattleScreen() {
           open
           initial={editorMon}
           isForOpponent={editor.kind === 'opponent'}
+          excludeSpecies={
+            editor.kind === 'team-mon' && team
+              ? new Set(team.mons.filter((m) => m.id !== editorMon.id).map((m) => m.species))
+              : undefined
+          }
           onClose={() => setEditor(null)}
           onSave={(mon) => {
             if (editor.kind === 'team-mon') upsertMon(editor.teamId, mon);
@@ -412,6 +423,7 @@ export function BattleScreen() {
         open={addMonPicker}
         onClose={() => setAddMonPicker(false)}
         showRecents={false}
+        excludeSpecies={new Set(team.mons.map((m) => m.species))}
         onPick={(species) => {
           const mon = defaultTeamMon(species);
           upsertMon(team.id, mon);

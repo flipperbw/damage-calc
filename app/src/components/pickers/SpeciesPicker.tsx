@@ -11,6 +11,13 @@ interface Props {
   onClose: () => void;
   onPick: (species: string) => void;
   showRecents?: boolean;
+  /**
+   * Species to omit from the list — used for Species Clause so the user
+   * can't add the same species twice to one team. When editing an existing
+   * slot, the caller should keep that slot's current species OUT of this
+   * set so the user can keep their pick (or re-pick the same species).
+   */
+  excludeSpecies?: ReadonlySet<string>;
 }
 
 // Mega formes are an in-battle event tied to the held mega stone, not a base
@@ -143,7 +150,7 @@ function speciesEntry(name: string): SpeciesEntry | null {
   };
 }
 
-export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Props) {
+export function SpeciesPicker({ open, onClose, onPick, showRecents = true, excludeSpecies }: Props) {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>(() => emptyFilters());
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -162,12 +169,15 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
 
   const filtered = useMemo(() => {
     let base = ALL_SPECIES;
+    if (excludeSpecies && excludeSpecies.size > 0) {
+      base = base.filter((s) => !excludeSpecies.has(s.name));
+    }
     if (query) {
       const q = query.toLowerCase();
       base = base.filter((s) => s.name.toLowerCase().includes(q));
     }
     return applyFilters(base, filters);
-  }, [query, filters]);
+  }, [query, filters, excludeSpecies]);
 
   // Recents are stored as full mons; resolve to entries for sort/filter
   // alignment. Recents are NEVER sorted by the active sort - they're always
@@ -177,6 +187,7 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
     if (!showRecents) return [];
     const out: SpeciesEntry[] = [];
     for (const r of recents) {
+      if (excludeSpecies?.has(r.mon.species)) continue;
       const e = speciesEntry(r.mon.species);
       if (e) out.push(e);
     }
@@ -184,7 +195,7 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true }: Pro
       return out.filter((e) => e.types.some((t) => filters.types.has(t as TypeName)));
     }
     return out;
-  }, [recents, showRecents, filters.types]);
+  }, [recents, showRecents, filters.types, excludeSpecies]);
 
   const showRecentsHeader = showRecents && !query && recentEntries.length > 0;
 

@@ -149,7 +149,13 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
       </>
       )}
 
-      <SpeciesPicker open={pickingSlot !== null} onClose={() => setPickingSlot(null)} onPick={addMon} showRecents={false} />
+      <SpeciesPicker
+        open={pickingSlot !== null}
+        onClose={() => setPickingSlot(null)}
+        onPick={addMon}
+        showRecents={false}
+        excludeSpecies={team ? new Set(team.mons.map((m) => m.species)) : undefined}
+      />
     </section>
   );
 }

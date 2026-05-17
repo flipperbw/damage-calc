@@ -194,6 +194,8 @@ export function TeamsScreen() {
           open
           onClose={() => setPicker(null)}
           showRecents={false}
+          // Species Clause: hide whichever species are already in this team.
+          excludeSpecies={new Set((teams.find((t) => t.id === picker.teamId)?.mons ?? []).map((m) => m.species))}
           onPick={(species) => {
             const mon = defaultTeamMon(species);
             upsertMon(picker.teamId, mon);
@@ -208,6 +210,9 @@ export function TeamsScreen() {
           open
           initial={editorTeamMon.mon}
           teamName={editorTeamMon.team.name}
+          // Other slots in this team — passed through to the editor's species
+          // picker so the user can't accidentally pick a duplicate.
+          excludeSpecies={new Set(editorTeamMon.team.mons.filter((m) => m.id !== editorTeamMon.mon.id).map((m) => m.species))}
           onClose={() => setEditor(null)}
           onSave={(mon) => {
             upsertMon(editorTeamMon.team.id, mon);
