@@ -94,7 +94,7 @@ export function BuilderScreen() {
       <h2 className="text-xl font-bold mb-4">Builder</h2>
 
       <CoverageSection selectedTeamId={selectedTeamId} onSelectTeam={setSelectedTeamId} />
-      <SuggestionsSection selectedTeamId={selectedTeamId} />
+      <SuggestionsSection selectedTeamId={selectedTeamId} focusableThreats={threatList?.mons} />
       <ThreatListPicker
         selectedListId={selectedListId}
         onSelectList={(id) => setSelectedListId(id || null)}

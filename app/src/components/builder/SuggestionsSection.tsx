@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
+import { suggestCountersTo } from '@/calc/counter-suggestions';
 import { GEN, toID } from '@/calc/gen';
 import { suggestAdditions, type Suggestion, type SuggestionReason } from '@/calc/suggestions';
 import { SectionToggle } from '@/components/builder/SectionToggle';
@@ -9,9 +10,17 @@ import { TypeBadge } from '@/components/TypeBadge';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
 import { defaultTeamMon } from '@/store/factories';
+import type { SavedMon } from '@/types';
 
 interface Props {
   selectedTeamId: string | null;
+  /**
+   * Mons from the user's currently-selected threat list. Drives the
+   * "Focus on:" select — picking one narrows scoring to "what counters
+   * this specific mon." When undefined or empty, only the All-threats
+   * default is shown.
+   */
+  focusableThreats?: SavedMon[];
 }
 
 /**
@@ -21,7 +30,7 @@ interface Props {
  * - there's no "add to team" affordance because we'd have to make a slot
  * decision for the user.
  */
-export function SuggestionsSection({ selectedTeamId }: Props) {
+export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) {
   const teams = useStore((s) => s.teams);
   const threatLists = useStore((s) => s.threatLists);
   const upsertMon = useStore((s) => s.upsertMon);
@@ -46,11 +55,30 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
     return threatLists.find((l) => l.seedKey === 'most-used') ?? threatLists.find((l) => l.isSeed) ?? threatLists[0] ?? null;
   }, [threatLists]);
 
+  // Single-threat focus: when set, scoring uses only this mon as the
+  // threat list. Empty string === "All threats" (the default behavior
+  // backed by the Most-Used reference list).
+  const [focusThreatId, setFocusThreatId] = useState<string>('');
+  // Drop stale focus when the selected threat list changes underneath us.
+  const focusValid = !!focusThreatId && !!focusableThreats?.some((m) => m.id === focusThreatId);
+  const focusedThreat = focusValid ? focusableThreats!.find((m) => m.id === focusThreatId) ?? null : null;
+
+  // Field state drives the calc-based counter scoring. We read the live
+  // store value so changes to weather/terrain/screens propagate.
+  const field = useStore((s) => s.field);
+
   const suggestions = useMemo(() => {
     if (!team || team.mons.length === 0) return [];
+    if (focusedThreat) {
+      // Focused mode: calc-based scoring. Runs ~600 calcs across the
+      // top-pool and is fast enough to call synchronously here. The
+      // memo key includes the focus id + threat list updatedAt so we
+      // recompute when the user changes target or edits the threat.
+      return suggestCountersTo(focusedThreat, field, team.format);
+    }
     if (!reference) return [];
     return suggestAdditions(team.mons, reference.mons);
-  }, [team?.id, team?.updatedAt, reference?.id, reference?.updatedAt]);
+  }, [team?.id, team?.updatedAt, team?.format, reference?.id, reference?.updatedAt, focusedThreat, field]);
 
   const [detail, setDetail] = useState<Suggestion | null>(null);
   const [open, setOpen] = useState(true);
@@ -62,13 +90,37 @@ export function SuggestionsSection({ selectedTeamId }: Props) {
       {open && (
       <>
 
+      {focusableThreats && focusableThreats.length > 0 && (
+        <div className="flex items-center gap-2 mb-2.5">
+          <label htmlFor="suggestions-focus" className="text-[10px] uppercase tracking-wider opacity-55 shrink-0">
+            Focus on
+          </label>
+          <select
+            id="suggestions-focus"
+            value={focusThreatId}
+            onChange={(e) => setFocusThreatId(e.target.value)}
+            data-testid="suggestions-focus"
+            className="flex-1 min-w-0 bg-surface border border-surface-hi rounded-lg px-2 py-1.5 text-sm text-text"
+          >
+            <option value="" className="bg-bg-base">All threats (Most-Used)</option>
+            {focusableThreats.map((m) => (
+              <option key={m.id} value={m.id} className="bg-bg-base">
+                {m.species}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {!team || team.mons.length === 0 ? (
         <div data-testid="suggestions-empty" className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
           Build a team first to see suggestions.
         </div>
       ) : suggestions.length === 0 ? (
         <div data-testid="suggestions-no-fit" className="bg-surface border border-surface-hi rounded-card p-4 text-sm opacity-65 italic">
-          No candidate fits this team's gaps right now.
+          {focusedThreat
+            ? `No candidate in the pool cleanly counters ${focusedThreat.species} right now.`
+            : "No candidate fits this team's gaps right now."}
         </div>
       ) : (
         <>
