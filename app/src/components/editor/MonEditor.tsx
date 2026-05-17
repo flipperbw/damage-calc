@@ -175,12 +175,17 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
   function handleSpeciesPick(species: string) {
     if (draft.species === species) return;
     const base: SavedMon = { ...draft, species, mega: '' };
-    if (isDraftUntouched(draft)) {
+    // For opponent edits, always auto-apply a curated build on species
+    // switch. Opponents are typically what-if probes rather than carefully
+    // tuned configs, so the user expects a sensible default rather than
+    // partial preservation of the previous build's fields.
+    if (isForOpponent || isDraftUntouched(draft)) {
       setDraft(applyFirstBuild(species, base));
       return;
     }
-    // User has manual edits; keep them but offer the suggested build via
-    // a single toast keyed by species so repeated picks don't pile up.
+    // Team-mon path with manual edits: keep them but offer the suggested
+    // build via a single toast keyed by species so repeated picks don't
+    // pile up.
     const buildNames = getBuildsForSpecies(species);
     base.buildName = undefined;
     setDraft(base);
@@ -357,7 +362,13 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
 
         <SpeciesPicker open={picker === 'species'} onClose={() => setPicker(null)} showRecents={false} onPick={handleSpeciesPick} />
         <ItemPicker open={picker === 'item'} species={draft.species} onClose={() => setPicker(null)} onPick={(item) => patch({ item })} />
-        <AbilityPicker open={picker === 'ability'} species={draft.species} onClose={() => setPicker(null)} onPick={(ability) => patch({ ability })} />
+        <AbilityPicker
+          open={picker === 'ability'}
+          species={draft.species}
+          currentAbility={draft.ability}
+          onClose={() => setPicker(null)}
+          onPick={(ability) => patch({ ability })}
+        />
         <NaturePicker open={picker === 'nature'} onClose={() => setPicker(null)} onPick={(nature) => patch({ nature })} />
         <AbilityDetailSheet open={abilityDetailName !== null} abilityName={abilityDetailName} onClose={() => setAbilityDetailName(null)} />
       </div>

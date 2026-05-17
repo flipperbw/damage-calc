@@ -230,6 +230,7 @@ export function MonCard({
         <AbilityPicker
           open={picker === 'ability'}
           species={mon.species}
+          currentAbility={mon.ability}
           onClose={() => setPicker(null)}
           onPick={(a) => {
             onChangeAbility(a);

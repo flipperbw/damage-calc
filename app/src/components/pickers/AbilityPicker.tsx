@@ -10,9 +10,16 @@ interface Props {
   onClose: () => void;
   onPick: (ability: string) => void;
   species?: string;
+  /**
+   * The mon's currently-assigned ability. Always rendered in the list (and
+   * the user can tap (i) to read its description) even when the species's
+   * @pkmn/data ability list doesn't include it — protects against data
+   * gaps (e.g. Kangaskhan's Scrappy missing from a dex entry).
+   */
+  currentAbility?: string;
 }
 
-export function AbilityPicker({ open, onClose, onPick, species }: Props) {
+export function AbilityPicker({ open, onClose, onPick, species, currentAbility }: Props) {
   const [query, setQuery] = useState('');
   // Re-run when @pkmn/data finishes loading so cold-start picker opens
   // promote from calc's single-ability entry to the full list.
@@ -34,11 +41,20 @@ export function AbilityPicker({ open, onClose, onPick, species }: Props) {
     return all.sort();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pkmnReady is the trigger; getSpeciesAbilities reads a sync cache that flips when it loads
   }, [species, pkmnReady]);
+  // Splice the mon's current ability in at the top if it's missing from
+  // the derived list. Guarantees the user can always see + read what they
+  // already have set, even when the data source is incomplete.
+  const enriched = useMemo(() => {
+    if (!currentAbility) return all;
+    const curId = toID(currentAbility) as unknown as string;
+    if (all.some((n) => (toID(n) as unknown as string) === curId)) return all;
+    return [currentAbility, ...all];
+  }, [all, currentAbility]);
   const filtered = useMemo(() => {
-    if (!query) return all;
+    if (!query) return enriched;
     const q = query.toLowerCase();
-    return all.filter((n) => n.toLowerCase().includes(q));
-  }, [all, query]);
+    return enriched.filter((n) => n.toLowerCase().includes(q));
+  }, [enriched, query]);
 
   // Lazy-loaded shortDesc cache. We only fetch once per ability name across
   // the lifetime of the picker - opening, closing, retyping the query all
