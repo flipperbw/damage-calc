@@ -118,7 +118,7 @@ export function AbilityPicker({ open, onClose, onPick, species, currentAbility }
                 onPick(name);
                 onClose();
               }}
-              className="flex-1 text-left px-1 py-0.5"
+              className="flex-1 min-w-0 text-left px-1 py-0.5"
             >
               <div className="text-sm font-medium">{name}</div>
               {short && <div className="text-xxs opacity-60 leading-snug truncate">{short}</div>}

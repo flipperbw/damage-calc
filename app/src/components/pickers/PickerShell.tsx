@@ -138,8 +138,10 @@ function SearchBody({ search, filters, children }: { search: SearchProps; filter
         // belt-and-suspenders hint to iOS WebKit that this region is a
         // vertical scroll container — without it some layouts get treated
         // as the document scroll which interacts badly with sticky filter
-        // panels.
-        className="overflow-y-auto flex-1 -mx-1 px-1 [overscroll-behavior:contain] [touch-action:pan-y]"
+        // panels. overflow-x-hidden contains any row whose truncate failed
+        // (e.g. missing min-w-0 on a flex child) so it can't push a
+        // horizontal scrollbar onto the picker.
+        className="overflow-y-auto overflow-x-hidden flex-1 -mx-1 px-1 [overscroll-behavior:contain] [touch-action:pan-y]"
       >
         {children}
       </div>
