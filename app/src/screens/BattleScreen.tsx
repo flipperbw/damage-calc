@@ -292,9 +292,12 @@ export function BattleScreen() {
               type="button"
               disabled={oppMode === 'hardest'}
               onClick={() => {
-                const res = findHardestHitter(opponent.species, you!, field, team?.format);
+                const res = findHardestHitter(opponent.species, you!, field, team?.format, opponent);
                 if (!res) {
-                  toast.error(`No worst-case build available for ${opponent.species}`);
+                  // Either the species has no synthesisable build, OR every
+                  // synth combination did less damage than the current opp
+                  // set. Both land here; the message covers both cases.
+                  toast(`${opponent.species}'s current build already maxes damage to ${you!.species}`);
                   return;
                 }
                 if (!oppPreWorstCase) setOppPreWorstCase(opponent);

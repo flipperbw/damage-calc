@@ -1,5 +1,6 @@
 import { calculateMatchup } from '@/calc/adapter';
 import { GEN, toID } from '@/calc/gen';
+import { getSpeciesAbilities } from '@/data/pkmn';
 import { getKnownMovesForSpecies } from '@/data/setdex-champions';
 import type { FieldState, SavedMon } from '@/types';
 
@@ -8,13 +9,18 @@ import type { FieldState, SavedMon } from '@/types';
  * (no curated-setdex consideration — the search is about absolute worst
  * case, not "which preset matches"):
  *
- *   - findHardestHitter: synthesizes Physical + Special max-threat
- *     templates, picks whichever does more damage to your active mon.
+ *   - findHardestHitter: searches across abilities, items, and moves to
+ *     find the (ability, move, item) combination that deals the most
+ *     damage to the defender. Optionally takes a `currentOpponent` and
+ *     returns null when the search can't beat the current build's damage
+ *     — so clicking the button on an already-worst-case set doesn't
+ *     swap it for a weaker one.
  *   - findTankiestBuild: synthesizes the wall on the side matching your
  *     primary attack category (Physical or Special).
  *
- * Only Champions-legal items are used: Choice Band / Choice Specs for
- * attackers, Leftovers for walls. No Assault Vest etc.
+ * Only Champions-legal items are used: type-matching 1.2x boosters for
+ * attackers, Leftovers for walls. No Choice Band / Specs / Life Orb /
+ * Assault Vest.
  */
 
 export interface WorstCaseResult {
@@ -30,15 +36,68 @@ export function findHardestHitter(
   defender: SavedMon,
   field: FieldState,
   format: 'singles' | 'doubles' = 'singles',
+  currentOpponent?: SavedMon,
 ): WorstCaseResult | null {
-  const phys = synthesizeMaxThreat(species, 'Physical');
-  const spec = synthesizeMaxThreat(species, 'Special');
-  const physDmg = phys ? maxDamageOf(phys, defender, field, format) : 0;
-  const specDmg = spec ? maxDamageOf(spec, defender, field, format) : 0;
-  if (!phys && !spec) return null;
-  if (physDmg >= specDmg && phys) return { mon: phys, label: 'Max-threat Physical', damage: physDmg };
-  if (spec) return { mon: spec, label: 'Max-threat Special', damage: specDmg };
-  return null;
+  const sp = GEN.species.get(toID(species) as any);
+  if (!sp) return null;
+  const known = getKnownMovesForSpecies(species);
+  if (known.length === 0) return null;
+
+  // Prefer @pkmn/data's full ability list (slot 0/1/hidden); fall back to
+  // calc's gen-0 entry which only ships one default per species. Without
+  // this fallback, "Swarm" is the only candidate for Kleavor — and the
+  // user almost certainly has Sheer Force, which the synth misses.
+  const fromPkmn = getSpeciesAbilities(species);
+  const calcAbilities = Object.values(sp.abilities ?? {}) as string[];
+  const abilities = fromPkmn && fromPkmn.length > 0 ? fromPkmn : calcAbilities;
+  if (abilities.length === 0) return null;
+
+  // All damaging moves the species can learn, indexed by category. Filler
+  // moves for the 4-slot display come from the same category sorted by BP.
+  const damaging = known
+    .map((name) => {
+      const m = GEN.moves.get(toID(name) as any) as { bp?: number; basePower?: number; category?: string; type?: string } | undefined;
+      const bp = ((m?.bp ?? m?.basePower) ?? 0) as number;
+      const cat = (m?.category ?? '') as string;
+      const type = m?.type as string | undefined;
+      return { name, bp, cat, type };
+    })
+    .filter((x) => x.bp > 0 && (x.cat === 'Physical' || x.cat === 'Special'));
+
+  let best: { mon: SavedMon; damage: number; label: string } | null = null;
+
+  // Search (category × ability × top-move). For each combo, score damage
+  // vs the actual defender — this is what naturally surfaces STAB + type
+  // effectiveness + ability multipliers (Sheer Force, Tough Claws, etc.).
+  // The candidate's other 3 move slots are filled with same-category top
+  // BP picks; they don't affect the max-damage score but matter for
+  // display when the build lands in the opponent slot.
+  for (const category of ['Physical', 'Special'] as const) {
+    const catMoves = damaging.filter((x) => x.cat === category);
+    if (catMoves.length === 0) continue;
+    const fillers = [...catMoves].sort((a, b) => b.bp - a.bp);
+    for (const ability of abilities) {
+      for (const top of catMoves) {
+        const item = top.type ? TYPE_BOOSTER[top.type] : undefined;
+        const candidate = buildAttacker(species, category, ability, top.name, top.type, fillers, item);
+        const damage = maxDamageOf(candidate, defender, field, format);
+        if (!best || damage > best.damage) {
+          best = { mon: candidate, damage, label: `Max-threat ${category}` };
+        }
+      }
+    }
+  }
+
+  if (!best) return null;
+
+  // Floor: if the user's current opp build already deals at least this much,
+  // there's no point swapping — return null and let the caller toast.
+  if (currentOpponent) {
+    const currentDmg = maxDamageOf(currentOpponent, defender, field, format);
+    if (best.damage <= currentDmg) return null;
+  }
+
+  return best;
 }
 
 export function findTankiestBuild(
@@ -132,50 +191,30 @@ const TYPE_BOOSTER: Record<string, string> = {
 };
 
 /**
- * Build a max-threat mon from scratch for `species` in `category`. Picks
- * the species's slot-0 ability, +nature on the attacking stat, a type-
- * matched 1.2x booster item for the strongest move (Champions has no
- * Choice Band / Specs / Life Orb), and the top-4 highest-BP moves of
- * the matching category from the species's known movepool. Returns null
- * if no matching offensive moves are known.
+ * Build a candidate attacker fixed to (ability, top move, type-matched
+ * item). Other 3 move slots are filled with the species's top same-
+ * category moves (by BP) so the displayed mon has a coherent 4-move set,
+ * even though only `topMove` is what scored as the max-damage option.
  */
-function synthesizeMaxThreat(species: string, category: 'Physical' | 'Special'): SavedMon | null {
-  const known = getKnownMovesForSpecies(species);
-  if (known.length === 0) return null;
-  const scored = known
-    .map((name) => {
-      const m = GEN.moves.get(toID(name) as any) as { bp?: number; basePower?: number; category?: string; type?: string } | undefined;
-      const bp = (m?.bp ?? m?.basePower ?? 0) as number;
-      const cat = (m?.category ?? '') as string;
-      return { name, bp, cat, type: m?.type as string | undefined };
-    })
-    .filter((x) => x.cat === category && x.bp > 0)
-    .sort((a, b) => b.bp - a.bp);
-  if (scored.length === 0) return null;
-
-  const moves: [string, string, string, string] = [
-    scored[0]?.name ?? '',
-    scored[1]?.name ?? '',
-    scored[2]?.name ?? '',
-    scored[3]?.name ?? '',
-  ];
-
-  const sp = GEN.species.get(toID(species) as any);
-  const abilityBag = (sp?.abilities ?? {}) as Record<string, string>;
-  const ability = (abilityBag['0'] ?? Object.values(abilityBag)[0] ?? '') as string;
-
-  // Pick the 1.2x type-booster matching the strongest move's type. Falls
-  // back to no item if the type is unknown (calc handles undefined item).
-  const topMoveType = scored[0]?.type;
-  const item = topMoveType ? TYPE_BOOSTER[topMoveType] : undefined;
-
+function buildAttacker(
+  species: string,
+  category: 'Physical' | 'Special',
+  ability: string,
+  topMove: string,
+  topType: string | undefined,
+  fillers: { name: string }[],
+  item: string | undefined,
+): SavedMon {
+  void topType;
   const isPhysical = category === 'Physical';
+  const others = fillers.filter((f) => f.name !== topMove).slice(0, 3);
+  const moves: [string, string, string, string] = [topMove, others[0]?.name ?? '', others[1]?.name ?? '', others[2]?.name ?? ''];
   return {
-    id: `worstcase-synth-${species}-${category}`,
+    id: `worstcase-synth-${species}-${category}-${toID(ability)}-${toID(topMove)}`,
     species,
     buildName: `Max-threat ${category}`,
     item,
-    ability: ability || undefined,
+    ability,
     nature: isPhysical ? 'Adamant' : 'Modest',
     // Champions SP budget: 32 to the attacking stat, 32 to Spe (so the
     // worst case can move first), leftover to HP. Total = 66.
@@ -187,21 +226,19 @@ function synthesizeMaxThreat(species: string, category: 'Physical' | 'Special'):
 }
 
 /**
- * Mirror of synthesizeMaxThreat for the tankiest-build search. Picks a
- * pure wall template — max HP + max defensive stat, +nature on the
- * defending side, Leftovers for passive recovery. Moves are filler from
- * the species's known set since the search only scores incoming damage,
- * not outgoing.
+ * Mirror of buildAttacker for the tankiest-build search. Picks a pure wall
+ * template — max HP + max defensive stat, +nature on the defending side,
+ * Leftovers for passive recovery. Moves are filler from the species's
+ * known set since the search only scores incoming damage, not outgoing.
  */
 function synthesizeWall(species: string, side: 'Physical' | 'Special'): SavedMon | null {
   const known = getKnownMovesForSpecies(species);
-  // Pick any 4 moves so the mon isn't "no moves" — filler doesn't affect
-  // the "how much damage does it take?" score.
   const moves: [string, string, string, string] = [known[0] ?? '', known[1] ?? '', known[2] ?? '', known[3] ?? ''];
 
   const sp = GEN.species.get(toID(species) as any);
-  const abilityBag = (sp?.abilities ?? {}) as Record<string, string>;
-  const ability = (abilityBag['0'] ?? Object.values(abilityBag)[0] ?? '') as string;
+  const fromPkmn = getSpeciesAbilities(species);
+  const abilities = fromPkmn && fromPkmn.length > 0 ? fromPkmn : (Object.values(sp?.abilities ?? {}) as string[]);
+  const ability = abilities[0] ?? '';
 
   const isPhys = side === 'Physical';
   return {
