@@ -204,6 +204,36 @@ describe('priority override propagates through the adapter', () => {
     expect(eq.percentRange[1]).toBeLessThan(100);
   });
 
+  it('uses Floette-Mega stats when Floette-Eternal mega-evolves (irregular -Mega naming)', () => {
+    // Floette-Eternal's mega forme is "Floette-Mega" (not "Floette-Eternal-
+    // Mega"). Calc links them via baseSpecies; the adapter's species-table
+    // fallback should pick it up so the mega's huge SpA (155) drives damage,
+    // not the base form's 125.
+    const floetteBase: SavedMon = {
+      id: 'fb',
+      species: 'Floette-Eternal',
+      ability: 'Flower Veil',
+      nature: 'Modest',
+      sps: { spa: 32, spe: 32, hp: 2 },
+      moves: ['Moonblast', '', '', ''],
+      mega: '',
+      boosts: {},
+    };
+    const floetteMega: SavedMon = {
+      ...floetteBase,
+      item: 'Floettite',
+      mega: 'mega',
+    };
+    const baseDmg = calculateMatchup(floetteBase, tyranitar, blankField()).attackerMoves[0].damageRange[1];
+    const megaDmg = calculateMatchup(floetteMega, tyranitar, blankField()).attackerMoves[0].damageRange[1];
+    expect(megaDmg).toBeGreaterThan(baseDmg);
+    // Stats reported should match the mega forme's SpA at level 50 with
+    // 32 SP + Modest — well above the base's ~150-ish range.
+    expect(calculateMatchup(floetteMega, tyranitar, blankField()).attackerStats.spa).toBeGreaterThan(
+      calculateMatchup(floetteBase, tyranitar, blankField()).attackerStats.spa,
+    );
+  });
+
   it('returns a degraded matchup (no throw) when a mon has an invalid species', () => {
     // Regression guard: stale localStorage from before species validation
     // could carry a typo'd species name. The BattleScreen render must not

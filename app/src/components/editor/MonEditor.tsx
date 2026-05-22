@@ -19,6 +19,7 @@ import { getBuildsForSpecies } from '@/data/setdex-champions';
 import { spriteUrl } from '@/data/sprites';
 import { monToShowdownText } from '@/store/exporters';
 import { monFromBuild } from '@/store/factories';
+import { synthesizeBuild } from '@/store/synthesize';
 import { validateSps } from '@/store/validators';
 import type { SavedMon } from '@/types';
 import { copyToClipboard } from '@/util/clipboard';
@@ -189,7 +190,28 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
     // tuned configs, so the user expects a sensible default rather than
     // partial preservation of the previous build's fields.
     if (isForOpponent || isDraftUntouched(draft)) {
-      setDraft(applyFirstBuild(species, base));
+      const withCurated = applyFirstBuild(species, base);
+      setDraft(withCurated);
+      // No curated build in setdex (e.g. Floette-Eternal) → applyFirstBuild
+      // returns the base mon unchanged. Fall back to async synthesis so the
+      // user lands on a usable mon instead of a blank slate. Guarded by
+      // species match in case the user picks again before synth resolves.
+      if (!withCurated.buildName) {
+        void synthesizeBuild(species).then((built) => {
+          if (!built) return;
+          setDraft((d) => {
+            if (d.species !== species) return d;
+            return {
+              ...d,
+              buildName: 'Auto · Max-Speed Sweeper',
+              ability: built.ability,
+              nature: built.nature,
+              sps: built.sps,
+              moves: built.moves,
+            };
+          });
+        });
+      }
       return;
     }
     // Team-mon path with manual edits: keep them but offer the suggested

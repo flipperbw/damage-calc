@@ -14,11 +14,24 @@ function has(species: string): boolean {
 
 function megaOptions(species: string): MegaOptions {
   const baseName = species.replace(/-Mega(-X|-Y)?$/, '');
-  return {
+  const opts: MegaOptions = {
     hasPlain: has(`${baseName}-Mega`),
     hasX: has(`${baseName}-Mega-X`),
     hasY: has(`${baseName}-Mega-Y`),
   };
+  // Also catch mega formes whose name doesn't follow the `{base}-Mega(-X|-Y)?`
+  // pattern but link back via calc's `baseSpecies` field. Floette-Eternal is
+  // the live example: its mega forme is `Floette-Mega` (not
+  // `Floette-Eternal-Mega`), so the name-based check above misses it.
+  for (const sp of GEN.species) {
+    const linkedBase = (sp as unknown as { baseSpecies?: string }).baseSpecies;
+    if (linkedBase !== baseName) continue;
+    const n = sp.name;
+    if (n.endsWith('-Mega-X')) opts.hasX = true;
+    else if (n.endsWith('-Mega-Y')) opts.hasY = true;
+    else if (n.endsWith('-Mega')) opts.hasPlain = true;
+  }
+  return opts;
 }
 
 interface Props {

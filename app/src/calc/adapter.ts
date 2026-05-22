@@ -99,11 +99,24 @@ function speciesForCalc(mon: SavedMon, role: CalcRole): string {
   // top — Aegislash / Palafin don't have megas, so the two stages don't
   // overlap in practice, but order it this way for safety.
   const base = inBattleForme(mon.species, role);
+  if (!mon.mega) return base;
+  // Standard {base}-Mega(-X|-Y)? naming first — covers nearly every mega.
   const candidate = megaFormeName(base, mon.mega);
-  if (candidate === base) return base;
-  if (GEN.species.get(toID(candidate) as any)) return candidate;
+  if (candidate !== base && GEN.species.get(toID(candidate) as any)) return candidate;
+  // Irregular naming fallback: scan the species table for a mega forme
+  // that links back to this species via calc's `baseSpecies` field.
+  // Floette-Eternal → Floette-Mega is the live example; the name doesn't
+  // follow `{base}-Mega` so the lookup above misses it.
+  for (const sp of GEN.species) {
+    const linkedBase = (sp as unknown as { baseSpecies?: string }).baseSpecies;
+    if (linkedBase !== base) continue;
+    const n = sp.name;
+    if (mon.mega === 'mega-x' && n.endsWith('-Mega-X')) return n;
+    if (mon.mega === 'mega-y' && n.endsWith('-Mega-Y')) return n;
+    if (mon.mega === 'mega' && n.endsWith('-Mega') && !n.endsWith('-Mega-X') && !n.endsWith('-Mega-Y')) return n;
+  }
   // eslint-disable-next-line no-console
-  console.warn(`Mega forme "${candidate}" not found; falling back to "${base}".`);
+  console.warn(`Mega forme for "${base}" (mega=${mon.mega}) not found; falling back to base.`);
   return base;
 }
 
