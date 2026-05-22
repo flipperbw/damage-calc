@@ -12,6 +12,7 @@ import { SpeedDivider } from '@/components/SpeedDivider';
 import { TeamCarousel } from '@/components/TeamCarousel';
 import { useStore } from '@/store';
 import { defaultOpponentMon, defaultTeamMon } from '@/store/factories';
+import { applySynthIfMissing } from '@/store/synthesize';
 import type { SavedMon } from '@/types';
 
 export function BattleScreen() {
@@ -165,7 +166,19 @@ export function BattleScreen() {
             </button>
           </div>
         )}
-        <SpeciesPicker open={oppPicker} onClose={() => setOppPicker(false)} onPick={(s) => setOpponent(defaultOpponentMon(s))} />
+        <SpeciesPicker
+          open={oppPicker}
+          onClose={() => setOppPicker(false)}
+          onPick={(s) => {
+            const mon = defaultOpponentMon(s);
+            setOpponent(mon);
+            applySynthIfMissing(
+              mon,
+              () => useStore.getState().opponent,
+              (patched) => setOpponent(patched),
+            );
+          }}
+        />
         <SpeciesPicker
           open={addMonPicker}
           onClose={() => setAddMonPicker(false)}
@@ -174,6 +187,11 @@ export function BattleScreen() {
           onPick={(species) => {
             const mon = defaultTeamMon(species);
             upsertMon(team.id, mon);
+            applySynthIfMissing(
+              mon,
+              () => useStore.getState().teams.find((t) => t.id === team.id)?.mons.find((m) => m.id === mon.id),
+              (patched) => upsertMon(team.id, patched),
+            );
             setAddMonPicker(false);
             setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
           }}
@@ -430,6 +448,11 @@ export function BattleScreen() {
         onPick={(species) => {
           const mon = defaultTeamMon(species);
           upsertMon(team.id, mon);
+          applySynthIfMissing(
+            mon,
+            () => useStore.getState().teams.find((t) => t.id === team.id)?.mons.find((m) => m.id === mon.id),
+            (patched) => upsertMon(team.id, patched),
+          );
           setAddMonPicker(false);
           setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
         }}

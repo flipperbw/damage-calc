@@ -10,6 +10,7 @@ import { TypeBadge } from '@/components/TypeBadge';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
 import { defaultTeamMon } from '@/store/factories';
+import { applySynthIfMissing } from '@/store/synthesize';
 import type { SavedMon } from '@/types';
 
 interface Props {
@@ -49,6 +50,11 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
     }
     const mon = defaultTeamMon(species);
     upsertMon(team.id, mon);
+    applySynthIfMissing(
+      mon,
+      () => useStore.getState().teams.find((t) => t.id === team.id)?.mons.find((m) => m.id === mon.id),
+      (patched) => upsertMon(team.id, patched),
+    );
     toast.success(`Added ${species} to ${team.name}`);
     // Drop the user into the editor on the new mon so they can pick a build /
     // moves immediately - same flow as the Coverage roster's "+ slot" path.

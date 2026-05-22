@@ -7,6 +7,7 @@ import { TypeBadge } from '@/components/TypeBadge';
 import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
 import { defaultTeamMon } from '@/store/factories';
+import { applySynthIfMissing } from '@/store/synthesize';
 
 interface Props {
   /** Currently-selected team id. Owned by the parent so it stays in sync with the matchup matrix. */
@@ -39,6 +40,11 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
     if (!team) return;
     const mon = defaultTeamMon(species);
     upsertMon(team.id, mon);
+    applySynthIfMissing(
+      mon,
+      () => useStore.getState().teams.find((t) => t.id === team.id)?.mons.find((m) => m.id === mon.id),
+      (patched) => upsertMon(team.id, patched),
+    );
     setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
     setPickingSlot(null);
   }

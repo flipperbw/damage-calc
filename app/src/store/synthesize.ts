@@ -49,6 +49,44 @@ export function summarizeSynth(species: string): SynthSummary | null {
   return { bestAtk, isFast, nature: natureFor(plus, minus) };
 }
 
+/**
+ * Background-fill a curated-build-less mon with the same Auto build the
+ * BuildDropdown's "Auto · Max-Speed Sweeper" option produces. Use this
+ * right after seating a mon via defaultOpponentMon / defaultTeamMon when
+ * the picker can't open the editor first.
+ *
+ * Returns immediately. The patch lands via `setter` once @pkmn/data
+ * resolves; `getCurrent` is called at that moment to bail out cleanly if
+ * the user already moved on (different species in the slot, slot deleted,
+ * opponent replaced). No-op when the mon already has a buildName.
+ */
+export function applySynthIfMissing(
+  mon: SavedMon,
+  getCurrent: () => SavedMon | null | undefined,
+  setter: (patched: SavedMon) => void,
+): void {
+  if (mon.buildName) return;
+  void synthesizeBuild(mon.species).then((built) => {
+    if (!built) return;
+    const current = getCurrent();
+    if (!current || current.id !== mon.id || current.species !== mon.species) return;
+    // Don't clobber user edits made while synth was in flight — only fill
+    // the fields synth produces if they're still the empty defaults the
+    // factory put there.
+    const movesUntouched = current.moves.every((m) => !m);
+    const spsUntouched = Object.values(current.sps).every((v) => !v);
+    if (!movesUntouched || !spsUntouched) return;
+    setter({
+      ...current,
+      buildName: 'Auto · Max-Speed Sweeper',
+      ability: built.ability,
+      nature: built.nature,
+      sps: built.sps,
+      moves: built.moves,
+    });
+  });
+}
+
 export async function synthesizeBuild(species: string): Promise<SavedMon | null> {
   const sp = GEN.species.get(toID(species) as any);
   if (!sp) return null;

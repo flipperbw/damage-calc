@@ -10,6 +10,7 @@ import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
 import { teamToShowdownText } from '@/store/exporters';
 import { defaultTeamMon } from '@/store/factories';
+import { applySynthIfMissing } from '@/store/synthesize';
 import type { SavedMon, Team } from '@/types';
 import { copyToClipboard } from '@/util/clipboard';
 
@@ -199,6 +200,11 @@ export function TeamsScreen() {
           onPick={(species) => {
             const mon = defaultTeamMon(species);
             upsertMon(picker.teamId, mon);
+            applySynthIfMissing(
+              mon,
+              () => useStore.getState().teams.find((t) => t.id === picker.teamId)?.mons.find((m) => m.id === mon.id),
+              (patched) => upsertMon(picker.teamId, patched),
+            );
             setPicker(null);
             setEditor({ kind: 'team-mon', teamId: picker.teamId, monId: mon.id });
           }}
