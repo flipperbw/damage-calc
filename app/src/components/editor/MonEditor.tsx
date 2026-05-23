@@ -311,13 +311,16 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
             the user scrolls through SP grid / moves / effective stats. */}
         <div className="flex-1 overflow-y-auto px-4 [overscroll-behavior:contain]">
 
-        {/* Hero */}
+        {/* Hero — three-column layout matching MonCard: sprite | name+types
+            stack | Mega toggle. items-center vertically centers across the
+            row so the toggle sits to the right of the species block rather
+            than stacking under it. */}
         <div className="flex gap-3 items-center mb-4 p-3 bg-danger/10 border border-danger/20 rounded-card">
           <button onClick={() => setPicker('species')}>
             <Sprite species={draft.mega ? megaFormeName(draft.species, draft.mega) : draft.species} className="w-16 h-16 rounded" />
           </button>
-          <div className="flex-1">
-            <div className="font-extrabold text-lg cursor-pointer" onClick={() => setPicker('species')}>
+          <div className="flex-1 min-w-0">
+            <div className="font-extrabold text-lg cursor-pointer truncate" onClick={() => setPicker('species')}>
               {draft.species}
             </div>
             <div className="flex gap-1 mt-1">
@@ -325,9 +328,9 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
                 <TypeBadge key={t} type={t as string} />
               ))}
             </div>
-            <div className="mt-2">
-              <MegaToggle mega={draft.mega} species={draft.species} item={draft.item} onChange={(mega) => patch({ mega })} />
-            </div>
+          </div>
+          <div className="shrink-0">
+            <MegaToggle mega={draft.mega} species={draft.species} item={draft.item} onChange={(mega) => patch({ mega })} />
           </div>
         </div>
 

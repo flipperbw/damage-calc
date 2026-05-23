@@ -41,6 +41,24 @@ function spriteSlug(species) {
 // hundreds of identical placeholder PNGs on disk.
 const PS_PLACEHOLDER_SIZE = 3803;
 
+// Sprite roots to try in order. Some gen-5+ species (Volcarona is the live
+// example) live only under `gen5/` even though they exist in dex; PS just
+// doesn't host their dex sprite. After dex returns the placeholder, fall
+// back to gen5 so we cover that gap.
+const SPRITE_ROOTS = ['dex', 'gen5'];
+
+async function fetchSprite(slug) {
+  for (const root of SPRITE_ROOTS) {
+    const url = `https://play.pokemonshowdown.com/sprites/${root}/${slug}.png`;
+    const res = await fetch(url);
+    if (res.status !== 200) continue;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length === PS_PLACEHOLDER_SIZE) continue;
+    return { buf, root };
+  }
+  return null;
+}
+
 const gen = Generations.get(0);
 const slugs = new Set();
 for (const sp of gen.species) {
@@ -62,6 +80,7 @@ let downloaded = 0;
 let skipped = 0;
 let placeholder = 0;
 let httpFail = 0;
+const fallbackUsed = [];
 
 for (const slug of slugs) {
   const target = path.join(OUT_DIR, `${slug}.png`);
@@ -72,21 +91,15 @@ for (const slug of slugs) {
   } catch {
     // file doesn't exist — fetch it
   }
-  const url = `https://play.pokemonshowdown.com/sprites/dex/${slug}.png`;
   try {
-    const res = await fetch(url);
-    if (res.status !== 200) {
-      console.warn(`[${slug}] HTTP ${res.status}`);
-      httpFail += 1;
-      continue;
-    }
-    const buf = Buffer.from(await res.arrayBuffer());
-    if (buf.length === PS_PLACEHOLDER_SIZE) {
-      // PS returns a 200 + placeholder PNG for unknown slugs.
+    const result = await fetchSprite(slug);
+    if (!result) {
       placeholder += 1;
+      console.warn(`[${slug}] no sprite found in any root`);
       continue;
     }
-    await writeFile(target, buf);
+    await writeFile(target, result.buf);
+    if (result.root !== 'dex') fallbackUsed.push(`${slug} (${result.root})`);
     downloaded += 1;
     if (downloaded % 25 === 0) {
       console.log(`progress: downloaded=${downloaded}, skipped=${skipped}, placeholder=${placeholder}, fail=${httpFail}`);
@@ -103,4 +116,8 @@ console.log(`downloaded:     ${downloaded}`);
 console.log(`already cached: ${skipped}`);
 console.log(`placeholder:    ${placeholder}`);
 console.log(`http failures:  ${httpFail}`);
+if (fallbackUsed.length) {
+  console.log(`gen5 fallback:  ${fallbackUsed.length}`);
+  for (const f of fallbackUsed) console.log(`  - ${f}`);
+}
 console.log(`output dir:     ${OUT_DIR}`);
