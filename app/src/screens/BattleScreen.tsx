@@ -462,11 +462,16 @@ export function BattleScreen() {
         onClose={() => setYouPicker(false)}
         showRecents={false}
         onPick={(species) => {
-          // Build an ad-hoc mon with a special id keyed off the active team
-          // mon's id - so the auto-clear effect can detect when the user has
-          // moved to a different slot. The team mon is NOT touched.
+          // Build an ad-hoc mon with a special id keyed off the underlying
+          // *teammate*, not the currently-displayed `you`. If we key off
+          // `you` while an override is already active, we end up with a
+          // nested `adhoc-of-adhoc-of-<id>` prefix; the auto-clear effect
+          // above only strips one `adhoc-of-` layer and then sees a
+          // mismatch with teamYou.id, which silently nukes the new ad-hoc
+          // pick and snaps the display back to the team mon.
+          if (!teamYou) return;
           const fresh = defaultTeamMon(species);
-          setYouOverride({ ...fresh, id: `adhoc-of-${you!.id}` });
+          setYouOverride({ ...fresh, id: `adhoc-of-${teamYou.id}` });
           setYouPicker(false);
         }}
       />

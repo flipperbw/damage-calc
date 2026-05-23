@@ -105,27 +105,42 @@ export function MonCard({
 
   return (
     <div {...swapProps}>
-      <div className="flex gap-2.5 items-start mb-2">
+      {/* Card header laid out as three columns: sprite | (name + types
+          stacked) | (Mega + Swap cluster). items-center on the outer flex
+          vertically centers all three across the row's height so the
+          cluster reads as "next to the species block" rather than floating
+          above it. */}
+      <div className="flex gap-2.5 items-center mb-2">
         <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-sprite-${side}`}>
           <img src={spriteUrl(mon.species)} alt={mon.species} className="w-13 h-13 rounded-xl" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start gap-2">
-            <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-name-${side}`} className="font-bold text-base text-left truncate">
-              {mon.species}
-            </button>
-            {/* Top-right cluster: Mega toggle (when species supports it AND
-                the held item is a mega stone) sits above the small L50 label. */}
-            <div className="flex flex-col items-end gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-              <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
-              <span className="text-[10px] opacity-50">L50</span>
-            </div>
-          </div>
+          <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-name-${side}`} className="font-bold text-base text-left truncate block">
+            {mon.species}
+          </button>
           <div className="flex gap-1 mt-1">
             {types.map((t) => (
               <TypeBadge key={t} type={t as string} />
             ))}
           </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
+          {onSwap ? (
+            <button
+              type="button"
+              onClick={(e) => stop(e, onSwap)}
+              data-testid={`swap-btn-${side}`}
+              aria-label={`Swap ${mon.species}`}
+              title="Swap"
+              style={{ touchAction: 'manipulation' }}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.04] border border-surface-hi text-text-mute opacity-80 hover:opacity-100 hover:border-accent hover:text-accent"
+            >
+              <span aria-hidden className="text-base leading-none" style={{ pointerEvents: 'none' }}>
+                ⇄
+              </span>
+            </button>
+          ) : null}
         </div>
       </div>
 
