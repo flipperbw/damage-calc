@@ -27,6 +27,13 @@ export function Sprite({ species, alt = '', className = '' }: Props) {
       alt={alt}
       loading="lazy"
       decoding="async"
+      // `image-rendering: -webkit-optimize-contrast` hints to WebKit /
+      // Chrome to prefer sharper downscaling kernels (closer to bilinear-
+      // sharp than the default lanczos-blur). PS dex art is mostly clean
+      // shading with hard outlines — this keeps the outlines crisp when
+      // the browser downscales our 100×100 source to ~32–64px display
+      // sizes. Firefox ignores the value and uses its default (fine).
+      style={{ imageRendering: '-webkit-optimize-contrast' }}
       className={`object-contain ${className}`}
     />
   );

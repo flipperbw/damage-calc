@@ -41,7 +41,10 @@ for (const file of files) {
       .trim()
       // Fit the trimmed bbox into an INNER×INNER area, preserving aspect.
       // The longer dimension hits INNER; the shorter dimension is smaller.
-      .resize(INNER, INNER, { fit: 'inside', withoutEnlargement: false })
+      // Allow enlargement so every species ends up the same visual size in
+      // the canvas; we compensate for the lanczos-resize blur with an
+      // unsharp-mask pass below.
+      .resize(INNER, INNER, { fit: 'inside' })
       // Pad up to a CANVAS×CANVAS square with transparent background,
       // centered. The character is now framed with at least MARGIN px of
       // breathing room on every side.
@@ -50,6 +53,13 @@ for (const file of files) {
         background: { r: 0, g: 0, b: 0, alpha: 0 },
         position: 'center',
       })
+      // Unsharp mask to recover edge crispness lost in the resize. sigma
+      // controls the blur radius the filter measures against; small mons
+      // upscaled from a 50-px bbox benefit most, big mons get a milder
+      // boost. m1/m2 control the boost per stop — these values match
+      // sharp's "moderate sharpen" preset that keeps anti-aliased outlines
+      // clean without overshooting into halos.
+      .sharpen({ sigma: 0.8, m1: 0.4, m2: 1.4 })
       // Indexed palette PNG (matches PS's own encoding) is far smaller for
       // sprite-art with bounded colour counts than the default RGBA output.
       .png({ palette: true, compressionLevel: 9 })
