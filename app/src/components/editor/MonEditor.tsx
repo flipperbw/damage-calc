@@ -253,16 +253,21 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center px-4 pt-4 mb-3 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close editor"
-            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer"
-          >
-            ←
-          </button>
-          <span className="font-bold">Edit</span>
+          {/* Left cluster: back arrow + "Edit" label as one group so the
+              header reads as `← Edit | actions` rather than centering the
+              title. */}
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close editor"
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer"
+            >
+              ←
+            </button>
+            <span className="font-bold">Edit</span>
+          </div>
           <div className="flex items-center gap-1">
             {copied && (
               <span data-testid="copy-confirmation" className="text-ok text-sm font-semibold mr-1" aria-live="polite">
