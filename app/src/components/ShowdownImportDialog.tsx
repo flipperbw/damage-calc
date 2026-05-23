@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import { spriteUrl } from '@/data/sprites';
+import { Sprite } from '@/components/Sprite';
 import { useStore } from '@/store';
 import { type ImportChange, type ImportChangeKind, parseShowdownText, type ParsedMon } from '@/store/importers';
 import type { SavedMon } from '@/types';
@@ -367,7 +367,7 @@ function MonRow({
             ?
           </div>
         ) : (
-          <img src={spriteUrl(draft.species)} className="w-9 h-9 rounded shrink-0" alt="" />
+          <Sprite species={draft.species} className="w-9 h-9 rounded shrink-0" />
         )}
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-sm truncate">{displayName}</div>

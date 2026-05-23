@@ -1,4 +1,4 @@
-import { spriteUrl } from '@/data/sprites';
+import { Sprite } from '@/components/Sprite';
 import { useStore } from '@/store';
 
 interface CarouselProps {
@@ -69,7 +69,7 @@ export function TeamCarousel({ vertical = false, onAddMon, suppressActive = fals
               active ? 'bg-accent/20 border-1.5 border-accent shadow-[0_0_20px_rgba(124,92,255,0.3)]' : 'bg-surface border border-surface-hi'
             } ${fainted ? 'opacity-30' : ''}`}
           >
-            <img src={spriteUrl(mon.species)} alt={mon.species} className="w-3/4 h-3/4 object-contain" />
+            <Sprite species={mon.species} alt={mon.species} className="w-3/4 h-3/4" />
           </button>
         );
       })}

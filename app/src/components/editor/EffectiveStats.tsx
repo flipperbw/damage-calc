@@ -89,7 +89,6 @@ export function EffectiveStats({ species, nature, sps, item }: Props) {
     <div>
       <div className="flex justify-between items-center mb-2">
         <div className="text-xxs uppercase tracking-wider opacity-55">Effective Stats</div>
-        <div className="text-[10px] opacity-40">L50</div>
       </div>
       <div className={`grid ${showMega ? 'grid-cols-[auto_1fr_1fr_1fr]' : 'grid-cols-[auto_1fr_1fr]'} gap-x-3 gap-y-1 text-[14px] tabular-nums`}>
         <div />

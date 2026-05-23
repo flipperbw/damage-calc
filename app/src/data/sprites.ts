@@ -33,6 +33,10 @@ function spriteSlug(species: string): string {
   return lower.slice(0, idx + 1) + lower.slice(idx + 1).replace(/-/g, '');
 }
 
+// Sprites are bundled locally under app/public/sprites/ (fetched once via
+// scripts/fetch-sprites.mjs). Vite serves the `public/` tree at the root,
+// so `/sprites/<slug>.png` resolves against our own origin — no network
+// roundtrip to play.pokemonshowdown.com at runtime.
 export function spriteUrl(species: string): string {
-  return `https://play.pokemonshowdown.com/sprites/dex/${spriteSlug(species)}.png`;
+  return `/sprites/${spriteSlug(species)}.png`;
 }

@@ -4,8 +4,8 @@ import { calculateMatchup, type MoveResult } from '@/calc/adapter';
 import { SectionToggle } from '@/components/builder/SectionToggle';
 import { FieldBar } from '@/components/FieldBar';
 import { PickerShell } from '@/components/pickers/PickerShell';
+import { Sprite } from '@/components/Sprite';
 import { TypeBadge } from '@/components/TypeBadge';
-import { spriteUrl } from '@/data/sprites';
 import { useStore } from '@/store';
 import type { FieldState, SavedMon, Team, ThreatList } from '@/types';
 
@@ -115,7 +115,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
                   {yourMons.map((you) => (
                     <th key={you.id} className="p-0.5 font-medium text-center">
                       <div className="flex flex-col items-center gap-0">
-                        <img src={spriteUrl(you.species)} className="w-6 h-6 object-contain" />
+                        <Sprite species={you.species} className="w-6 h-6" />
                         <span className="text-[8px] leading-tight truncate w-full">{you.species}</span>
                       </div>
                     </th>
@@ -127,7 +127,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
                   <tr key={threat.id}>
                     <td className="sticky left-0 bg-surface-solid z-10 p-1 border-t border-r border-surface-hi">
                       <div className="flex items-center gap-1">
-                        <img src={spriteUrl(threat.species)} className="w-5 h-5 object-contain shrink-0" />
+                        <Sprite species={threat.species} className="w-5 h-5 shrink-0" />
                         <span className="text-[9px] leading-tight truncate">{threat.species}</span>
                       </div>
                     </td>
@@ -153,7 +153,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
                   {threats.map((threat) => (
                     <th key={threat.id} className="p-1.5 font-medium text-center min-w-[56px]">
                       <div className="flex flex-col items-center gap-0.5">
-                        <img src={spriteUrl(threat.species)} className="w-7 h-7 object-contain" />
+                        <Sprite species={threat.species} className="w-7 h-7" />
                         <span className="text-[10px] truncate max-w-[64px]">{threat.species}</span>
                       </div>
                     </th>
@@ -168,7 +168,7 @@ export function MatchupMatrix({ team, threatList }: Props) {
                       style={{ width: collapsedWidth(collapse) }}
                     >
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <img src={spriteUrl(you.species)} className="w-7 h-7 object-contain shrink-0" />
+                        <Sprite species={you.species} className="w-7 h-7 shrink-0" />
                         <span
                           className="text-[11px] truncate"
                           style={{

@@ -5,7 +5,7 @@ import { ActionMenu, type ActionMenuItem } from '@/components/ActionMenu';
 import { SectionToggle } from '@/components/builder/SectionToggle';
 import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
-import { spriteUrl } from '@/data/sprites';
+import { Sprite } from '@/components/Sprite';
 import { useStore } from '@/store';
 import { defaultOpponentMon } from '@/store/factories';
 import type { SavedMon, ThreatList } from '@/types';
@@ -274,7 +274,7 @@ function ThreatListCard({
                 className="relative bg-bg-base/40 border border-surface-hi rounded-lg p-1.5 flex flex-col items-center gap-0.5"
               >
                 <button type="button" onClick={() => onEditMon(mon.id)} aria-label={`Edit ${mon.species}`} className="flex flex-col items-center">
-                  <img src={spriteUrl(mon.species)} className="w-10 h-10 object-contain" />
+                  <Sprite species={mon.species} className="w-10 h-10" />
                   <span className="text-[10px] truncate max-w-[64px]">{mon.species}</span>
                 </button>
                 <button

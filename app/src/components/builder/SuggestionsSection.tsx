@@ -7,7 +7,7 @@ import { suggestAdditions, type Suggestion, type SuggestionReason } from '@/calc
 import { SectionToggle } from '@/components/builder/SectionToggle';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { TypeBadge } from '@/components/TypeBadge';
-import { spriteUrl } from '@/data/sprites';
+import { Sprite } from '@/components/Sprite';
 import { useStore } from '@/store';
 import { defaultTeamMon } from '@/store/factories';
 import { applySynthIfMissing } from '@/store/synthesize';
@@ -205,7 +205,7 @@ function SuggestionCard({
           line so the row never overflows on narrow mobile cards (the v1
           horizontal layout was overlapping on iPhone widths). */}
       <div className="flex items-center gap-1.5">
-        <img src={spriteUrl(suggestion.species)} alt={suggestion.species} className="w-9 h-9 object-contain shrink-0" />
+        <Sprite species={suggestion.species} alt={suggestion.species} className="w-9 h-9 shrink-0" />
         <div className="font-semibold text-[13px] truncate flex-1 min-w-0">{suggestion.species}</div>
         {onAdd && (
           <button
@@ -288,7 +288,7 @@ function SuggestionDetailSheet({
     <PickerShell open={open} onClose={onClose}>
       <div className="overflow-y-auto -mx-1 px-1">
         <div className="flex items-center gap-3 mb-3">
-          <img src={spriteUrl(suggestion.species)} className="w-14 h-14 object-contain" />
+          <Sprite species={suggestion.species} className="w-14 h-14" />
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold">{suggestion.species}</h3>
             <div className="flex gap-1 mt-1">

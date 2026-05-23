@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { GEN, toID } from '@/calc/gen';
+import { megaFormeName } from '@/calc/helpers';
 import { AbilityDetailSheet } from '@/components/AbilityDetailSheet';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { BuildDropdown } from '@/components/editor/BuildDropdown';
@@ -16,7 +17,7 @@ import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { ShowdownImportDialog } from '@/components/ShowdownImportDialog';
 import { TypeBadge } from '@/components/TypeBadge';
 import { getBuildsForSpecies } from '@/data/setdex-champions';
-import { spriteUrl } from '@/data/sprites';
+import { Sprite } from '@/components/Sprite';
 import { monToShowdownText } from '@/store/exporters';
 import { monFromBuild } from '@/store/factories';
 import { synthesizeBuild } from '@/store/synthesize';
@@ -313,7 +314,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
         {/* Hero */}
         <div className="flex gap-3 items-center mb-4 p-3 bg-danger/10 border border-danger/20 rounded-card">
           <button onClick={() => setPicker('species')}>
-            <img src={spriteUrl(draft.species)} className="w-16 h-16 rounded" />
+            <Sprite species={draft.mega ? megaFormeName(draft.species, draft.mega) : draft.species} className="w-16 h-16 rounded" />
           </button>
           <div className="flex-1">
             <div className="font-extrabold text-lg cursor-pointer" onClick={() => setPicker('species')}>
@@ -370,17 +371,17 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
         <Field label="Nature" value={draft.nature} onClick={() => setPicker('nature')} />
 
         {/* SP grid */}
-        <div className="my-4">
+        <div className="my-6">
           <SpGrid sps={draft.sps} onChange={(sps) => patch({ sps })} />
         </div>
 
         {/* Effective stats - also shows the post-mega column when item is a mega stone */}
-        <div className="mb-4">
+        <div className="mb-6">
           <EffectiveStats species={draft.species} nature={draft.nature} sps={draft.sps} item={draft.item} />
         </div>
 
         {/* Moves */}
-        <div className="mb-4">
+        <div className="mb-6">
           <div className="text-xxs uppercase tracking-wider opacity-55 mb-1">Moves</div>
           <MoveSlots species={draft.species} moves={draft.moves} isForOpponent={isForOpponent} onChange={(moves) => patch({ moves })} />
         </div>

@@ -15,7 +15,9 @@
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.{ts,tsx}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.{ts,tsx}\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.{ts,tsx}\"",
+    "fetch-sprites": "node scripts/fetch-sprites.mjs",
+    "process-sprites": "node scripts/process-sprites.mjs"
   },
   "dependencies": {
     "@pkmn/data": "^0.10.7",
@@ -43,6 +45,7 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "jsdom": "^24.0.0",
     "prettier": "^3.8.3",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.2.4",
     "typescript": "^5.5.0",
     "vite": "^5.4.0",

@@ -4,7 +4,7 @@ import { analyzeCoverage } from '@/calc/coverage';
 import { SectionToggle } from '@/components/builder/SectionToggle';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { TypeBadge } from '@/components/TypeBadge';
-import { spriteUrl } from '@/data/sprites';
+import { Sprite } from '@/components/Sprite';
 import { useStore } from '@/store';
 import { defaultTeamMon } from '@/store/factories';
 import { applySynthIfMissing } from '@/store/synthesize';
@@ -97,7 +97,7 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
                   aria-label={`Edit ${mon.species}`}
                   className="aspect-square bg-surface border border-surface-hi rounded-lg flex items-center justify-center hover:border-accent/40"
                 >
-                  <img src={spriteUrl(mon.species)} className="w-3/4 h-3/4 object-contain" />
+                  <Sprite species={mon.species} className="w-3/4 h-3/4" />
                 </button>
               );
             }

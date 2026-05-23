@@ -10,8 +10,8 @@ import { AbilityPicker } from '@/components/pickers/AbilityPicker';
 import { BoostPicker } from '@/components/pickers/BoostPicker';
 import { StatusPicker } from '@/components/pickers/StatusPicker';
 import { StatChip } from '@/components/StatChip';
+import { Sprite } from '@/components/Sprite';
 import { TypeBadge } from '@/components/TypeBadge';
-import { spriteUrl } from '@/data/sprites';
 import { STAT_LABEL, STAT_ORDER, type MegaState, type SavedMon, type StatIDExceptHP, type StatusName } from '@/types';
 
 interface Props {
@@ -111,8 +111,11 @@ export function MonCard({
           cluster reads as "next to the species block" rather than floating
           above it. */}
       <div className="flex gap-2.5 items-center mb-2">
-        <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-sprite-${side}`}>
-          <img src={spriteUrl(mon.species)} alt={mon.species} className="w-13 h-13 rounded-xl" />
+        <button className="p-2" onClick={(e) => stop(e, onEdit)} data-testid={`edit-sprite-${side}`}>
+          {/* Use the effective species so a mega-evolved mon shows the mega
+              forme's sprite (Charizard-Mega-X, Gardevoir-Mega, …) rather
+              than the base. */}
+          <Sprite species={effectiveSpecies} alt={mon.species} className="w-13 h-13 rounded-xl" />
         </button>
         <div className="flex-1 min-w-0">
           <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-name-${side}`} className="font-bold text-base text-left truncate block">
@@ -256,4 +259,3 @@ export function MonCard({
     </div>
   );
 }
-

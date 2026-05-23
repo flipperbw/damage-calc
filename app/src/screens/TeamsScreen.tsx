@@ -6,7 +6,7 @@ import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
 import { MonEditor } from '@/components/editor/MonEditor';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { ShowdownImportDialog } from '@/components/ShowdownImportDialog';
-import { spriteUrl } from '@/data/sprites';
+import { Sprite } from '@/components/Sprite';
 import { useStore } from '@/store';
 import { teamToShowdownText } from '@/store/exporters';
 import { defaultTeamMon } from '@/store/factories';
@@ -170,7 +170,7 @@ export function TeamsScreen() {
                 data-use-count={r.useCount}
                 className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/[0.02]"
               >
-                <img src={spriteUrl(r.mon.species)} className="w-8 h-8 rounded" />
+                <Sprite species={r.mon.species} className="w-8 h-8 rounded" />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold truncate">{r.mon.species}</div>
                   <div className="text-[10px] opacity-50 truncate">
@@ -330,7 +330,7 @@ function TeamCard({
             aria-label={mon ? `Edit ${mon.species}` : `Add Pokémon to slot ${i + 1}`}
             className="flex-1 aspect-square bg-surface border border-surface-hi rounded-lg flex items-center justify-center"
           >
-            {mon ? <img src={spriteUrl(mon.species)} className="w-3/4 h-3/4 object-contain" /> : <span className="opacity-30 text-xs">＋</span>}
+            {mon ? <Sprite species={mon.species} className="w-3/4 h-3/4" /> : <span className="opacity-30 text-xs">＋</span>}
           </button>
         ))}
       </div>
