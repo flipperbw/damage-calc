@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ActionMenu } from '@/components/ActionMenu';
@@ -7,6 +7,7 @@ import { MonEditor } from '@/components/editor/MonEditor';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { ShowdownImportDialog } from '@/components/ShowdownImportDialog';
 import { Sprite } from '@/components/Sprite';
+import { TeamMonCard } from '@/components/TeamMonCard';
 import { useStore } from '@/store';
 import { teamToShowdownText } from '@/store/exporters';
 import { defaultTeamMon } from '@/store/factories';
@@ -144,6 +145,7 @@ export function TeamsScreen() {
             if (mon) setEditor({ kind: 'team-mon', teamId: t.id, monId: mon.id });
             else setPicker({ teamId: t.id, slotIndex: i });
           }}
+          onOpenMon={(monId) => setEditor({ kind: 'team-mon', teamId: t.id, monId })}
         />
       ))}
 
@@ -294,29 +296,48 @@ function TeamCard({
   onActivate,
   onSlot,
   onMenu,
+  onOpenMon,
 }: {
   team: Team;
   active: boolean;
   onActivate: () => void;
   onSlot: (i: number) => void;
   onMenu: () => void;
+  onOpenMon: (monId: string) => void;
 }) {
+  // Active team starts expanded; inactive teams start collapsed. After
+  // mount, manual toggles win until the team becomes active again — the
+  // useEffect below re-expands on every active→true transition so when
+  // the user activates a different team it auto-opens.
+  const [expanded, setExpanded] = useState(active);
+  useEffect(() => {
+    if (active) setExpanded(true);
+  }, [active]);
   const slots: (SavedMon | null)[] = [...team.mons, ...Array<null>(6 - team.mons.length).fill(null)];
   return (
     <div
       className={`bg-surface border rounded-card p-3 mb-2.5 ${active ? 'border-accent shadow-[0_0_24px_rgba(124,92,255,0.25)]' : 'border-surface-hi'}`}
     >
       <div className="flex justify-between items-center">
-        <button onClick={onActivate} className="text-left flex-1">
-          <div className="font-bold text-[15px]">{team.name}</div>
+        <button onClick={onActivate} className="text-left flex-1 min-w-0">
+          <div className="font-bold text-[15px] truncate">{team.name}</div>
           <div className="text-[11px] opacity-55">
             {team.format === 'singles' ? 'Singles' : 'Doubles'} · last edited {new Date(team.updatedAt).toLocaleDateString()}
           </div>
         </button>
         <button
+          onClick={() => setExpanded((v) => !v)}
+          aria-label={expanded ? 'Collapse team details' : 'Expand team details'}
+          aria-expanded={expanded}
+          data-testid={`team-expand-${team.id}`}
+          className="min-w-[36px] min-h-[36px] px-2 rounded-lg bg-surface border border-surface-hi text-sm leading-none opacity-70 hover:opacity-100"
+        >
+          {expanded ? '▴' : '▾'}
+        </button>
+        <button
           onClick={onMenu}
           aria-label="Team actions"
-          className="min-w-[36px] min-h-[36px] px-2.5 rounded-lg bg-surface border border-surface-hi text-base leading-none opacity-70 hover:opacity-100"
+          className="min-w-[36px] min-h-[36px] px-2.5 ml-1 rounded-lg bg-surface border border-surface-hi text-base leading-none opacity-70 hover:opacity-100"
         >
           ⋮
         </button>
@@ -334,6 +355,15 @@ function TeamCard({
           </button>
         ))}
       </div>
+      {expanded && team.mons.length > 0 && (
+        // Single column on mobile (each card readable at full width); three
+        // columns on desktop so a full 6-mon team lays out as 2 rows × 3.
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
+          {team.mons.map((mon) => (
+            <TeamMonCard key={mon.id} mon={mon} onEdit={() => onOpenMon(mon.id)} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
