@@ -17,11 +17,14 @@ import sharp from 'sharp';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIR = path.resolve(__dirname, '..', 'public', 'sprites');
 
-// Target canvas size. PS dex sprites are 120×120. After trimming we shrink
-// the trimmed bbox to fit inside this canvas, centered, with a small
-// transparent border so the character isn't kissing the edge.
-const CANVAS = 100;
-const MARGIN = 4; // px on each side reserved as transparent border
+// Target canvas size. Bulba's "Menu CP" sources are 128×128; PS dex is
+// 120×120. Sizing the canvas at 128 keeps Bulba sources native (no quality
+// loss in our resize step) and lets iOS Safari at DPR=3 downscale 128 →
+// ~156 actual pixels cleanly rather than upscaling a smaller source.
+// MARGIN is the transparent border around the character — kept small so
+// the sprite reads at a reasonable size against the card background.
+const CANVAS = 128;
+const MARGIN = 2; // px on each side reserved as transparent border
 const INNER = CANVAS - MARGIN * 2;
 
 const files = (await readdir(DIR)).filter((f) => f.endsWith('.png'));

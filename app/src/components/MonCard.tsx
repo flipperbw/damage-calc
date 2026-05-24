@@ -105,45 +105,48 @@ export function MonCard({
 
   return (
     <div {...swapProps}>
-      {/* Card header laid out as three columns: sprite | (name + types
-          stacked) | (Mega + Swap cluster). items-center on the outer flex
-          vertically centers all three across the row's height so the
-          cluster reads as "next to the species block" rather than floating
-          above it. */}
+      {/* Card header: sprite on the left, then a middle column with two
+          rows — row 1 holds the species name + the Mega/Swap cluster
+          side-by-side; row 2 holds the type badges. Keeping Mega/Swap in
+          the name row (not floating across the full middle-column
+          height) avoids the visual overlap where MEGA ACTIVE's bottom
+          edge would land at the same Y as the badge row. */}
       <div className="flex gap-2.5 items-center mb-2">
-        <button className="p-2" onClick={(e) => stop(e, onEdit)} data-testid={`edit-sprite-${side}`}>
+        <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-sprite-${side}`}>
           {/* Use the effective species so a mega-evolved mon shows the mega
               forme's sprite (Charizard-Mega-X, Gardevoir-Mega, …) rather
               than the base. */}
           <Sprite species={effectiveSpecies} alt={mon.species} className="w-13 h-13 rounded-xl" />
         </button>
         <div className="flex-1 min-w-0">
-          <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-name-${side}`} className="font-bold text-base text-left truncate block">
-            {mon.species}
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-name-${side}`} className="font-bold text-base text-left truncate">
+              {mon.species}
+            </button>
+            <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
+              {onSwap ? (
+                <button
+                  type="button"
+                  onClick={(e) => stop(e, onSwap)}
+                  data-testid={`swap-btn-${side}`}
+                  aria-label={`Swap ${mon.species}`}
+                  title="Swap"
+                  style={{ touchAction: 'manipulation' }}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.04] border border-surface-hi text-text-mute opacity-80 hover:opacity-100 hover:border-accent hover:text-accent"
+                >
+                  <span aria-hidden className="text-base leading-none" style={{ pointerEvents: 'none' }}>
+                    ⇄
+                  </span>
+                </button>
+              ) : null}
+            </div>
+          </div>
           <div className="flex gap-1 mt-1">
             {types.map((t) => (
               <TypeBadge key={t} type={t as string} />
             ))}
           </div>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
-          {onSwap ? (
-            <button
-              type="button"
-              onClick={(e) => stop(e, onSwap)}
-              data-testid={`swap-btn-${side}`}
-              aria-label={`Swap ${mon.species}`}
-              title="Swap"
-              style={{ touchAction: 'manipulation' }}
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.04] border border-surface-hi text-text-mute opacity-80 hover:opacity-100 hover:border-accent hover:text-accent"
-            >
-              <span aria-hidden className="text-base leading-none" style={{ pointerEvents: 'none' }}>
-                ⇄
-              </span>
-            </button>
-          ) : null}
         </div>
       </div>
 

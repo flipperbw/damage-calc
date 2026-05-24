@@ -105,15 +105,117 @@ export function findTankiestBuild(
   attacker: SavedMon,
   field: FieldState,
   format: 'singles' | 'doubles' = 'singles',
+  currentOpponent?: SavedMon,
 ): WorstCaseResult | null {
-  // The synthesized wall side matches your attacker's primary category so
-  // a special attacker always gets an SpD-invested wall. With curated
-  // builds out of the picture, this is the entire search.
+  const sp = GEN.species.get(toID(species) as any);
+  if (!sp) return null;
+
+  // SpD wall vs Def wall pick depends on whether the attacker hits harder
+  // physically or specially — picks the side we need to brace against.
   const primary = primaryAttackCategory(attacker, field, format) ?? 'Physical';
-  const mon = synthesizeWall(species, primary);
-  if (!mon) return null;
-  const taken = maxDamageOf(attacker, mon, field, format);
-  return { mon, label: `${primary} wall`, damage: taken };
+
+  // Try every ability the species has (Sturdy / Levitate / Flash Fire /
+  // Volt Absorb / etc. matter enormously for tankiness) and a curated set
+  // of defensive items — Leftovers as a baseline; Focus Sash for OHKO
+  // prevention; and the matching resist berry when the attacker's top move
+  // is super-effective against the wall, which is the live case the user
+  // hit: Kingambit can survive Aura Sphere with Chople Berry that a
+  // Leftovers Kingambit can't.
+  const fromPkmn = getSpeciesAbilities(species);
+  const calcAbilities = Object.values(sp.abilities ?? {}) as string[];
+  const abilities = fromPkmn && fromPkmn.length > 0 ? fromPkmn : calcAbilities;
+  if (abilities.length === 0) return null;
+
+  // Add a resist berry candidate for EVERY damaging move type the attacker
+  // carries — not just the move that deals most damage to a neutral test
+  // target. The "neutral" heuristic missed Aura Sphere on Blastoise vs
+  // Kingambit: Hydro Pump deals more vs neutral so we'd pick Passho Berry,
+  // but Aura Sphere (4× SE on Dark/Steel) is the move that actually one-
+  // shots Kingambit, and Chople Berry is what saves it. Adding all types
+  // lets the damage-scored search find the right berry.
+  const items: (string | undefined)[] = ['Leftovers', 'Focus Sash'];
+  const seenBerry = new Set<string>();
+  for (const type of attackerMoveTypes(attacker, field, format)) {
+    const berry = RESIST_BERRY_BY_TYPE[type];
+    if (berry && !seenBerry.has(berry)) {
+      seenBerry.add(berry);
+      items.push(berry);
+    }
+  }
+
+  let best: { mon: SavedMon; damage: number } | null = null;
+  for (const ability of abilities) {
+    for (const item of items) {
+      const wall = buildWall(species, primary, ability, item);
+      const damage = maxDamageOf(attacker, wall, field, format);
+      if (!best || damage < best.damage) {
+        best = { mon: wall, damage };
+      }
+    }
+  }
+  if (!best) return null;
+
+  // Floor: don't swap if the user's current opp set already takes ≤ this
+  // damage. Mirrors the findHardestHitter behaviour so clicking the button
+  // on an already-optimal wall toasts rather than installing a weaker one.
+  if (currentOpponent) {
+    const currentDmg = maxDamageOf(attacker, currentOpponent, field, format);
+    if (best.damage >= currentDmg) return null;
+  }
+
+  return { mon: best.mon, label: `${primary} wall`, damage: best.damage };
+}
+
+/** Type → resist berry that halves super-effective damage of that type. */
+const RESIST_BERRY_BY_TYPE: Record<string, string> = {
+  Normal: 'Chilan Berry',
+  Fire: 'Occa Berry',
+  Water: 'Passho Berry',
+  Electric: 'Wacan Berry',
+  Grass: 'Rindo Berry',
+  Ice: 'Yache Berry',
+  Fighting: 'Chople Berry',
+  Poison: 'Kebia Berry',
+  Ground: 'Shuca Berry',
+  Flying: 'Coba Berry',
+  Psychic: 'Payapa Berry',
+  Bug: 'Tanga Berry',
+  Rock: 'Charti Berry',
+  Ghost: 'Kasib Berry',
+  Dragon: 'Haban Berry',
+  Dark: 'Colbur Berry',
+  Steel: 'Babiri Berry',
+  Fairy: 'Roseli Berry',
+};
+
+/**
+ * Every damaging move type the attacker carries. Resist-berry candidates
+ * are seeded from this set — the damage-scored search then picks whichever
+ * berry minimises the worst incoming move. A move-type-only enumeration
+ * (no scoring against the wall yet, since the wall doesn't exist) means
+ * we try every plausible berry without needing a chicken-and-egg solve.
+ */
+function attackerMoveTypes(attacker: SavedMon, field: FieldState, format: 'singles' | 'doubles'): Set<string> {
+  const out = new Set<string>();
+  const testTarget: SavedMon = {
+    id: 'wc-type-probe',
+    species: attacker.species,
+    nature: 'Hardy',
+    sps: {},
+    moves: ['', '', '', ''],
+    mega: '',
+    boosts: {},
+  };
+  try {
+    const res = calculateMatchup(attacker, testTarget, field, format);
+    for (const m of res.attackerMoves) {
+      if (!m.moveName || m.isStatus) continue;
+      if (m.type) out.add(m.type);
+    }
+  } catch {
+    // ignore — empty set just means no berry candidates beyond Leftovers/Sash
+  }
+  return out;
 }
 
 /**
@@ -226,29 +328,19 @@ function buildAttacker(
 }
 
 /**
- * Mirror of buildAttacker for the tankiest-build search. Picks a pure wall
- * template — max HP + max defensive stat, +nature on the defending side,
- * Leftovers for passive recovery. Moves are filler from the species's
- * known set since the search only scores incoming damage, not outgoing.
+ * Build a wall candidate fixed to (ability, item). Max HP + max defensive
+ * stat on the right side, defensive nature, filler moves. The caller
+ * picks ability + item; this function just stamps the rest of the build.
  */
-function synthesizeWall(species: string, side: 'Physical' | 'Special'): SavedMon | null {
+function buildWall(species: string, side: 'Physical' | 'Special', ability: string, item: string | undefined): SavedMon {
   const known = getKnownMovesForSpecies(species);
   const moves: [string, string, string, string] = [known[0] ?? '', known[1] ?? '', known[2] ?? '', known[3] ?? ''];
-
-  const sp = GEN.species.get(toID(species) as any);
-  const fromPkmn = getSpeciesAbilities(species);
-  const abilities = fromPkmn && fromPkmn.length > 0 ? fromPkmn : (Object.values(sp?.abilities ?? {}) as string[]);
-  const ability = abilities[0] ?? '';
-
   const isPhys = side === 'Physical';
   return {
-    id: `worstcase-synth-${species}-wall-${side}`,
+    id: `worstcase-synth-${species}-wall-${side}-${toID(ability)}-${item ? toID(item) : 'none'}`,
     species,
     buildName: `${side} wall`,
-    // Champions has no Def/SpD-boosting item available (Assault Vest is
-    // out of scope, Eviolite NFE-only and absent from gen 0). Leftovers
-    // is the best generic defensive item.
-    item: 'Leftovers',
+    item,
     ability: ability || undefined,
     // Bold (+Def, -Atk) for physical walls; Calm (+SpD, -Atk) for special.
     // Both drop Atk because a wall isn't expected to be hitting back.

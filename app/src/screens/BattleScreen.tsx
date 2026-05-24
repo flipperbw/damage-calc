@@ -347,9 +347,9 @@ export function BattleScreen() {
               type="button"
               disabled={oppMode === 'tankiest'}
               onClick={() => {
-                const res = findTankiestBuild(opponent.species, you!, field, team?.format);
+                const res = findTankiestBuild(opponent.species, you!, field, team?.format, opponent);
                 if (!res) {
-                  toast.error(`No tankiest build available for ${opponent.species}`);
+                  toast(`${opponent.species}'s current build already minimizes damage from ${you!.species}`);
                   return;
                 }
                 if (!oppPreWorstCase) setOppPreWorstCase(opponent);
