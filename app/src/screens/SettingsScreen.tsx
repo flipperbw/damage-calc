@@ -30,7 +30,7 @@ export function SettingsScreen() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `champions-calc-export-${Date.now()}.json`;
+    a.download = `futuresight-export-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Export downloaded');
@@ -48,7 +48,7 @@ export function SettingsScreen() {
       return;
     }
     if (!isImportShape(parsed)) {
-      toast.error("That file doesn't look like a Champions Calc export");
+      toast.error("That file doesn't look like a FutureSight export");
       return;
     }
     const slice = pickPersisted(parsed);
@@ -91,7 +91,7 @@ export function SettingsScreen() {
       </Section>
 
       <div className="mt-8 pt-4 border-t border-surface-hi text-[11px] opacity-50">
-        <div>Champions Calc v{APP_VERSION}</div>
+        <div>FutureSight v{APP_VERSION}</div>
         <a href={REPO_URL} target="_blank" rel="noreferrer" className="text-accent">
           {REPO_URL.replace(/^https?:\/\//, '')}
         </a>

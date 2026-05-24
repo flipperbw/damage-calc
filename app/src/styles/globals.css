@@ -1,6 +1,48 @@
 @import 'tailwindcss';
 
 /*
+ * Self-hosted Ubuntu. woff2 files live at /fonts/ubuntu-*.woff2 (copied from
+ * @fontsource/ubuntu) so we can preload them from index.html with a stable
+ * URL — no Google Fonts dependency, no FOUT after the first paint.
+ * font-display: block keeps text invisible until the font arrives (almost
+ * always <100 ms thanks to the preload tag) instead of showing system-font
+ * then jitter-swapping. Three weights cover 100% of the UI: 400 regular,
+ * 500 medium, 700 bold.
+ */
+/*
+ * Ubuntu ships only 300/400/500/700. We use 400/500/700, and use the weight
+ * RANGE form of @font-face to fold the missing 600 and 800 weights into our
+ * available files — `font-semibold` (600) and `font-extrabold` (800) both
+ * resolve to the 700 file, so the browser never tries to synthesise a
+ * faux-bold from a nearby weight.
+ *
+ *   weight 400         → ubuntu-400 (regular)
+ *   weight 500         → ubuntu-500 (medium)
+ *   weight 600 to 900  → ubuntu-700 (bold; covers semibold / bold / extrabold / black)
+ */
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/ubuntu-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url('/fonts/ubuntu-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 600 900;
+  font-display: block;
+  src: url('/fonts/ubuntu-700.woff2') format('woff2');
+}
+
+/*
  * Tailwind v4 CSS-first theme. The @theme block is what `tailwind.config.ts`
  * used to be in v3 — color / size / breakpoint tokens become utility
  * classes (e.g. `--color-accent: #7c5cff` -> `bg-accent`, `text-accent`).
@@ -31,7 +73,7 @@
 
   --radius-card: 16px;
 
-  --font-sans: ui-sans-serif, -apple-system, system-ui, sans-serif;
+  --font-sans: 'Ubuntu', ui-sans-serif, -apple-system, system-ui, sans-serif;
 
   --text-xxs: 10px;
   --text-xxs--line-height: 14px;
@@ -72,7 +114,12 @@ body,
 body {
   background: #050714;
   color: #e8ecff;
+  /* Ubuntu, self-hosted via the @font-face declarations above. Same-origin
+   * preload in index.html primes the cache before the CSS resolves, so the
+   * font is ready by first paint. Fallback stack covers the rare loading-
+   * error path. */
   font-family:
+    'Ubuntu',
     ui-sans-serif,
     -apple-system,
     system-ui,

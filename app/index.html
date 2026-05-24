@@ -5,7 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#050714" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Champions Calc</title>
+    <!-- Preload the Ubuntu woff2 files at high priority so the @font-face
+         declarations in our CSS resolve before first paint — eliminates
+         the cold-cache flash from system font to Ubuntu. 400 (regular) and
+         700 (bold) are loaded eagerly since they cover ~95% of text; 500
+         is fetched on demand by the CSS. -->
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/ubuntu-400.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/ubuntu-700.woff2" crossorigin />
+    <title>FutureSight — Pokémon Champions damage calculator</title>
   </head>
   <body>
     <div id="root"></div>

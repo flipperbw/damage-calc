@@ -73,7 +73,7 @@ const TAB_TITLES: Record<Tab, string> = {
 
 function useTabPageTitle(tab: Tab) {
   useEffect(() => {
-    document.title = `${TAB_TITLES[tab]} · Champions Calc`;
+    document.title = `${TAB_TITLES[tab]} · FutureSight`;
   }, [tab]);
 }
 

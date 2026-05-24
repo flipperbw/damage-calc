@@ -1,9 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <!--
-    Champions Calc favicon. Violet "C" / shield motif over the app's
-    bg-base color so the icon reads on both dark and light browser
-    chrome. Pure SVG so it scales crisply at every favicon size browsers
-    request (16, 32, 64, …).
+    FutureSight favicon. 4-point sparkle motif (matches the in-app Logo)
+    over the dark app background so it reads on both light and dark
+    browser chrome.
   -->
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
@@ -13,18 +12,7 @@
   </defs>
   <rect x="0" y="0" width="32" height="32" rx="6" fill="#050714"/>
   <path
-    d="M16 5 L26 8 L26 16 C26 22 22 26 16 28 C10 26 6 22 6 16 L6 8 Z"
+    d="M16 5 Q17 14.5 26.5 16 Q17 17.5 16 27 Q15 17.5 5.5 16 Q15 14.5 16 5 Z"
     fill="url(#g)"
-    stroke="#1c0f2e"
-    stroke-width="0.5"
   />
-  <text
-    x="16"
-    y="20"
-    font-family="ui-sans-serif, system-ui, sans-serif"
-    font-size="13"
-    font-weight="800"
-    fill="#fff"
-    text-anchor="middle"
-  >C</text>
 </svg>
