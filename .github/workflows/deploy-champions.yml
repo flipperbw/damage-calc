@@ -36,9 +36,15 @@ jobs:
           cache: npm
 
       # Install across the workspace — calc/ and app/ both have their own
-      # node_modules through the root workspace. `npm ci` is reproducible
-      # against the committed lockfile.
-      - run: npm ci
+      # node_modules through the root workspace.
+      #
+      # Using `npm install` (not `npm ci`) sidesteps the well-known npm bug
+      # where platform-specific optional dependencies (here, the rollup
+      # native binary @rollup/rollup-linux-x64-gnu) aren't recorded in a
+      # lockfile generated on a different OS. `npm install` resolves the
+      # right binary for the current platform; `npm ci` errors out.
+      # See https://github.com/npm/cli/issues/4828
+      - run: npm install
 
       # Build the calc package first (app depends on the compiled output),
       # then build the Vite SPA into app/dist.
