@@ -35,15 +35,14 @@ jobs:
           node-version: 20
           cache: npm
 
-      # Install across the workspace — calc/ and app/ both have their own
-      # node_modules through the root workspace.
-      #
-      # Using `npm install` (not `npm ci`) sidesteps the well-known npm bug
-      # where platform-specific optional dependencies (here, the rollup
-      # native binary @rollup/rollup-linux-x64-gnu) aren't recorded in a
-      # lockfile generated on a different OS. `npm install` resolves the
-      # right binary for the current platform; `npm ci` errors out.
-      # See https://github.com/npm/cli/issues/4828
+      # Install across the workspace. Delete the lockfile first so npm
+      # fully re-resolves on the Linux runner — the lockfile is generated
+      # on Windows and omits the @rollup/rollup-linux-x64-gnu native
+      # binary (npm 7+ bug, https://github.com/npm/cli/issues/4828).
+      # Without this step, both `npm ci` and `npm install` would respect
+      # the lockfile's platform-specific gaps and the build would crash
+      # at "Cannot find module '@rollup/rollup-linux-x64-gnu'".
+      - run: rm -f package-lock.json
       - run: npm install
 
       # Build the calc package first (app depends on the compiled output),
