@@ -1,4 +1,5 @@
 import { calculateMatchup } from '@/calc/adapter';
+import { GEN, toID } from '@/calc/gen';
 import type { Suggestion, SuggestionReason } from '@/calc/suggestions';
 import { TOP_POOL } from '@/data/top-pool';
 import { defaultTeamMon } from '@/store/factories';
@@ -57,8 +58,10 @@ export function suggestCountersTo(threat: SavedMon, field: FieldState, format: '
     let bestIn = 0;
     let bestInMove = '';
     let anyDamagingFromThreat = false;
+    let damagingMovesOnThreat = 0;
     for (const m of matchup.defenderMoves) {
       if (!m.moveName || m.isStatus) continue;
+      damagingMovesOnThreat++;
       if (!m.isImmune) anyDamagingFromThreat = true;
       if (m.percentRange[1] > bestIn) {
         bestIn = m.percentRange[1];
@@ -66,7 +69,20 @@ export function suggestCountersTo(threat: SavedMon, field: FieldState, format: '
       }
     }
 
-    const score = bestOut - bestIn;
+    // Trick Room tempo bias: under TR, slow candidates benefit (they
+    // outspeed) and fast candidates suffer (they get outsped by the
+    // walls TR teams typically pack). We nudge the score by a function
+    // of the candidate's base Speed so the ordering reflects this
+    // without overwhelming raw damage scoring (max magnitude ~±35).
+    let tempoBonus = 0;
+    if (field.isTrickRoom) {
+      const baseSpe = GEN.species.get(toID(entry.species) as any)?.baseStats.spe ?? 80;
+      // Pivot at 80 (median competitive base Spe). Coefficient 0.5
+      // yields ~+40 at base 0 and ~-35 at base 150.
+      tempoBonus = Math.max(-35, Math.min(40, (80 - baseSpe) * 0.5));
+    }
+
+    const score = bestOut - bestIn + tempoBonus;
 
     // Filter out candidates that are clearly *worse* in the matchup
     // (take far more than they give). -50% is a generous threshold to
@@ -82,7 +98,12 @@ export function suggestCountersTo(threat: SavedMon, field: FieldState, format: '
       reasons.push({ kind: 'threat-favorable', text: `${bestOut}% via ${bestOutMove}` });
     }
 
-    if (!anyDamagingFromThreat) {
+    if (damagingMovesOnThreat === 0) {
+      // The threat hasn't had any damaging moves picked yet (empty
+      // moveset, all-status, or just-added with synth still pending) —
+      // so we genuinely don't know what it threatens with. Skip the
+      // defensive badge entirely rather than misclaim immunity.
+    } else if (!anyDamagingFromThreat) {
       reasons.push({ kind: 'defensive-overlap', text: 'Immune to all damaging moves' });
     } else if (bestIn === 0) {
       reasons.push({ kind: 'defensive-overlap', text: 'Takes 0% from best move' });

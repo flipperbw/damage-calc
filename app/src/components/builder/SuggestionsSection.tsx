@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { suggestCountersTo } from '@/calc/counter-suggestions';
 import { GEN, toID } from '@/calc/gen';
 import { suggestAdditions, type Suggestion, type SuggestionReason } from '@/calc/suggestions';
+import { inferTeamTempo } from '@/calc/tempo';
 import { SectionToggle } from '@/components/builder/SectionToggle';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { TypeBadge } from '@/components/TypeBadge';
@@ -80,18 +81,35 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
   // store value so changes to weather/terrain/screens propagate.
   const field = useStore((s) => s.field);
 
+  // Team tempo: if a drafted mon packs Trick Room or the live field
+  // already has TR active, the calc-based counter scorer should run
+  // under TR — that flips the speed comparison so slow attackers get
+  // credited with "Outspeeds" and a slow nuker rises in the rankings.
+  // The field used for scoring is otherwise the live one (weather,
+  // screens, terrain).
+  const tempo = team ? inferTeamTempo(team, field) : 'normal';
+  const scoringField = tempo === 'trick-room' && !field.isTrickRoom ? { ...field, isTrickRoom: true } : field;
+
+  // When the focused threat has no damaging moves modelled, the calc
+  // returns 0% across the board for it. The counter scorer correctly
+  // refuses to claim immunity in that case, but the resulting ranking
+  // is pure offense — the user should know they need to fill the
+  // threat's moveset for accurate defensive scoring.
+  const focusedThreatMissingMoves = !!focusedThreat && focusedThreat.moves.every((m) => !m);
+
   const suggestions = useMemo(() => {
     if (!team || team.mons.length === 0) return [];
     if (focusedThreat) {
       // Focused mode: calc-based scoring. Runs ~600 calcs across the
       // top-pool and is fast enough to call synchronously here. The
       // memo key includes the focus id + threat list updatedAt so we
-      // recompute when the user changes target or edits the threat.
-      return suggestCountersTo(focusedThreat, field, team.format);
+      // recompute when the user changes target or edits the threat,
+      // and tempo so toggling Trick Room (or pinning it) reranks.
+      return suggestCountersTo(focusedThreat, scoringField, team.format);
     }
     if (!reference) return [];
     return suggestAdditions(team.mons, reference.mons);
-  }, [team?.id, team?.updatedAt, team?.format, reference?.id, reference?.updatedAt, focusedThreat, field]);
+  }, [team?.id, team?.updatedAt, team?.format, reference?.id, reference?.updatedAt, focusedThreat, scoringField, tempo]);
 
   const [detail, setDetail] = useState<Suggestion | null>(null);
   const [open, setOpen] = useState(true);
@@ -102,6 +120,17 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
 
       {open && (
       <>
+
+      {tempo === 'trick-room' && (
+        <div
+          data-testid="suggestions-tempo-tr"
+          className="mb-2.5 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-priority/15 text-priority border border-priority/30"
+          title="Detected Trick Room tempo — counter scoring runs under TR so slow nukers rank higher"
+        >
+          <span aria-hidden>⏳</span>
+          Trick Room tempo
+        </div>
+      )}
 
       {focusableThreats && focusableThreats.length > 0 && (
         <div className="flex items-center gap-2 mb-2.5">
@@ -137,6 +166,14 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
         </div>
       ) : (
         <>
+          {focusedThreatMissingMoves && (
+            <div
+              data-testid="suggestions-threat-no-moves"
+              className="mb-2.5 text-[11px] px-3 py-2 rounded-lg bg-warn/10 border border-warn/30 text-warn"
+            >
+              {focusedThreat!.species} has no moves yet — defensive scoring is unreliable until you pick a moveset.
+            </div>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
             {suggestions.map((s) => (
               <SuggestionCard

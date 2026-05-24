@@ -161,10 +161,10 @@ export function FeedbackDialog({ open, onClose }: Props) {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={
                   category === 'bug'
-                    ? 'What happened? What did you expect?'
+                    ? 'What happened?'
                     : category === 'feature'
-                      ? "What's the idea? What problem does it solve?"
-                      : 'Tell me anything…'
+                      ? "What's the idea?"
+                      : 'Sup?'
                 }
                 data-testid="feedback-message"
                 // 16px keeps iOS Safari from auto-zooming on focus.
@@ -177,7 +177,7 @@ export function FeedbackDialog({ open, onClose }: Props) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com — only if you want a reply"
+                placeholder="you@example.com - only if you want a reply"
                 data-testid="feedback-email"
                 className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2"
                 style={{ fontSize: 16 }}
