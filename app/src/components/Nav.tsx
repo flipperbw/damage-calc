@@ -2,11 +2,15 @@ import { Logo } from '@/components/Logo';
 import { useStore } from '@/store';
 import type { Tab } from '@/types';
 
-const ITEMS: Array<{ id: Tab; icon: string; label: string }> = [
+// `iconOnly` tabs render with just the icon glyph on both mobile and
+// desktop — Settings is the only one we hide the label for, since it's
+// universally understood from the gear and saves space (especially on
+// narrow mobile widths where the row otherwise feels cramped).
+const ITEMS: Array<{ id: Tab; icon: string; label: string; iconOnly?: boolean }> = [
   { id: 'battle', icon: '⚔', label: 'Battle' },
   { id: 'teams', icon: '👥', label: 'Teams' },
   { id: 'builder', icon: '🧪', label: 'Builder' },
-  { id: 'settings', icon: '⚙', label: 'Settings' },
+  { id: 'settings', icon: '⚙', label: 'Settings', iconOnly: true },
 ];
 
 export function Nav() {
@@ -42,7 +46,9 @@ export function Nav() {
                   : 'bg-surface border border-surface-hi text-text-mute hover:text-text'
               }`}
             >
-              <span style={{ pointerEvents: 'none' }}>{it.label}</span>
+              <span style={{ pointerEvents: 'none' }} className={it.iconOnly ? 'text-base leading-none' : ''}>
+                {it.iconOnly ? it.icon : it.label}
+              </span>
             </button>
           ))}
         </nav>
@@ -66,10 +72,17 @@ export function Nav() {
             <button
               key={it.id}
               onClick={() => setTab(it.id)}
-              className={`px-4 py-2 rounded-lg text-sm ${tab === it.id ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70'}`}
+              aria-label={it.iconOnly ? it.label : undefined}
+              className={`${it.iconOnly ? 'px-3' : 'px-4'} py-2 rounded-lg text-sm ${tab === it.id ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70'}`}
             >
-              <span className="mr-1.5">{it.icon}</span>
-              {it.label}
+              {it.iconOnly ? (
+                <span aria-hidden>{it.icon}</span>
+              ) : (
+                <>
+                  <span className="mr-1.5">{it.icon}</span>
+                  {it.label}
+                </>
+              )}
             </button>
           ))}
         </nav>

@@ -4,16 +4,19 @@ import { toast } from 'sonner';
 import { ActionMenu } from '@/components/ActionMenu';
 import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
 import { MonEditor } from '@/components/editor/MonEditor';
+import { Logo } from '@/components/Logo';
 import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { ShowdownImportDialog } from '@/components/ShowdownImportDialog';
 import { Sprite } from '@/components/Sprite';
 import { TeamMonCard } from '@/components/TeamMonCard';
+import { PRESET_TEAMS, type PresetTeam } from '@/data/preset-teams';
 import { useStore } from '@/store';
 import { teamToShowdownText } from '@/store/exporters';
 import { defaultTeamMon } from '@/store/factories';
 import { applySynthIfMissing } from '@/store/synthesize';
 import type { SavedMon, Team } from '@/types';
 import { copyToClipboard } from '@/util/clipboard';
+import { uuid } from '@/util/uuid';
 
 export function TeamsScreen() {
   const teams = useStore((s) => s.teams);
@@ -97,38 +100,49 @@ export function TeamsScreen() {
     createTeam({ name: 'New team', format: 'singles' });
   }
 
+  function handleUsePreset(preset: PresetTeam) {
+    const teamId = createTeam({ name: preset.name, format: preset.format });
+    for (const m of preset.mons) {
+      upsertMon(teamId, { ...m, id: uuid() });
+    }
+    setActiveTeam(teamId);
+    toast.success(`${preset.name} added`);
+  }
+
   return (
     <>
-      <div className="mb-4">
-        <h2 className="text-xl font-bold mb-3">Teams</h2>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleCreateTeam}
-            aria-label="Create team"
-            data-testid="create-team"
-            // Bare-bones styling - no gradient, no active-scale transform, no
-            // backdrop blur. Some iOS browsers (Brave especially) have flaky
-            // hit-testing on transformed/blurred elements. touch-action +
-            // tap-highlight-color make taps deterministic on WebKit.
-            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-            className="flex-1 min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer"
-          >
-            <span className="text-xl leading-none">+</span>
-            <span>Create Team</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setImportOpen(true)}
-            aria-label="Import team from Showdown"
-            data-testid="import-team"
-            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-            className="min-h-[52px] px-4 rounded-card bg-surface border border-surface-hi text-sm font-semibold select-none cursor-pointer"
-          >
-            Import
-          </button>
+      {teams.length > 0 && (
+        <div className="mb-4">
+          <h2 className="text-xl font-bold mb-3">Teams</h2>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleCreateTeam}
+              aria-label="Create team"
+              data-testid="create-team"
+              // Bare-bones styling - no gradient, no active-scale transform, no
+              // backdrop blur. Some iOS browsers (Brave especially) have flaky
+              // hit-testing on transformed/blurred elements. touch-action +
+              // tap-highlight-color make taps deterministic on WebKit.
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
+              className="flex-1 min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer"
+            >
+              <span className="text-xl leading-none">+</span>
+              <span>Create Team</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              aria-label="Import team from Showdown"
+              data-testid="import-team"
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
+              className="min-h-[52px] px-4 rounded-card bg-surface border border-surface-hi text-sm font-semibold select-none cursor-pointer"
+            >
+              Import
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {teams.map((t) => (
         <TeamCard
@@ -150,15 +164,11 @@ export function TeamsScreen() {
       ))}
 
       {teams.length === 0 && (
-        <button
-          type="button"
-          onClick={handleCreateTeam}
-          data-testid="create-team-empty"
-          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.15)' }}
-          className="w-full text-center mt-6 py-6 rounded-card border border-dashed border-accent/30 text-text-mute select-none cursor-pointer"
-        >
-          No teams yet. <span className="text-accent font-semibold">Tap to create your first team.</span>
-        </button>
+        <EmptyState
+          onCreate={handleCreateTeam}
+          onImport={() => setImportOpen(true)}
+          onUsePreset={handleUsePreset}
+        />
       )}
 
       {recents.length > 0 && (
@@ -364,6 +374,95 @@ function TeamCard({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function EmptyState({
+  onCreate,
+  onImport,
+  onUsePreset,
+}: {
+  onCreate: () => void;
+  onImport: () => void;
+  onUsePreset: (preset: PresetTeam) => void;
+}) {
+  return (
+    <div className="mt-2">
+      <div className="flex flex-col items-center text-center px-2 pt-6 pb-4">
+        <Logo className="w-16 h-16 mb-3" />
+        <p className="text-sm text-text-mute max-w-xs">
+          Build a team to start calculating, or pick one of the example teams below.
+        </p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <button
+          type="button"
+          onClick={onCreate}
+          data-testid="create-team-empty"
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
+          className="flex-1 min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer"
+        >
+          <span className="text-xl leading-none">+</span>
+          <span>Create a team</span>
+        </button>
+        <button
+          type="button"
+          onClick={onImport}
+          data-testid="import-team-empty"
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
+          className="flex-1 sm:flex-initial sm:px-5 min-h-[52px] py-3 px-4 rounded-card bg-surface border border-surface-hi text-sm font-semibold select-none cursor-pointer"
+        >
+          Import from Showdown
+        </button>
+      </div>
+
+      <div className="flex items-center gap-3 mt-7 mb-3">
+        <div className="flex-1 h-px bg-surface-hi" />
+        <div className="text-xxs uppercase tracking-wider opacity-55">Or start from a template</div>
+        <div className="flex-1 h-px bg-surface-hi" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+        {PRESET_TEAMS.map((p) => (
+          <PresetCard key={p.name} preset={p} onUse={() => onUsePreset(p)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PresetCard({ preset, onUse }: { preset: PresetTeam; onUse: () => void }) {
+  return (
+    <div
+      className="bg-surface border border-surface-hi rounded-card p-3 flex flex-col gap-2.5"
+      data-testid={`preset-${preset.name.toLowerCase().replace(/\s+/g, '-')}`}
+    >
+      <div>
+        <div className="font-bold text-[15px]">{preset.name}</div>
+        <div className="text-[11px] opacity-60 leading-snug">{preset.blurb}</div>
+      </div>
+      <div className="flex gap-1.5">
+        {preset.mons.map((m, i) => (
+          <div
+            key={i}
+            className="flex-1 aspect-square bg-surface border border-surface-hi rounded-lg flex items-center justify-center"
+            title={m.species}
+          >
+            <Sprite species={m.species} className="w-3/4 h-3/4" />
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={onUse}
+        aria-label={`Use ${preset.name} template`}
+        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.15)' }}
+        className="min-h-[40px] mt-0.5 rounded-lg bg-accent/15 border border-accent/40 text-accent text-sm font-semibold select-none cursor-pointer hover:bg-accent/25"
+      >
+        Use team
+      </button>
     </div>
   );
 }

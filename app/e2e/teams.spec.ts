@@ -49,7 +49,7 @@ test('delete a team after confirm', async ({ page }) => {
   // ConfirmDialog now drives the destructive flow (replaces window.confirm).
   await expect(page.getByTestId('confirm-dialog')).toBeVisible();
   await page.getByTestId('confirm-ok').click();
-  await expect(page.getByText('No teams yet')).toBeVisible();
+  await expect(page.getByTestId('create-team-empty')).toBeVisible();
 });
 
 test('add a mon to a slot via species picker + build', async ({ page }) => {

@@ -171,8 +171,11 @@ export function ShowdownImportDialog(props: Props) {
             placeholder="Paste a Showdown team or single mon block here"
             spellCheck={false}
             data-testid="showdown-import-textarea"
-            className="w-full h-40 bg-surface border border-surface-hi rounded-lg px-3 py-2 mt-2 text-sm font-mono [overscroll-behavior:contain]"
-            style={{ fontSize: 14 }}
+            // iOS Safari auto-zooms any focused input/textarea whose
+            // computed font-size is < 16px. Holding at exactly 16px keeps
+            // the page locked at 1× when the user taps the paste area.
+            className="w-full h-40 bg-surface border border-surface-hi rounded-lg px-3 py-2 mt-2 font-mono [overscroll-behavior:contain]"
+            style={{ fontSize: 16 }}
           />
 
           {!hasContent && (
@@ -230,7 +233,7 @@ export function ShowdownImportDialog(props: Props) {
                   disabled={!canCommit}
                   onClick={() => commitTeam(parsed.mons, parsed.teamName)}
                   data-testid="showdown-import-commit-team"
-                  className={`w-full py-3 rounded-card font-bold text-base ${canCommit ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
+                  className={`w-full py-3 px-4 rounded-card font-bold text-base ${canCommit ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
                 >
                   {canCommit
                     ? `Import as new team${importable < parsed.mons.length ? ` (${importable} of ${parsed.mons.length})` : ''}`
@@ -276,7 +279,7 @@ export function ShowdownImportDialog(props: Props) {
                     onClick={() => commitTeam(parsed.mons, parsed.teamName)}
                     disabled={importable === 0}
                     data-testid="showdown-import-commit-slot-team"
-                    className={`w-full py-3 rounded-card font-semibold text-sm ${importable === 0 ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-surface border border-surface-hi'}`}
+                    className={`w-full py-3 px-4 rounded-card font-semibold text-sm ${importable === 0 ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-surface border border-surface-hi'}`}
                   >
                     {importable === 0
                       ? 'No importable mons'

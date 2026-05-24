@@ -63,5 +63,5 @@ test('reset everything wipes teams (with confirm)', async ({ page }) => {
   await page.getByTestId('confirm-ok').click();
 
   await nav(page, 'Teams');
-  await expect(page.getByText('No teams yet')).toBeVisible();
+  await expect(page.getByTestId('create-team-empty')).toBeVisible();
 });
