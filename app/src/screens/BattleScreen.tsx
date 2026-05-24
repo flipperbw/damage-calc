@@ -439,7 +439,22 @@ export function BattleScreen() {
         />
       )}
 
-      <SpeciesPicker open={oppPicker} onClose={() => setOppPicker(false)} onPick={(s) => setOpponent(defaultOpponentMon(s))} />
+      <SpeciesPicker
+        open={oppPicker}
+        onClose={() => setOppPicker(false)}
+        onPick={(s) => {
+          const mon = defaultOpponentMon(s);
+          setOpponent(mon);
+          // Species without a curated build land here with empty moves; the
+          // synth fill matches what the "no opponent yet" picker above does
+          // so swapping opponents behaves identically to picking one fresh.
+          applySynthIfMissing(
+            mon,
+            () => useStore.getState().opponent,
+            (patched) => setOpponent(patched),
+          );
+        }}
+      />
       <SpeciesPicker
         open={addMonPicker}
         onClose={() => setAddMonPicker(false)}
