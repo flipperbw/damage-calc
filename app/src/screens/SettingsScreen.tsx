@@ -8,7 +8,7 @@ import { isImportShape } from '@/store/import-shape';
 import type { AppState } from '@/types';
 
 const APP_VERSION = '0.1.0';
-const REPO_URL = 'https://github.com/smogon/damage-calc';
+const REPO_URL = 'https://github.com/flipperbw/damage-calc';
 
 function pickPersisted(state: any): Partial<AppState> {
   const out: any = {};
