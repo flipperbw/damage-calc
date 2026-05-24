@@ -28,12 +28,12 @@ interface Props {
  * desktop) inside the TeamsScreen's expanded team card.
  */
 export function TeamMonCard({ mon, onEdit }: Props) {
-  const effectiveSpecies = mon.mega ? megaFormeName(mon.species, mon.mega) : mon.species;
+  const effectiveSpecies = mon.mega ? megaFormeName(mon.species, mon.mega, mon.item) : mon.species;
   const sp = GEN.species.get(toID(effectiveSpecies) as any) ?? GEN.species.get(toID(mon.species) as any);
   const types = (sp?.types ?? []) as string[];
   const baseStats = sp?.baseStats;
   const { plus, minus } = natureMods(mon.nature);
-  const ability = effectiveAbility(mon.species, mon.mega, mon.ability) ?? mon.ability;
+  const ability = effectiveAbility(mon.species, mon.mega, mon.ability, mon.item) ?? mon.ability;
 
   return (
     <div
@@ -55,7 +55,7 @@ export function TeamMonCard({ mon, onEdit }: Props) {
       {/* Header — mirrors MonCard's three-column layout: sprite, name +
           types, plus a small Mega badge when applicable (no toggle, since
           this view is read-only). */}
-      <div className="flex gap-2.5 items-center mb-2">
+      <div className="flex gap-2.5 items-center mb-3">
         <Sprite species={effectiveSpecies} className="w-13 h-13 rounded-xl shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">

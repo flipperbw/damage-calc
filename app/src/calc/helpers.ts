@@ -11,14 +11,26 @@ export function isMegaStone(item: string | undefined): boolean {
 
 /**
  * Returns the calc-ready species name with mega suffix applied based on the
- * `mega` flag. Does NOT validate that the resulting forme exists in calc data;
- * callers that need existence-checking (the damage adapter) handle that
- * separately. When `mega` is empty or the species is already a mega forme,
- * the input species is returned unchanged.
+ * `mega` flag. When the held item is a mega stone, we consult the MEGA_STONES
+ * table first — that's authoritative for irregular cases like
+ * Floette-Eternal + Floettite → Floette-Mega (NOT Floette-Eternal-Mega) and
+ * Magearna-Original + Magearnite → Magearna-Original-Mega.
+ *
+ * When no item is provided (or the item isn't a mega stone for this species),
+ * we fall back to the naive species + "-Mega"/"-Mega-X"/"-Mega-Y" rule, which
+ * is correct for the vast majority of mons.
+ *
+ * Does NOT validate that the resulting forme exists in calc data; callers
+ * that need existence-checking (the damage adapter) handle that separately.
  */
-export function megaFormeName(species: string, mega: MegaState): string {
+export function megaFormeName(species: string, mega: MegaState, item?: string): string {
   if (!mega) return species;
   if (species.endsWith('-Mega') || species.includes('-Mega-')) return species;
+  if (item) {
+    const stoneMap = (MEGA_STONES as Record<string, Record<string, string>>)[item];
+    const mapped = stoneMap?.[species];
+    if (mapped) return mapped;
+  }
   if (mega === 'mega-x') return `${species}-Mega-X`;
   if (mega === 'mega-y') return `${species}-Mega-Y`;
   return `${species}-Mega`;
@@ -38,9 +50,9 @@ export function natureMods(nature: string): { plus?: StatID; minus?: StatID } {
  * selection). For non-mega mons or mega formes that calc doesn't have a
  * documented ability for, falls back to the user's selection.
  */
-export function effectiveAbility(species: string, mega: MegaState, baseAbility: string | undefined): string | undefined {
+export function effectiveAbility(species: string, mega: MegaState, baseAbility: string | undefined, item?: string): string | undefined {
   if (!mega) return baseAbility;
-  const megaSpecies = megaFormeName(species, mega);
+  const megaSpecies = megaFormeName(species, mega, item);
   const sp = GEN.species.get(toID(megaSpecies) as any);
   if (!sp?.abilities) return baseAbility;
   // Calc's species table stores mega abilities in slot 0. Use it when

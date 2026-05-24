@@ -322,7 +322,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
             than stacking under it. */}
         <div className="flex gap-3 items-center mb-4 p-3 bg-danger/10 border border-danger/20 rounded-card">
           <button onClick={() => setPicker('species')}>
-            <Sprite species={draft.mega ? megaFormeName(draft.species, draft.mega) : draft.species} className="w-16 h-16 rounded" />
+            <Sprite species={draft.mega ? megaFormeName(draft.species, draft.mega, draft.item) : draft.species} className="w-16 h-16 rounded" />
           </button>
           <div className="flex-1 min-w-0">
             <div className="font-extrabold text-lg cursor-pointer truncate" onClick={() => setPicker('species')}>

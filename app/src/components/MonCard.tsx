@@ -56,13 +56,13 @@ export function MonCard({
   // When a mega is active, look up the mega forme's species so types
   // reflect the transform (Mega Charizard X is Fire/Dragon; Mega Gyarados
   // is Water/Dark; etc.). Falls back to base when calc lacks the forme.
-  const effectiveSpecies = mon.mega ? megaFormeName(mon.species, mon.mega) : mon.species;
+  const effectiveSpecies = mon.mega ? megaFormeName(mon.species, mon.mega, mon.item) : mon.species;
   const sp = GEN.species.get(toID(effectiveSpecies) as any) ?? GEN.species.get(toID(mon.species) as any);
   const types = sp?.types ?? [];
   // Mega evolution overrides the user's base ability (Mega Charizard X is
   // Tough Claws; Mega Gyarados is Mold Breaker). Display the in-effect
   // ability so the chip matches what calc actually uses.
-  const displayAbility = effectiveAbility(mon.species, mon.mega, mon.ability);
+  const displayAbility = effectiveAbility(mon.species, mon.mega, mon.ability, mon.item);
   const abilityFromMega = !!mon.mega && displayAbility !== mon.ability;
   const dashed = side === 'opp' ? 'border-dashed border-danger/25' : 'border-surface-hi';
 
@@ -111,7 +111,7 @@ export function MonCard({
           the name row (not floating across the full middle-column
           height) avoids the visual overlap where MEGA ACTIVE's bottom
           edge would land at the same Y as the badge row. */}
-      <div className="flex gap-2.5 items-center mb-2">
+      <div className="flex gap-2.5 items-center mb-3">
         <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-sprite-${side}`}>
           {/* Use the effective species so a mega-evolved mon shows the mega
               forme's sprite (Charizard-Mega-X, Gardevoir-Mega, …) rather

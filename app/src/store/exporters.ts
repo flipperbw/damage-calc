@@ -3,7 +3,7 @@ import { STAT_LABEL, STAT_ORDER, type SavedMon, type Team } from '@/types';
 
 export function monToShowdownText(mon: SavedMon): string {
   const lines: string[] = [];
-  const speciesName = megaFormeName(mon.species, mon.mega);
+  const speciesName = megaFormeName(mon.species, mon.mega, mon.item);
   const head = mon.item ? `${speciesName} @ ${mon.item}` : speciesName;
   lines.push(head);
   if (mon.ability) lines.push(`Ability: ${mon.ability}`);
