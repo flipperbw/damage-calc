@@ -147,6 +147,13 @@ export interface AppState {
   notation: Notation;
   tab: Tab;
   editor: EditorTarget; // persisted: survives iOS reload-on-unload
+  /**
+   * The most recent CHANGELOG heading the user has dismissed. We compare
+   * against the latest heading in the shipped changelog to decide whether
+   * the "What's new" Settings action shows an unread dot. `null` means
+   * "never opened" — every first-time view of the changelog clears it.
+   */
+  lastSeenChangelogHeading: string | null;
 }
 
 export const SP_PER_STAT_MAX = 32;

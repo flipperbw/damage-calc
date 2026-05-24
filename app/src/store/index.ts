@@ -28,6 +28,7 @@ export const PERSISTED_KEYS = [
   'pinnedFieldKeys',
   'notation',
   'editor',
+  'lastSeenChangelogHeading',
 ] as const;
 export type PersistedKey = (typeof PERSISTED_KEYS)[number];
 
@@ -68,6 +69,7 @@ interface Actions {
   setTab: (t: Tab) => void;
   setNotation: (n: Notation) => void;
   setEditor: (target: EditorTarget) => void;
+  markChangelogSeen: (heading: string) => void;
   // Reset
   resetAll: () => void;
 }
@@ -92,6 +94,7 @@ function buildInitialAppState(): AppState {
     notation: 'percent',
     tab: 'battle',
     editor: null,
+    lastSeenChangelogHeading: null,
   };
 }
 const initialAppState: AppState = buildInitialAppState();
@@ -267,6 +270,7 @@ export const useStore = create<AppState & Actions>()(
       setTab: (tab) => set({ tab }),
       setNotation: (notation) => set({ notation }),
       setEditor: (editor) => set({ editor }),
+      markChangelogSeen: (heading) => set({ lastSeenChangelogHeading: heading }),
 
       // Reset to a *freshly built* initial state - repopulates seed threat
       // lists with new uuids rather than reusing the module-load instance.

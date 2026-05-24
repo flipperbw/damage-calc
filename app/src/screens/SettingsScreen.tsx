@@ -1,11 +1,27 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { useConfirm } from '@/components/ConfirmDialog';
 import { FeedbackDialog } from '@/components/FeedbackDialog';
+import { MarkdownSheet } from '@/components/MarkdownSheet';
+import CHANGELOG_SOURCE from '@/content/CHANGELOG.md?raw';
+import ROADMAP_SOURCE from '@/content/ROADMAP.md?raw';
 import { PERSISTED_KEYS, useStore } from '@/store';
 import { isImportShape } from '@/store/import-shape';
 import type { AppState } from '@/types';
+
+/**
+ * Extract the most recent `## heading` from a CHANGELOG.md source. Used
+ * to drive the "What's new" unread dot: when the latest heading differs
+ * from the persisted lastSeenChangelogHeading, we show a dot.
+ */
+function latestChangelogHeading(source: string): string | null {
+  for (const line of source.split(/\r?\n/)) {
+    const t = line.trim();
+    if (t.startsWith('## ')) return t.slice(3).trim();
+  }
+  return null;
+}
 
 const APP_VERSION = '0.1.0';
 const REPO_URL = 'https://github.com/flipperbw/damage-calc';
@@ -23,8 +39,20 @@ export function SettingsScreen() {
   const setNotation = useStore((s) => s.setNotation);
   const clearAllRecents = useStore((s) => s.clearAllRecents);
   const resetAll = useStore((s) => s.resetAll);
+  const lastSeenChangelogHeading = useStore((s) => s.lastSeenChangelogHeading);
+  const markChangelogSeen = useStore((s) => s.markChangelogSeen);
   const confirm = useConfirm();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
+  const [roadmapOpen, setRoadmapOpen] = useState(false);
+
+  const latestHeading = useMemo(() => latestChangelogHeading(CHANGELOG_SOURCE), []);
+  const hasUnseenChangelog = !!latestHeading && lastSeenChangelogHeading !== latestHeading;
+
+  function openChangelog() {
+    setChangelogOpen(true);
+    if (latestHeading && hasUnseenChangelog) markChangelogSeen(latestHeading);
+  }
 
   function exportJson() {
     const state = useStore.getState();
@@ -97,7 +125,20 @@ export function SettingsScreen() {
         <Action label="Send feedback" onClick={() => setFeedbackOpen(true)} />
       </Section>
 
+      <Section title="About">
+        <Action
+          label="What's new"
+          onClick={openChangelog}
+          // Subtle accent dot when the latest changelog entry hasn't been
+          // opened yet — clears the moment the user taps in.
+          badge={hasUnseenChangelog ? 'new' : undefined}
+        />
+        <Action label="Roadmap" onClick={() => setRoadmapOpen(true)} />
+      </Section>
+
       <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <MarkdownSheet open={changelogOpen} title="What's new" source={CHANGELOG_SOURCE} onClose={() => setChangelogOpen(false)} />
+      <MarkdownSheet open={roadmapOpen} title="Roadmap" source={ROADMAP_SOURCE} onClose={() => setRoadmapOpen(false)} />
 
       <div className="mt-8 pt-4 border-t border-surface-hi text-[11px] opacity-50">
         <div>FutureSight v{APP_VERSION}</div>
@@ -129,11 +170,22 @@ function Toggle({ value, onClick, label }: { value: boolean; onClick: () => void
   );
 }
 
-function Action({ label, onClick, tone }: { label: string; onClick: () => void; tone?: 'danger' }) {
+function Action({ label, onClick, tone, badge }: { label: string; onClick: () => void; tone?: 'danger'; badge?: 'new' }) {
   const c = tone === 'danger' ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-surface border-surface-hi';
   return (
-    <button onClick={onClick} className={`w-full text-left px-3 py-2 rounded-lg border ${c} text-sm`}>
-      {label}
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-3 py-2 rounded-lg border ${c} text-sm flex items-center justify-between gap-2`}
+    >
+      <span>{label}</span>
+      {badge === 'new' && (
+        <span
+          aria-label="New"
+          className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent text-white leading-none"
+        >
+          New
+        </span>
+      )}
     </button>
   );
 }

@@ -1,7 +1,7 @@
 import { buildSeedThreatLists } from '@/data/seed-threats';
 import type { AppState } from '@/types';
 
-export const CURRENT_VERSION = 5;
+export const CURRENT_VERSION = 6;
 
 export interface PersistedShape {
   version: number;
@@ -60,6 +60,15 @@ const MIGRATORS: Record<number, Migrator> = {
     if (!s || typeof s !== 'object') return s;
     if (Array.isArray(s.pinnedFieldKeys)) return s;
     return { ...s, pinnedFieldKeys: [] };
+  },
+  // v5 -> v6: introduce lastSeenChangelogHeading so the Settings "What's
+  // new" action can dot-indicate unseen entries. Default null = "never
+  // opened" — every existing user will see the dot once, clear it by
+  // opening the changelog, and never see it again until the next entry.
+  6: (s: any) => {
+    if (!s || typeof s !== 'object') return s;
+    if ('lastSeenChangelogHeading' in s) return s;
+    return { ...s, lastSeenChangelogHeading: null };
   },
 };
 

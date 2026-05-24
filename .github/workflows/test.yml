@@ -28,6 +28,11 @@ jobs:
       uses: Zarel/setup-node@patch-1
       with:
         node-version: ${{ matrix.node-version }}
+    # Lockfile is generated on Windows so it omits @rollup/rollup-linux-x64-gnu
+    # (npm 7+ bug — https://github.com/npm/cli/issues/4828). Drop it before
+    # install so npm re-resolves on Linux and pulls the right native binary.
+    # Mirrors the workaround in deploy-champions.yml.
+    - run: rm -f package-lock.json
     - run: npm install
     - run: npm run test
       env:
