@@ -4,7 +4,7 @@ import type { MoveResult } from '@/calc/adapter';
 import { effectivenessBadge, koBadge, koTagFromText, priorityFlag, sturdyWarning } from '@/calc/format';
 import { MoveDetailSheet } from '@/components/MoveDetailSheet';
 import { TypeBadge } from '@/components/TypeBadge';
-import { moveAccuracy } from '@/data/pkmn';
+import { moveAccuracy, usePkmnReady } from '@/data/pkmn';
 import type { SavedMon } from '@/types';
 
 interface Props {
@@ -14,6 +14,12 @@ interface Props {
 
 export function MoveRow({ result, defenderForSturdy }: Props) {
   const [showDetail, setShowDetail] = useState(false);
+  // Subscribe to @pkmn/data readiness — moveAccuracy returns null until
+  // the cache is warm, so without this the "acc 90%" badge only shows up
+  // after the user does something that re-renders the row (e.g. switching
+  // mons). Calling the hook triggers the preload AND re-renders the row
+  // when the data lands.
+  usePkmnReady();
   const ko = koTagFromText(result.koChanceText);
   const prio = priorityFlag(result.priority);
   // If the move would OHKO but the defender has Sturdy at full HP, the actual
@@ -63,7 +69,16 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
           {(() => {
             const acc = moveAccuracy(result.moveName);
             if (typeof acc === 'number' && acc < 100) {
-              return <span className="text-[10px] opacity-55 tabular-nums">acc {acc}%</span>;
+              return (
+                <span
+                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white/[0.06] border border-surface-hi text-text-mute tabular-nums flex items-center gap-0.5"
+                  aria-label={`Accuracy ${acc}%`}
+                  title={`Accuracy: ${acc}%`}
+                >
+                  <span aria-hidden style={{ fontSize: '11px' }}>🎯</span>
+                  {acc}%
+                </span>
+              );
             }
             return null;
           })()}
