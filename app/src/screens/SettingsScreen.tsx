@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { useConfirm } from '@/components/ConfirmDialog';
+import { FeedbackDialog } from '@/components/FeedbackDialog';
 import { PERSISTED_KEYS, useStore } from '@/store';
 import { isImportShape } from '@/store/import-shape';
 import type { AppState } from '@/types';
@@ -22,6 +24,7 @@ export function SettingsScreen() {
   const clearAllRecents = useStore((s) => s.clearAllRecents);
   const resetAll = useStore((s) => s.resetAll);
   const confirm = useConfirm();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   function exportJson() {
     const state = useStore.getState();
@@ -89,6 +92,12 @@ export function SettingsScreen() {
         <Action label="Clear recent opponents" onClick={clearRecents} />
         <Action label="Reset everything" tone="danger" onClick={handleResetAll} />
       </Section>
+
+      <Section title="Feedback">
+        <Action label="Send feedback" onClick={() => setFeedbackOpen(true)} />
+      </Section>
+
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
 
       <div className="mt-8 pt-4 border-t border-surface-hi text-[11px] opacity-50">
         <div>FutureSight v{APP_VERSION}</div>
