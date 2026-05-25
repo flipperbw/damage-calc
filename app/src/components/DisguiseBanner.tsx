@@ -26,7 +26,7 @@ export function DisguiseBanner({ mon }: Props) {
   if (ability !== 'Disguise') return null;
   return (
     <div className="mb-1.5 px-2.5 py-1.5 rounded-lg bg-priority/10 border border-priority/30 text-[11px] text-priority leading-snug">
-      <span className="font-semibold">Disguise:</span> the first damaging hit lands for 0 and breaks the Disguise (≈⅛ max HP recoil to Mimikyu). Subsequent hits deal the damage shown.
+      <span className="font-semibold mr-1">Disguise:</span> will only do 1/8 HP to Mimikyu.
     </div>
   );
 }

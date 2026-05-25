@@ -13,7 +13,7 @@ import { SpeedDivider } from '@/components/SpeedDivider';
 import { TeamCarousel } from '@/components/TeamCarousel';
 import { useStore } from '@/store';
 import { defaultOpponentMon, defaultTeamMon } from '@/store/factories';
-import { applySynthIfMissing } from '@/store/synthesize';
+import { applySynthIfMissing, synthesizeBuild } from '@/store/synthesize';
 import type { SavedMon } from '@/types';
 
 export function BattleScreen() {
@@ -504,8 +504,35 @@ export function BattleScreen() {
           // pick and snaps the display back to the team mon.
           if (!teamYou) return;
           const fresh = defaultTeamMon(species);
-          setYouOverride({ ...fresh, id: `adhoc-of-${teamYou.id}` });
+          const adhocId = `adhoc-of-${teamYou.id}`;
+          const adhocMon: SavedMon = { ...fresh, id: adhocId };
+          setYouOverride(adhocMon);
           setYouPicker(false);
+          // Synth fill for uncurated species (Dedenne, Aegislash-Shield,
+          // anything not in setdex-champions). Mirrors the team-add picker
+          // a few branches up. Uses the functional setter form so the
+          // patch lands on whatever the override currently is — and bails
+          // if the user has already changed species or cleared the override
+          // by the time synth resolves.
+          if (!adhocMon.buildName) {
+            void synthesizeBuild(species).then((built) => {
+              if (!built) return;
+              setYouOverride((prev) => {
+                if (!prev || prev.id !== adhocId || prev.species !== species) return prev;
+                const movesUntouched = prev.moves.every((m) => !m);
+                const spsUntouched = Object.values(prev.sps).every((v) => !v);
+                if (!movesUntouched || !spsUntouched) return prev;
+                return {
+                  ...prev,
+                  buildName: 'Auto · Max-Speed Sweeper',
+                  ability: built.ability,
+                  nature: built.nature,
+                  sps: built.sps,
+                  moves: built.moves,
+                };
+              });
+            });
+          }
         }}
       />
     </div>
