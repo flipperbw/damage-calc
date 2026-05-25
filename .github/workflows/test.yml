@@ -18,16 +18,18 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x]
-
     steps:
     - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: Zarel/setup-node@patch-1
+    # Align with the Deploy workflow's setup (actions/setup-node@v4 +
+    # Node 20) so optional native deps (lightningcss, rollup) resolve
+    # consistently. The upstream Zarel/setup-node@patch-1 + Node 18
+    # combo got us a "Cannot find native binding" error on lightningcss
+    # even with the lockfile dropped — official setup-node + Node 20
+    # handles the optional-deps fetch cleanly.
+    - uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 20
+        cache: npm
     # Lockfile is generated on Windows so it omits @rollup/rollup-linux-x64-gnu
     # (npm 7+ bug — https://github.com/npm/cli/issues/4828). Drop it before
     # install so npm re-resolves on Linux and pulls the right native binary.
