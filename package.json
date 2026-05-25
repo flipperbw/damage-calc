@@ -3,11 +3,19 @@
   "homepage": "https://calc.pokemonshowdown.com/",
   "repository": "github:smogon/damage-calc",
   "license": "MIT",
-  "workspaces": ["calc", "app"],
+  "workspaces": [
+    "calc",
+    "app"
+  ],
   "scripts": {
     "dev": "npm --workspace app run dev",
     "build": "npm --workspace calc run compile && npm --workspace app run build",
     "test": "npm --workspace calc run test && npm --workspace app run test",
-    "lint": "npm --workspace calc run lint && npm --workspace app run lint"
+    "lint": "npm --workspace calc run lint && npm --workspace app run lint",
+    "prepare": "husky",
+    "precheck": "npm --workspace calc run compile && npm --workspace app run test"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }

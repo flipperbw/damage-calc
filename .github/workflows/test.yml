@@ -34,7 +34,16 @@ jobs:
     # Mirrors the workaround in deploy-champions.yml.
     - run: rm -f package-lock.json
     - run: npm install
-    - run: npm run test
+    # Compile the calc workspace so the app build below has the latest
+    # dist/ to import from. We do NOT run `npm run test` at the root —
+    # that would also run calc's upstream Jest suite, which compares
+    # calc's hardcoded data tables against @pkmn/dex's live data and
+    # fails whenever @pkmn/dex publishes a data-shape patch (e.g. the
+    # Rapid Spin `secondaries: true` shape). Upstream Smogon maintains
+    # those tables; on this fork we only own the app workspace, so we
+    # scope CI to that.
+    - run: npm --workspace calc run compile
+    - run: npm --workspace app run test
       env:
         CI: true
 

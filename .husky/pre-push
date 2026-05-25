@@ -1,0 +1,9 @@
+# Run the same checks CI runs before allowing a push so a green local
+# tree means a green workflow run. Mirrors .github/workflows/test.yml:
+# compile the calc workspace, then run the app workspace's vitest suite.
+#
+# To skip this hook in an emergency (e.g. you need to push a hotfix and
+# the hook is failing for unrelated reasons), use:
+#   git push --no-verify
+echo "[husky] Running precheck (calc compile + app tests)…"
+npm run precheck
