@@ -59,33 +59,13 @@
     letter-spacing="0.5"
   >Pokémon Champions damage calculator</text>
 
-  <!-- Footer chip-style accents (mirrors the app's chip aesthetic) -->
-  <g font-family="Ubuntu, system-ui, sans-serif" font-size="22" font-weight="600" fill="#e8ecff">
-    <g transform="translate(380, 480)">
-      <rect width="280" height="50" rx="12" fill="rgba(124,92,255,0.15)" stroke="#7c5cff" stroke-opacity="0.4" />
-      <text x="20" y="33">+ Save teams</text>
-    </g>
-    <g transform="translate(680, 480)">
-      <rect width="280" height="50" rx="12" fill="rgba(124,92,255,0.15)" stroke="#7c5cff" stroke-opacity="0.4" />
-      <text x="20" y="33">+ Counter suggestions</text>
-    </g>
-    <g transform="translate(380, 545)">
-      <rect width="280" height="50" rx="12" fill="rgba(124,92,255,0.15)" stroke="#7c5cff" stroke-opacity="0.4" />
-      <text x="20" y="33">+ Worst-case scans</text>
-    </g>
-    <g transform="translate(680, 545)">
-      <rect width="280" height="50" rx="12" fill="rgba(124,92,255,0.15)" stroke="#7c5cff" stroke-opacity="0.4" />
-      <text x="20" y="33">+ Mobile-first</text>
-    </g>
-  </g>
-
   <!-- Domain footer -->
   <text
     x="1130"
     y="595"
     text-anchor="end"
     font-family="Ubuntu, system-ui, sans-serif"
-    font-size="26"
+    font-size="28"
     font-weight="600"
     fill="#7c5cff"
   >futuresight.gg</text>
