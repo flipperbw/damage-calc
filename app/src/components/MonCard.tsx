@@ -75,10 +75,22 @@ export function MonCard({
   onChangeNature,
   onSwap,
 }: Props) {
-  // When a mega is active, look up the mega forme's species so types
-  // reflect the transform (Mega Charizard X is Fire/Dragon; Mega Gyarados
-  // is Water/Dark; etc.). Falls back to base when calc lacks the forme.
-  const effectiveSpecies = mon.mega ? megaFormeName(mon.species, mon.mega, mon.item) : mon.species;
+  // Resolve the displayed species name, used for both the sprite and the
+  // calc's stat lookup. Priority:
+  //   1. In-battle forme override (Palafin → Hero, Aegislash → Blade /
+  //      Shield) so the toggle's effect is visible in the sprite. For
+  //      Auto Aegislash the override is empty and we fall through.
+  //   2. Mega state (Charizard-Mega-X, Floette-Mega, …).
+  //   3. Otherwise the user's picked species.
+  const formeOverride =
+    mon.inBattleForme === 'palafin-hero'
+      ? 'Palafin-Hero'
+      : mon.inBattleForme === 'aegislash-shield'
+        ? 'Aegislash-Shield'
+        : mon.inBattleForme === 'aegislash-blade'
+          ? 'Aegislash-Blade'
+          : null;
+  const effectiveSpecies = formeOverride ?? (mon.mega ? megaFormeName(mon.species, mon.mega, mon.item) : mon.species);
   const sp = GEN.species.get(toID(effectiveSpecies) as any) ?? GEN.species.get(toID(mon.species) as any);
   const types = sp?.types ?? [];
   // Mega evolution overrides the user's base ability (Mega Charizard X is
