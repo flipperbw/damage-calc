@@ -143,3 +143,67 @@ body {
     padding-bottom: calc(1.25rem + var(--safe-bottom));
   }
 }
+
+/*
+ * HP slider thumb — the gauge itself IS the slider. The visible bar comes
+ * from a sibling div behind the input; the native track is transparent so
+ * only the thumb shows. Track height is set explicitly so WebKit centers
+ * the thumb vertically on it. Both vendor prefixes are required; Tailwind
+ * can't reach these pseudo-elements.
+ */
+.hp-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: none;
+  /* Kill the default focus-ring outline (WebKit, Firefox, Edge). */
+  outline: none;
+}
+.hp-slider:focus,
+.hp-slider:focus-visible {
+  outline: none;
+}
+/* Track height matches the visible bar (h-2.5 = 10px) so WebKit centers
+ * the thumb vertically on it. */
+.hp-slider::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+  height: 10px;
+}
+.hp-slider::-moz-range-track {
+  background: transparent;
+  border: none;
+  height: 10px;
+}
+.hp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  /* Ring color is driven by the --hp-color CSS var set inline on the
+   * gauge wrapper so it tracks the gauge's color tier (ok / warn /
+   * danger) instead of clashing with the bar fill. Falls back to the
+   * app's accent purple if the var isn't present (component used
+   * outside HpBar). */
+  border: 2px solid var(--hp-color, var(--color-accent));
+  cursor: grab;
+  /* (16 - 10) / 2 = 3 px above and below the track to center the larger
+   * thumb on the shorter track. WebKit needs the explicit offset. */
+  margin-top: -3px;
+}
+.hp-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--hp-color, var(--color-accent));
+  cursor: grab;
+}
+.hp-slider:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}
+.hp-slider:active::-moz-range-thumb {
+  cursor: grabbing;
+}

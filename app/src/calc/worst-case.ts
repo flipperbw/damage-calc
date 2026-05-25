@@ -143,10 +143,17 @@ export function findTankiestBuild(
     }
   }
 
+  // Fall back to the current opponent's moves when the species has no
+  // curated Champions set (e.g. Floette-Eternal). Wall moves don't
+  // factor into tankiness scoring — the wall is the defender — but the
+  // built mon ends up in the opponent slot, and clobbering the user's
+  // working moveset with [''] would surprise them. Empty array if no
+  // current opponent.
+  const moveFallback = currentOpponent?.moves;
   let best: { mon: SavedMon; damage: number } | null = null;
   for (const ability of abilities) {
     for (const item of items) {
-      const wall = buildWall(species, primary, ability, item);
+      const wall = buildWall(species, primary, ability, item, moveFallback);
       const damage = maxDamageOf(attacker, wall, field, format);
       if (!best || damage < best.damage) {
         best = { mon: wall, damage };
@@ -332,9 +339,20 @@ function buildAttacker(
  * stat on the right side, defensive nature, filler moves. The caller
  * picks ability + item; this function just stamps the rest of the build.
  */
-function buildWall(species: string, side: 'Physical' | 'Special', ability: string, item: string | undefined): SavedMon {
+function buildWall(
+  species: string,
+  side: 'Physical' | 'Special',
+  ability: string,
+  item: string | undefined,
+  moveFallback?: readonly string[],
+): SavedMon {
   const known = getKnownMovesForSpecies(species);
-  const moves: [string, string, string, string] = [known[0] ?? '', known[1] ?? '', known[2] ?? '', known[3] ?? ''];
+  // Prefer the curated Champions moveset; if none exists for this species
+  // (Floette-Eternal, future un-curated picks), reuse whatever the caller
+  // already had in the slot rather than blanking it. Final fallback is
+  // empty slots — the editor will surface them as missing.
+  const source = known.length > 0 ? known : (moveFallback ?? []);
+  const moves: [string, string, string, string] = [source[0] ?? '', source[1] ?? '', source[2] ?? '', source[3] ?? ''];
   const isPhys = side === 'Physical';
   return {
     id: `worstcase-synth-${species}-wall-${side}-${toID(ability)}-${item ? toID(item) : 'none'}`,

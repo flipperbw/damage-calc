@@ -1,57 +1,73 @@
-import { useEffect, useState } from 'react';
-
 interface Props {
   current?: number; // raw, undefined = full
   max: number;
-  showRaw?: boolean; // false = % only (opponent mode)
   onChange?: (newCurrent: number | undefined) => void;
 }
 
-export function HpBar({ current, max, showRaw = true, onChange }: Props) {
-  // Local drag state so dragging the slider doesn't write to the store on
-  // every pixel. We commit on pointerUp / touchEnd / blur / Enter.
-  const [draft, setDraft] = useState<number | null>(null);
-  const cur = draft ?? current ?? max;
+/**
+ * Single HP gauge that doubles as a slider. The visible bar with its
+ * gradient fill is the read-out; a native `<input type="range">` is
+ * stacked directly on top of it with a transparent track but a visible
+ * circular thumb riding along the gauge.
+ *
+ * Writes live on every change so damage rolls / kill calcs in the
+ * surrounding card update as the user drags — no draft buffer.
+ *
+ * The thumb's ring color is driven by --hp-color (set inline on the
+ * track wrapper) so the ring shifts ok → warn → danger in lockstep
+ * with the gradient fill. Thumb base styling lives in globals.css
+ * under `.hp-slider`.
+ */
+
+const COLORS = {
+  ok: { bar: 'bg-ok', ring: 'var(--color-ok)' },
+  warn: { bar: 'bg-warn', ring: 'var(--color-warn)' },
+  danger: { bar: 'bg-danger', ring: 'var(--color-danger)' },
+} as const;
+
+export function HpBar({ current, max, onChange }: Props) {
+  const cur = current ?? max;
   const pct = Math.max(0, Math.min(100, Math.round((cur / max) * 100)));
-  const fill = pct > 50 ? 'bg-ok' : pct > 20 ? 'bg-warn' : 'bg-danger';
+  const tier = pct > 50 ? 'ok' : pct > 20 ? 'warn' : 'danger';
+  const { bar: fill, ring } = COLORS[tier];
+  const editable = !!onChange;
 
-  // If the parent's current changes (e.g. user typed in a different input,
-  // or HP got reset), drop the local draft so we re-sync to props.
-  useEffect(() => {
-    setDraft(null);
-  }, [current, max]);
-
-  function commit() {
-    if (!onChange || draft === null) return;
+  function emit(raw: number) {
+    if (!onChange) return;
     // Stay in the "undefined = full" canonical form when at max so the
     // model doesn't drift between {currentHp: undefined} and {currentHp: max}.
-    onChange(draft >= max ? undefined : draft);
-    setDraft(null);
+    onChange(raw >= max ? undefined : raw);
   }
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 bg-white/10 rounded overflow-hidden">
-        <div className={`h-full ${fill}`} style={{ width: `${pct}%` }} />
+      <span className="text-[10px] uppercase tracking-wider opacity-55 font-semibold tabular-nums shrink-0 min-w-[60px]">
+        HP {cur}/{max}
+      </span>
+      <div
+        className="relative flex-1 h-2.5 rounded-full bg-white/10"
+        // CSS var picked up by .hp-slider's ::-*-range-thumb in globals.css.
+        // Drives the thumb-ring color so it tracks the gauge color tier.
+        style={{ ['--hp-color' as string]: ring }}
+      >
+        <div className={`absolute inset-y-0 left-0 rounded-full ${fill}`} style={{ width: `${pct}%` }} />
+        {editable && (
+          <input
+            type="range"
+            // Floor at 1 HP rather than 0: a calc tool models damage taken,
+            // not death state. Pinning the minimum at 1 also keeps the
+            // gauge visually non-empty so the thumb stays grabbable at the
+            // far-left end without the bar collapsing to invisible.
+            min={1}
+            max={max}
+            value={Math.max(1, cur)}
+            onChange={(e) => emit(Number(e.target.value))}
+            className="hp-slider absolute inset-0 w-full h-full cursor-pointer"
+            aria-label="HP"
+          />
+        )}
       </div>
-      <div className="text-xs tabular-nums opacity-80 min-w-[60px] text-right">{showRaw ? `${cur}/${max}` : `${pct}%`}</div>
-      {onChange && (
-        <input
-          type="range"
-          min={0}
-          max={max}
-          value={cur}
-          onChange={(e) => setDraft(Number(e.target.value))}
-          onPointerUp={commit}
-          onTouchEnd={commit}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') commit();
-          }}
-          className="w-20"
-          aria-label="HP"
-        />
-      )}
+      <span className="text-xs tabular-nums opacity-80 min-w-[36px] text-right shrink-0">{pct}%</span>
     </div>
   );
 }

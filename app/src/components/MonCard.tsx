@@ -4,15 +4,18 @@ import type { ComputedStats } from '@/calc/adapter';
 import { GEN, toID } from '@/calc/gen';
 import { effectiveAbility, megaFormeName, natureMods } from '@/calc/helpers';
 import { AbilityDetailSheet } from '@/components/AbilityDetailSheet';
+import { ChipDetailSheet } from '@/components/ChipDetailSheet';
 import { HpBar } from '@/components/HpBar';
 import { MegaToggle } from '@/components/MegaToggle';
 import { AbilityPicker } from '@/components/pickers/AbilityPicker';
 import { BoostPicker } from '@/components/pickers/BoostPicker';
+import { ItemPicker } from '@/components/pickers/ItemPicker';
+import { NaturePicker } from '@/components/pickers/NaturePicker';
 import { StatusPicker } from '@/components/pickers/StatusPicker';
 import { StatChip } from '@/components/StatChip';
 import { Sprite } from '@/components/Sprite';
 import { TypeBadge } from '@/components/TypeBadge';
-import { STAT_LABEL, STAT_ORDER, type MegaState, type SavedMon, type StatIDExceptHP, type StatusName } from '@/types';
+import { STAT_LABEL, STAT_ORDER_NO_HP, type MegaState, type SavedMon, type StatIDExceptHP, type StatusName } from '@/types';
 
 interface Props {
   mon: SavedMon;
@@ -31,6 +34,14 @@ interface Props {
    * round-trip through MonEditor).
    */
   onChangeAbility?: (ability: string) => void;
+  /**
+   * Optional item / nature mutators. When provided, the chip detail
+   * sheet's "Change …" button opens the matching inline picker instead
+   * of routing to onEdit. Mirrors onChangeAbility for parity across
+   * build-state chips on the opp card.
+   */
+  onChangeItem?: (item: string | undefined) => void;
+  onChangeNature?: (nature: string) => void;
   /**
    * When provided, the outer card surface is clickable and triggers a swap
    * (e.g. opens the species picker for the opponent). Sprite/name still route
@@ -51,6 +62,8 @@ export function MonCard({
   onChangeStatus,
   onChangeBoosts,
   onChangeAbility,
+  onChangeItem,
+  onChangeNature,
   onSwap,
 }: Props) {
   // When a mega is active, look up the mega forme's species so types
@@ -66,8 +79,13 @@ export function MonCard({
   const abilityFromMega = !!mon.mega && displayAbility !== mon.ability;
   const dashed = side === 'opp' ? 'border-dashed border-danger/25' : 'border-surface-hi';
 
-  const [picker, setPicker] = useState<'status' | 'boosts' | 'ability' | null>(null);
+  const [picker, setPicker] = useState<'status' | 'boosts' | 'ability' | 'item' | 'nature' | null>(null);
   const [abilityDetailOpen, setAbilityDetailOpen] = useState(false);
+  // Detail sheet for build-state chips (item, nature) only. Battle-state
+  // chips (status, boosts) skip the detail step and jump straight to
+  // their picker — those are transient edits and the extra screen would
+  // be friction. The ability chip has its own dedicated AbilityDetailSheet.
+  const [chipDetail, setChipDetail] = useState<'item' | 'nature' | null>(null);
 
   const hasStatus = mon.status && mon.status !== 'Healthy';
   const hasBoosts = Object.values(mon.boosts).some((v) => typeof v === 'number' && v !== 0);
@@ -92,9 +110,9 @@ export function MonCard({
             surfaceAction();
           }
         },
-        className: `bg-surface border ${dashed} rounded-card p-3 mb-2.5 cursor-pointer`,
+        className: `bg-surface border ${dashed} rounded-card p-3 mb-3 cursor-pointer`,
       }
-    : { className: `bg-surface border ${dashed} rounded-card p-3 mb-2.5` };
+    : { className: `bg-surface border ${dashed} rounded-card p-3 mb-3` };
 
   const { plus: naturePlus, minus: natureMinus } = natureMods(mon.nature);
 
@@ -111,7 +129,7 @@ export function MonCard({
           the name row (not floating across the full middle-column
           height) avoids the visual overlap where MEGA ACTIVE's bottom
           edge would land at the same Y as the badge row. */}
-      <div className="flex gap-2.5 items-center mb-3">
+      <div className="flex gap-2.5 items-center mb-4">
         <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-sprite-${side}`}>
           {/* Use the effective species so a mega-evolved mon shows the mega
               forme's sprite (Charizard-Mega-X, Gardevoir-Mega, …) rather
@@ -150,22 +168,42 @@ export function MonCard({
         </div>
       </div>
 
-      {/* Stats row - six cells, hp/atk/def/spa/spd/spe. Each cell shows the
-          stat value with a small indicator line for nature (▲/▼) and EV
-          allocation ("+N SP"). Tabular numerals so values line up. */}
+      {/* HP gauge sits above the stats row — the slider thumb is the
+          most touched control on the card, so keeping it near the top
+          lets the user adjust it without skipping past the stats they
+          might not need to read on each interaction. */}
+      <div className="mb-3" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+        <HpBar current={mon.currentHp} max={maxHp} onChange={onChangeHp} />
+      </div>
+
+      {/* Stats row - five cells, atk/def/spa/spd/spe. HP lives in the HpBar
+          above (max value baked into the "HP N" label) so we don't render
+          two competing HP indicators. Each cell shows the stat value with
+          a small indicator line for nature (▲/▼) and EV allocation
+          ("+N SP"). Tabular numerals so values line up.
+
+          Tapping any stat cell opens the editor on BOTH sides — viewing
+          full stats is the natural reason to drill in, and routing to
+          edit (rather than the opp-side swap) keeps the affordance
+          intuitive. We override surface bubbling explicitly here. */}
       {stats && (
-        <div className="grid grid-cols-6 gap-1 mb-2 text-center">
-          {STAT_ORDER.map((k) => {
+        <div
+          className="grid grid-cols-5 gap-1 mb-3 text-center"
+          role="button"
+          tabIndex={0}
+          aria-label={`Edit ${mon.species} stats`}
+          onClick={(e) => stop(e, onEdit)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') stop(e, onEdit);
+          }}
+        >
+          {STAT_ORDER_NO_HP.map((k) => {
             const sp = mon.sps[k] ?? 0;
             const isPlus = k === naturePlus && naturePlus !== natureMinus;
             const isMinus = k === natureMinus && naturePlus !== natureMinus;
             const valCls = isPlus ? 'text-ok' : isMinus ? 'text-danger' : sp > 0 ? 'text-accent' : '';
             return (
-              <div
-                key={k}
-                className={`rounded-md py-1 px-0.5 ${sp > 0 ? 'bg-accent/[0.07]' : 'bg-white/[0.03]'}`}
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div key={k} className={`rounded-md py-1 px-0.5 ${sp > 0 ? 'bg-accent/[0.07]' : 'bg-white/[0.03]'}`}>
                 <div className="text-[8px] uppercase tracking-wider opacity-55 leading-none flex items-center justify-center gap-0.5">
                   <span>{STAT_LABEL[k]}</span>
                   {isPlus && <span className="text-ok">▲</span>}
@@ -183,52 +221,82 @@ export function MonCard({
 
       {/*
         Stop click/keydown bubbling for inner controls when the card surface is
-        a swap target - chips, HpBar, and MegaToggle each route to their own
-        handlers, not the swap.
+        a swap target — chips and MegaToggle each route to their own handlers,
+        not the swap. (HpBar gets its own wrapper above the stats grid.)
       */}
       <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-        <HpBar current={mon.currentHp} max={maxHp} showRaw={side === 'you'} onChange={onChangeHp} />
-
-        <div className="flex gap-1.5 mt-2 flex-wrap">
+        {/* Row 1: ability / item / nature — build-state info chips.
+            On the opp side, every chip jumps straight to its picker
+            (testing what-ifs is the common opp interaction; the detail
+            sheet would be friction). On your-side these chips open the
+            descriptive sheet first, since the change action there opens
+            the full editor and the inline info is more useful. */}
+        <div className="flex gap-1.5 flex-wrap mb-2">
           {displayAbility && (
-            // Tapping the ability chip opens the read-only detail sheet -
-            // not the editor. The sheet's "Change ability" button (rendered
-            // only when onChangeAbility is wired) routes to AbilityPicker.
             // The ✦ prefix flags an ability that was overridden by mega
-            // evolution (so the user knows the chip isn't the base form's
-            // ability and editing it would have no effect right now).
+            // evolution (changing the base ability has no effect right now).
             <StatChip
               icon={abilityFromMega ? '✦' : '🩸'}
               label={displayAbility}
               editable={!!onChangeAbility && !abilityFromMega}
-              onClick={() => setAbilityDetailOpen(true)}
+              onClick={() => {
+                if (abilityFromMega) {
+                  setAbilityDetailOpen(true);
+                  return;
+                }
+                if (side === 'opp' && onChangeAbility) setPicker('ability');
+                else setAbilityDetailOpen(true);
+              }}
             />
           )}
-          {mon.item && <StatChip icon="🎒" label={mon.item} editable={side === 'opp'} onClick={onEdit} />}
-          <StatChip icon="🌿" label={mon.nature} editable={side === 'opp'} onClick={onEdit} />
-
-          {/* Status: chip when set, "Status" pill when not. */}
-          {hasStatus ? (
-            <StatChip label={mon.status!} tone="warn" editable={!!onChangeStatus} onClick={onChangeStatus ? () => setPicker('status') : undefined} />
-          ) : onChangeStatus ? (
-            <StatChip label="+ Status" onClick={() => setPicker('status')} />
-          ) : null}
-
-          {/* Boosts: one chip per non-zero boost. Tapping the chip opens the
-              BoostPicker - one modal handles all stat boosts at once. */}
-          {(Object.entries(mon.boosts) as [StatIDExceptHP, number][]).map(([k, v]) =>
-            v !== 0 ? (
-              <StatChip
-                key={k}
-                label={`${v > 0 ? '+' : ''}${v} ${k}`}
-                tone="boost"
-                editable={!!onChangeBoosts}
-                onClick={onChangeBoosts ? () => setPicker('boosts') : undefined}
-              />
-            ) : null,
+          {mon.item && (
+            <StatChip
+              icon="🎒"
+              label={mon.item}
+              editable={side === 'opp'}
+              onClick={() => (side === 'opp' && onChangeItem ? setPicker('item') : setChipDetail('item'))}
+            />
           )}
-          {!hasBoosts && onChangeBoosts && <StatChip label="+ Boost" onClick={() => setPicker('boosts')} />}
+          <StatChip
+            icon="🌿"
+            label={mon.nature}
+            editable={side === 'opp'}
+            onClick={() => (side === 'opp' && onChangeNature ? setPicker('nature') : setChipDetail('nature'))}
+          />
         </div>
+
+        {/* Row 2: Boost + Status side by side. Both are battle-state
+            controls (transient mid-fight edits, not build edits), so
+            tapping a chip jumps straight to its picker — no intermediate
+            detail sheet. Build-state chips (ability/item/nature) above
+            still route through a detail sheet first because their info
+            is worth surfacing. */}
+        {(onChangeBoosts || onChangeStatus) && (
+          <div className="flex gap-1.5 flex-wrap mt-1.5">
+            {onChangeBoosts &&
+              (hasBoosts ? (
+                (Object.entries(mon.boosts) as [StatIDExceptHP, number][]).map(([k, v]) =>
+                  v !== 0 ? (
+                    <StatChip
+                      key={k}
+                      label={`${v > 0 ? '+' : ''}${v} ${k}`}
+                      tone={v > 0 ? 'boost' : 'drop'}
+                      editable
+                      onClick={() => setPicker('boosts')}
+                    />
+                  ) : null,
+                )
+              ) : (
+                <StatChip label="+ Boost" onClick={() => setPicker('boosts')} />
+              ))}
+            {onChangeStatus &&
+              (hasStatus ? (
+                <StatChip label={mon.status!} tone="warn" editable onClick={() => setPicker('status')} />
+              ) : (
+                <StatChip label="+ Status" onClick={() => setPicker('status')} />
+              ))}
+          </div>
+        )}
       </div>
 
       {onChangeStatus && (
@@ -243,9 +311,50 @@ export function MonCard({
       <AbilityDetailSheet
         open={abilityDetailOpen}
         abilityName={displayAbility ?? null}
-        canChange={!!onChangeAbility}
+        // Always offer a change path so the button appears for your-side
+        // mons too (where onChangeAbility isn't wired). When the inline
+        // picker is available we use it; otherwise we route to onEdit so
+        // the editor handles the change. Suppress only when the ability is
+        // a mega override — changing the base ability has no effect.
+        canChange={!abilityFromMega}
         onClose={() => setAbilityDetailOpen(false)}
-        onChangeRequest={onChangeAbility ? () => setPicker('ability') : undefined}
+        onChangeRequest={abilityFromMega ? undefined : onChangeAbility ? () => setPicker('ability') : () => onEdit()}
+      />
+
+      {/* Build-state chip detail sheets (item, nature). Open on chip tap
+          and route "Change …" to an inline picker on the opp side so the
+          user doesn't get bounced to the editor mid-calc, or to the
+          editor on the your-side where item/nature are build-canonical. */}
+      <ChipDetailSheet
+        open={chipDetail === 'item'}
+        title="Item"
+        value={mon.item ?? null}
+        detail={
+          <p>The held item the calc applies — for example, type boosters add 20% damage to that move type, resist berries halve a super-effective hit.</p>
+        }
+        canChange
+        changeLabel="Change item"
+        onClose={() => setChipDetail(null)}
+        onChangeRequest={onChangeItem ? () => setPicker('item') : () => onEdit()}
+      />
+      <ChipDetailSheet
+        open={chipDetail === 'nature'}
+        title="Nature"
+        value={mon.nature}
+        detail={(() => {
+          if (naturePlus && natureMinus && naturePlus !== natureMinus) {
+            return (
+              <p>
+                +10% <span className="text-ok">{STAT_LABEL[naturePlus]}</span>, −10% <span className="text-danger">{STAT_LABEL[natureMinus]}</span>
+              </p>
+            );
+          }
+          return <p className="opacity-70 italic">Neutral nature — no stat changes.</p>;
+        })()}
+        canChange
+        changeLabel="Change nature"
+        onClose={() => setChipDetail(null)}
+        onChangeRequest={onChangeNature ? () => setPicker('nature') : () => onEdit()}
       />
       {onChangeAbility && (
         <AbilityPicker
@@ -255,6 +364,32 @@ export function MonCard({
           onClose={() => setPicker(null)}
           onPick={(a) => {
             onChangeAbility(a);
+            setPicker(null);
+          }}
+        />
+      )}
+      {/* Inline item / nature pickers. The chip detail sheet's "Change …"
+          button opens these whenever an onChange callback is wired so the
+          user doesn't get bounced to the editor mid-calc. Wired for the
+          opponent on BattleScreen; left undefined on the your-side card
+          so the change button falls back to onEdit (build-state canonical). */}
+      {onChangeItem && (
+        <ItemPicker
+          open={picker === 'item'}
+          species={mon.species}
+          onClose={() => setPicker(null)}
+          onPick={(it) => {
+            onChangeItem(it || undefined);
+            setPicker(null);
+          }}
+        />
+      )}
+      {onChangeNature && (
+        <NaturePicker
+          open={picker === 'nature'}
+          onClose={() => setPicker(null)}
+          onPick={(n) => {
+            onChangeNature(n);
             setPicker(null);
           }}
         />

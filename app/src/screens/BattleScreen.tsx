@@ -304,6 +304,8 @@ export function BattleScreen() {
             onChangeStatus={(status) => updateOpponent({ status })}
             onChangeBoosts={(boosts) => updateOpponent({ boosts })}
             onChangeAbility={(ability) => updateOpponent({ ability })}
+            onChangeItem={(item) => updateOpponent({ item })}
+            onChangeNature={(nature) => updateOpponent({ nature })}
           />
           <div className="flex gap-1.5 -mt-1 mb-2.5">
             <button

@@ -27,10 +27,14 @@ export function ProseBlock({ state, testId }: Props) {
   }
   const { short, full } = state.pair;
   if (!short && !full) return null;
+  // @pkmn/data sometimes ships the same string in both short and full
+  // (especially for one-line abilities like Chlorophyll). Skip the
+  // duplicate full line so the sheet doesn't look like a copy-paste bug.
+  const showFull = full && full.trim() !== (short ?? '').trim();
   return (
     <div className="mb-3" data-testid={testId}>
       {short && <div className="text-sm font-medium opacity-90 mb-1">{short}</div>}
-      {full && <p className="text-sm opacity-75 leading-snug">{full}</p>}
+      {showFull && <p className="text-sm opacity-75 leading-snug">{full}</p>}
     </div>
   );
 }
