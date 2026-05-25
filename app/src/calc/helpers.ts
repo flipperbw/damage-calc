@@ -11,29 +11,30 @@ export function isMegaStone(item: string | undefined): boolean {
 
 /**
  * Returns the calc-ready species name with mega suffix applied based on the
- * `mega` flag. When the held item is a mega stone, we consult the MEGA_STONES
- * table first — that's authoritative for irregular cases like
- * Floette-Eternal + Floettite → Floette-Mega (NOT Floette-Eternal-Mega) and
- * Magearna-Original + Magearnite → Magearna-Original-Mega.
+ * `mega` flag. The naive {base}-Mega(-X|-Y) rule is correct for nearly every
+ * mon — including X/Y splits like Charizard / Mewtwo where the `mega` flag is
+ * what selects the forme (the item is just a gate).
  *
- * When no item is provided (or the item isn't a mega stone for this species),
- * we fall back to the naive species + "-Mega"/"-Mega-X"/"-Mega-Y" rule, which
- * is correct for the vast majority of mons.
+ * For irregular formes whose mega name doesn't follow {base}-Mega — Floette-
+ * Eternal → Floette-Mega, Magearna-Original → Magearna-Original-Mega — the
+ * naive rule produces a name that doesn't exist in calc data. We detect that
+ * case (naive name missing from `GEN.species`) and fall back to the held
+ * item's MEGA_STONES mapping, which always has the canonical forme.
  *
- * Does NOT validate that the resulting forme exists in calc data; callers
- * that need existence-checking (the damage adapter) handle that separately.
+ * Does NOT validate beyond that fallback; callers that need stricter
+ * existence-checking (the damage adapter) handle it separately.
  */
 export function megaFormeName(species: string, mega: MegaState, item?: string): string {
   if (!mega) return species;
   if (species.endsWith('-Mega') || species.includes('-Mega-')) return species;
+  const naive = mega === 'mega-x' ? `${species}-Mega-X` : mega === 'mega-y' ? `${species}-Mega-Y` : `${species}-Mega`;
+  if (GEN.species.get(toID(naive) as any)) return naive;
   if (item) {
     const stoneMap = (MEGA_STONES as Record<string, Record<string, string>>)[item];
     const mapped = stoneMap?.[species];
     if (mapped) return mapped;
   }
-  if (mega === 'mega-x') return `${species}-Mega-X`;
-  if (mega === 'mega-y') return `${species}-Mega-Y`;
-  return `${species}-Mega`;
+  return naive;
 }
 
 /** Resolve a nature's stat-mod pair via calc. Returns {} for invalid names or the neutral natures. */

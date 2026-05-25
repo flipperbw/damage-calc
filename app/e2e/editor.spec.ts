@@ -238,15 +238,17 @@ test('Mega toggle is gated on held mega stone - Garchomp + Garchompite shows it'
 
   // The first curated Garchomp build (Mixed Mega) holds Garchompite, so the
   // Mega toggle is already present at editor open after Round 2's auto-apply.
-  await expect(page.getByRole('button', { name: /Mega Evolve/ })).toBeVisible();
+  const toggle = page.getByTestId('mega-toggle');
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
 
-  // Toggle on - label flips to "Mega Active".
-  await page.getByRole('button', { name: /Mega Evolve/ }).click();
-  await expect(page.getByRole('button', { name: /Mega Active/ })).toBeVisible();
+  // Toggle on - aria-pressed flips to true.
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
 
   // Clearing the item via the picker hides the toggle again.
   await page.getByTestId('field-item').click();
   // First entry in the item picker is the "(none)" sentinel row.
   await page.getByRole('button', { name: /^\(none\)$/ }).click();
-  await expect(page.getByRole('button', { name: /Mega (Evolve|Active)/ })).toHaveCount(0);
+  await expect(page.getByTestId('mega-toggle')).toHaveCount(0);
 });

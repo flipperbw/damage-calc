@@ -76,12 +76,19 @@ export function MegaToggle({ mega, onChange, species, item }: Props) {
     return (
       <button
         onClick={() => onChange(isMega ? '' : 'mega')}
+        aria-label="Mega Evolve"
+        aria-pressed={isMega}
+        data-testid="mega-toggle"
         style={{ touchAction: 'manipulation' }}
         className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${
           isMega ? 'bg-accent-gradient text-white border-accent' : 'bg-surface border-surface-hi opacity-70'
         }`}
       >
-        {isMega ? '✦ Mega Active' : 'Mega Evolve'}
+        {/* Short single-word labels: the accent-gradient fill + sparkle on the
+            active state carries the "is it on" signal, so we don't need the
+            "Active" / "Evolve" suffix that was crowding the species name
+            beside it (Floette-Eternal was truncating to "Floette-Et..."). */}
+        {isMega ? '✦ Mega' : 'Mega'}
       </button>
     );
   }
