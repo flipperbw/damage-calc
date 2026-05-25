@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+# Concurrency: only one CI run per ref active at a time. New pushes
+# cancel any in-flight test/build for the same ref so we don't queue
+# stale deploys. Deploy concurrency uses a separate group so a
+# cancellation here doesn't kill an already-publishing Pages job.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # Lockfile is Windows-generated so it omits @rollup/rollup-linux-x64-gnu
+      # (npm 7+ optional-deps bug — https://github.com/npm/cli/issues/4828).
+      # Drop it before install so npm re-resolves on Linux and pulls the right
+      # native binaries (rollup + lightningcss).
+      - run: rm -f package-lock.json
+      - run: npm install
+
+      # Compile the calc workspace first — the app's tests and build both
+      # import compiled output from `calc/dist`. We deliberately skip the
+      # upstream `calc` Jest suite (it cross-checks calc's hardcoded data
+      # tables against the live @pkmn/dex package and breaks on every
+      # @pkmn/dex data-shape patch; upstream Smogon owns those tables, we
+      # only own the `app` workspace).
+      - run: npm --workspace calc run compile
+      - run: npm --workspace app run test
+        env:
+          CI: true
+
+      # Build the production bundle here so the deploy job downloads the
+      # exact same dist/ that the tests just ran against. No second
+      # install / compile / build in the deploy job.
+      - run: npm --workspace app run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-dist
+          path: app/dist
+          # Short retention — we only need the artifact long enough for
+          # the deploy job to pick it up. CI logs hold the build digest
+          # if we ever need to investigate.
+          retention-days: 1
+          if-no-files-found: error
+
+  deploy:
+    needs: test
+    # Only the canonical fork's pushes-to-master should hit GitHub Pages.
+    # PRs / workflow_dispatch runs / other forks skip deploy entirely.
+    if: ${{ github.repository == 'flipperbw/damage-calc' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    # Pages deploys use their own concurrency group (kept on the action's
+    # default 'pages' value) so this doesn't fight with the CI group above.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-dist
+          path: dist
+
+      - uses: actions/configure-pages@v5
+      # Re-pack the downloaded bundle in the format actions/deploy-pages
+      # expects (a single tar.gz at a well-known artifact name).
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

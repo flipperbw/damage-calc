@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { calculateMatchup, typeEffectiveness } from '@/calc/adapter';
 import { preloadPkmn } from '@/data/pkmn';
@@ -238,20 +238,32 @@ describe('priority override propagates through the adapter', () => {
     // Regression guard: stale localStorage from before species validation
     // could carry a typo'd species name. The BattleScreen render must not
     // unwind on the resulting Pokemon-constructor throw.
-    const broken: SavedMon = {
-      id: 'x',
-      species: 'NotAPokemon',
-      nature: 'Hardy',
-      sps: {},
-      moves: ['', '', '', ''],
-      mega: '',
-      boosts: {},
-    };
-    expect(() => calculateMatchup(broken, garchomp, blankField())).not.toThrow();
-    expect(() => calculateMatchup(garchomp, broken, blankField())).not.toThrow();
-    const m = calculateMatchup(broken, garchomp, blankField());
-    expect(m.attackerStats.hp).toBe(0);
-    expect(m.attackerMoves.every((mv) => mv.damageRange[1] === 0)).toBe(true);
+    //
+    // The adapter logs `console.warn('calc setup failed …')` on this path —
+    // that's the intended graceful-degradation signal in production, but
+    // it pollutes the test log here. Stub console.warn for the duration of
+    // this test so the suite's stderr stays clean.
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const broken: SavedMon = {
+        id: 'x',
+        species: 'NotAPokemon',
+        nature: 'Hardy',
+        sps: {},
+        moves: ['', '', '', ''],
+        mega: '',
+        boosts: {},
+      };
+      expect(() => calculateMatchup(broken, garchomp, blankField())).not.toThrow();
+      expect(() => calculateMatchup(garchomp, broken, blankField())).not.toThrow();
+      const m = calculateMatchup(broken, garchomp, blankField());
+      expect(m.attackerStats.hp).toBe(0);
+      expect(m.attackerMoves.every((mv) => mv.damageRange[1] === 0)).toBe(true);
+      // Sanity: we did hit the degraded path, so warn fired at least once.
+      expect(warnSpy).toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it('Palafin uses Hero-form stats in both attacker and defender roles', () => {
