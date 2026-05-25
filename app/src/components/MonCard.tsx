@@ -89,7 +89,11 @@ export function MonCard({
         ? 'Aegislash-Shield'
         : mon.inBattleForme === 'aegislash-blade'
           ? 'Aegislash-Blade'
-          : null;
+          : mon.inBattleForme === 'mimikyu-busted'
+            ? 'Mimikyu-Busted'
+            : mon.inBattleForme === 'morpeko-hangry'
+              ? 'Morpeko-Hangry'
+              : null;
   const effectiveSpecies = formeOverride ?? (mon.mega ? megaFormeName(mon.species, mon.mega, mon.item) : mon.species);
   const sp = GEN.species.get(toID(effectiveSpecies) as any) ?? GEN.species.get(toID(mon.species) as any);
   const types = sp?.types ?? [];
@@ -256,7 +260,7 @@ export function MonCard({
             descriptive sheet first, since the change action there opens
             the full editor and the inline info is more useful. */}
         <div className="flex gap-1.5 flex-wrap mb-2">
-          {displayAbility && (
+          {displayAbility ? (
             // The ✦ prefix flags an ability that was overridden by mega
             // evolution (changing the base ability has no effect right now).
             <StatChip
@@ -272,13 +276,27 @@ export function MonCard({
                 else setAbilityDetailOpen(true);
               }}
             />
+          ) : (
+            // No ability set yet — render a placeholder chip so the user
+            // can always tap to assign one, even when the synth fill
+            // missed (no curated build + species' abilities table is
+            // empty). Same idea as the "+ Boost" / "+ Status" placeholders.
+            <StatChip
+              label="+ Ability"
+              onClick={() => (side === 'opp' && onChangeAbility ? setPicker('ability') : onEdit())}
+            />
           )}
-          {mon.item && (
+          {mon.item ? (
             <StatChip
               icon="🎒"
               label={mon.item}
               editable={side === 'opp'}
               onClick={() => (side === 'opp' && onChangeItem ? setPicker('item') : setChipDetail('item'))}
+            />
+          ) : (
+            <StatChip
+              label="+ Item"
+              onClick={() => (side === 'opp' && onChangeItem ? setPicker('item') : onEdit())}
             />
           )}
           <StatChip

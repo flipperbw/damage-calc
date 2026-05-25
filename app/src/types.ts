@@ -18,8 +18,9 @@ export type StatusName = 'Healthy' | 'Poisoned' | 'Badly Poisoned' | 'Burned' | 
 export type MegaState = '' | 'mega' | 'mega-x' | 'mega-y';
 
 /**
- * Optional override for the in-battle forme of species whose stats
- * shift mid-battle. Empty = species-specific automatic behaviour:
+ * Optional override for the in-battle forme of species whose stats /
+ * type / ability shift mid-battle. Empty = species-specific automatic
+ * behaviour:
  *   - Palafin: stays in Zero form (Zero → Hero is a one-way switch
  *     triggered by switching out and back in, so the realistic default
  *     is Zero; the user flips this to 'palafin-hero' to model the
@@ -28,10 +29,22 @@ export type MegaState = '' | 'mega' | 'mega-x' | 'mega-y';
  *     Shield when defending). The user can force a single forme via
  *     'aegislash-shield' / 'aegislash-blade' for turn-1 / King's-Shield
  *     scenarios.
+ *   - Mimikyu: Disguise active by default (absorbs one hit). User
+ *     flips to 'mimikyu-busted' once the disguise is broken so the
+ *     calc stops crediting the Disguise damage block.
+ *   - Morpeko: Full Belly by default (Aura Wheel is Electric). User
+ *     flips to 'morpeko-hangry' to model the alternate-turn state
+ *     where Aura Wheel becomes Dark.
  *
  * Other species ignore this field.
  */
-export type InBattleForme = '' | 'palafin-hero' | 'aegislash-shield' | 'aegislash-blade';
+export type InBattleForme =
+  | ''
+  | 'palafin-hero'
+  | 'aegislash-shield'
+  | 'aegislash-blade'
+  | 'mimikyu-busted'
+  | 'morpeko-hangry';
 
 export interface SavedMon {
   id: string; // uuid v4

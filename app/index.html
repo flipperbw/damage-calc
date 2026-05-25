@@ -5,6 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#050714" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="https://futuresight.gg/" />
+
+    <!-- SEO description: short enough to render fully in search results,
+         specific enough to telegraph the product (mobile-first calc, real
+         engine, Champions-aware) instead of reading as generic. -->
+    <meta
+      name="description"
+      content="FutureSight is a mobile-first Pokémon Champions damage calculator. Save teams, analyze coverage, compare counter picks, and scan worst-case damage — powered by the Smogon damage engine."
+    />
+
+    <!-- Open Graph (Discord / Slack / Facebook / generic link previews). -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FutureSight" />
+    <meta property="og:url" content="https://futuresight.gg/" />
+    <meta property="og:title" content="FutureSight — Pokémon Champions damage calculator" />
+    <meta
+      property="og:description"
+      content="Mobile-first Champions damage calc. Save teams, build coverage, compare counters, scan worst-case damage."
+    />
+    <meta property="og:image" content="https://futuresight.gg/favicon.svg" />
+
+    <!-- Twitter Card variant. summary_large_image makes the preview a banner
+         once we ship a proper 1200×630 OG image; until then the SVG mark
+         falls back to a square thumbnail on most clients. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FutureSight — Pokémon Champions damage calculator" />
+    <meta
+      name="twitter:description"
+      content="Mobile-first Champions damage calc. Save teams, build coverage, compare counters, scan worst-case damage."
+    />
+    <meta name="twitter:image" content="https://futuresight.gg/favicon.svg" />
+
     <!-- Preload the Ubuntu woff2 files at high priority so the @font-face
          declarations in our CSS resolve before first paint — eliminates
          the cold-cache flash from system font to Ubuntu. 400 (regular) and
@@ -12,6 +44,7 @@
          is fetched on demand by the CSS. -->
     <link rel="preload" as="font" type="font/woff2" href="/fonts/ubuntu-400.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/fonts/ubuntu-700.woff2" crossorigin />
+
     <title>FutureSight — Pokémon Champions damage calculator</title>
   </head>
   <body>

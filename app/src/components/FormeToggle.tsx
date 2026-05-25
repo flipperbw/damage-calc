@@ -17,6 +17,12 @@ interface Props {
  *     accurately (Blade attacking, Shield defending). Shield forces the
  *     defensive forme (turn-1 / after a King's Shield). Blade forces the
  *     offensive forme (after attacking, before next K. Shield).
+ *   - Mimikyu → [Disguise | Busted]. Disguise blocks the first damaging
+ *     hit; Busted means the disguise has been broken and Mimikyu takes
+ *     normal damage now.
+ *   - Morpeko → [Full Belly | Hangry]. Hunger Switch alternates each
+ *     turn, swapping Aura Wheel's type between Electric (Full Belly) and
+ *     Dark (Hangry).
  *
  * Renders nothing for any other species so callers can drop this
  * component into the MonCard header unconditionally.
@@ -38,14 +44,40 @@ export function FormeToggle({ species, value, onChange }: Props) {
       />
     );
   }
-  // Aegislash
+  if (kind === 'aegislash') {
+    return (
+      <Segmented
+        ariaPrefix="Aegislash stance"
+        options={[
+          { id: '', label: 'Auto' },
+          { id: 'aegislash-shield', label: 'Shield' },
+          { id: 'aegislash-blade', label: 'Blade' },
+        ]}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
+  if (kind === 'mimikyu') {
+    return (
+      <Segmented
+        ariaPrefix="Mimikyu disguise"
+        options={[
+          { id: '', label: 'Disguise' },
+          { id: 'mimikyu-busted', label: 'Busted' },
+        ]}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
+  // Morpeko
   return (
     <Segmented
-      ariaPrefix="Aegislash stance"
+      ariaPrefix="Morpeko mode"
       options={[
-        { id: '', label: 'Auto' },
-        { id: 'aegislash-shield', label: 'Shield' },
-        { id: 'aegislash-blade', label: 'Blade' },
+        { id: '', label: 'Full' },
+        { id: 'morpeko-hangry', label: 'Hangry' },
       ]}
       value={value}
       onChange={onChange}
@@ -53,9 +85,11 @@ export function FormeToggle({ species, value, onChange }: Props) {
   );
 }
 
-function formeFamily(species: string): 'palafin' | 'aegislash' | null {
+function formeFamily(species: string): 'palafin' | 'aegislash' | 'mimikyu' | 'morpeko' | null {
   if (species === 'Palafin' || species === 'Palafin-Hero') return 'palafin';
   if (species === 'Aegislash' || species === 'Aegislash-Shield' || species === 'Aegislash-Blade') return 'aegislash';
+  if (species === 'Mimikyu' || species === 'Mimikyu-Busted') return 'mimikyu';
+  if (species === 'Morpeko' || species === 'Morpeko-Hangry') return 'morpeko';
   return null;
 }
 

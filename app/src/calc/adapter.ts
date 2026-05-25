@@ -94,6 +94,16 @@ function inBattleForme(species: string, role: CalcRole, override: InBattleForme 
     if (override === 'aegislash-blade') return 'Aegislash-Blade';
     return role === 'attacker' ? 'Aegislash-Blade' : 'Aegislash-Shield';
   }
+  // Mimikyu / Morpeko: stats are identical to the parent forme, but the
+  // calc keys ability behaviour (Disguise) and move-type overrides
+  // (Aura Wheel becomes Dark in Hangry) off the species name. Pass the
+  // alternate forme through so those rules trigger.
+  if (species === 'Mimikyu' || species === 'Mimikyu-Busted') {
+    return override === 'mimikyu-busted' ? 'Mimikyu-Busted' : 'Mimikyu';
+  }
+  if (species === 'Morpeko' || species === 'Morpeko-Hangry') {
+    return override === 'morpeko-hangry' ? 'Morpeko-Hangry' : 'Morpeko';
+  }
   return species;
 }
 

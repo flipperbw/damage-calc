@@ -127,7 +127,19 @@ export async function synthesizeBuild(species: string): Promise<SavedMon | null>
   const top = candidates.slice(0, 4);
   const moves: [string, string, string, string] = [top[0]?.name ?? '', top[1]?.name ?? '', top[2]?.name ?? '', top[3]?.name ?? ''];
 
-  const abilities = sp.abilities ?? {};
+  // Walk the baseSpecies chain to find abilities — calc keys some
+  // formes (Aegislash-Shield, Aegislash-Both, etc.) off a parent entry
+  // that holds the canonical ability list. Without this walk synth ends
+  // up with ability=undefined for those species and the user sees no
+  // ability chip until they pick one manually.
+  let abilities: Record<string, string> = (sp.abilities ?? {}) as Record<string, string>;
+  let cursor: { abilities?: Record<string, string>; baseSpecies?: string } = sp as unknown as typeof cursor;
+  while (Object.keys(abilities).length === 0 && cursor.baseSpecies) {
+    const parent = GEN.species.get(toID(cursor.baseSpecies) as any);
+    if (!parent) break;
+    cursor = parent as unknown as typeof cursor;
+    abilities = (cursor.abilities ?? {}) as Record<string, string>;
+  }
   const ability = (Object.values(abilities)[0] as string | undefined) ?? undefined;
 
   return {

@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 
 import { calculateMatchup } from '@/calc/adapter';
 import { findHardestHitter, findTankiestBuild } from '@/calc/worst-case';
+import { DisguiseBanner } from '@/components/DisguiseBanner';
 import { MonEditor } from '@/components/editor/MonEditor';
 import { FieldBar } from '@/components/FieldBar';
 import { MonCard } from '@/components/MonCard';
@@ -285,6 +286,7 @@ export function BattleScreen() {
           )}
           <div>
             <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Your moves → opponent</div>
+            <DisguiseBanner mon={opponent} />
             {matchup.attackerMoves.map((r, i) => (
               <MoveRow key={i} result={r} defenderForSturdy={opponent} />
             ))}
@@ -406,6 +408,7 @@ export function BattleScreen() {
           </div>
           <div>
             <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Their moves → you</div>
+            <DisguiseBanner mon={you} />
             {matchup.defenderMoves.map((r, i) => (
               <MoveRow key={i} result={r} defenderForSturdy={you} />
             ))}
