@@ -3,7 +3,7 @@ import { calculate, Field, Move, Pokemon, TYPE_CHART } from '@smogon/calc';
 import { GEN, toID } from '@/calc/gen';
 import { effectiveAbility, megaFormeName } from '@/calc/helpers';
 import { priorityOverride } from '@/data/pkmn';
-import type { FieldState, SavedMon, SideState, StatusName } from '@/types';
+import type { FieldState, InBattleForme, SavedMon, SideState, StatusName } from '@/types';
 
 const STATUS_TO_CALC: Record<Exclude<StatusName, 'Healthy'>, 'psn' | 'tox' | 'brn' | 'par' | 'slp' | 'frz'> = {
   Poisoned: 'psn',
@@ -70,25 +70,29 @@ type CalcRole = 'attacker' | 'defender';
 /**
  * Mid-battle forme switch: pre-activation form is what the user team-builds
  * with (and what the species picker exposes), but the activated form's stats
- * are what apply during the calculation. Role-aware because some species only
- * switch in one direction:
+ * are what apply during the calculation. The `override` arg is the user's
+ * explicit toggle (`mon.inBattleForme`) — empty means species-specific
+ * default behaviour, anything else forces the named forme in both roles:
  *
- *   - Aegislash (Stance Change): Shield ↔ Blade flips per attacking move.
- *     When attacking, use Blade (140 Atk / 140 SpA, 50 Def / 50 SpD). When
- *     defending, stay in Shield (50/50 offensive, 140/140 defensive).
- *   - Palafin (Zero to Hero): Zero → Hero is a permanent one-way switch after
- *     the first switch-out. By the time a matchup is being calc'd it's almost
- *     always already activated, so substitute Hero in both roles.
+ *   - Aegislash (Stance Change): with no override, the role decides —
+ *     Blade when attacking (140/140 offence), Shield when defending
+ *     (140/140 defence). Override forces Shield (turn-1 / post-K. Shield)
+ *     or Blade (after attacking, before next K. Shield).
+ *   - Palafin (Zero to Hero): default is Zero — Hero requires a switch-out-
+ *     and-back-in cycle, so the realistic battle-start state is Zero.
+ *     Override 'palafin-hero' models the post-switch state.
  *
  * Mimikyu-Busted, Morpeko-Hangry, Castform-Sunny/Rainy/Snowy are mid-battle
  * formes too but share base stats with their parent, so calc doesn't care.
  */
-function inBattleForme(species: string, role: CalcRole): string {
-  if (role === 'attacker') {
-    if (species === 'Aegislash' || species === 'Aegislash-Shield') return 'Aegislash-Blade';
-    if (species === 'Palafin') return 'Palafin-Hero';
-  } else {
-    if (species === 'Palafin') return 'Palafin-Hero';
+function inBattleForme(species: string, role: CalcRole, override: InBattleForme | undefined): string {
+  if (species === 'Palafin' || species === 'Palafin-Hero') {
+    return override === 'palafin-hero' ? 'Palafin-Hero' : 'Palafin';
+  }
+  if (species === 'Aegislash' || species === 'Aegislash-Shield' || species === 'Aegislash-Blade') {
+    if (override === 'aegislash-shield') return 'Aegislash-Shield';
+    if (override === 'aegislash-blade') return 'Aegislash-Blade';
+    return role === 'attacker' ? 'Aegislash-Blade' : 'Aegislash-Shield';
   }
   return species;
 }
@@ -98,7 +102,7 @@ function speciesForCalc(mon: SavedMon, role: CalcRole): string {
   // stats actually matter in this role. Then layer the mega-stone suffix on
   // top — Aegislash / Palafin don't have megas, so the two stages don't
   // overlap in practice, but order it this way for safety.
-  const base = inBattleForme(mon.species, role);
+  const base = inBattleForme(mon.species, role, mon.inBattleForme);
   if (!mon.mega) return base;
   // Standard {base}-Mega(-X|-Y)? naming first — covers nearly every mega.
   const candidate = megaFormeName(base, mon.mega);

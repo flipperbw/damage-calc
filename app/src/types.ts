@@ -17,6 +17,22 @@ export type StatusName = 'Healthy' | 'Poisoned' | 'Badly Poisoned' | 'Burned' | 
 
 export type MegaState = '' | 'mega' | 'mega-x' | 'mega-y';
 
+/**
+ * Optional override for the in-battle forme of species whose stats
+ * shift mid-battle. Empty = species-specific automatic behaviour:
+ *   - Palafin: stays in Zero form (Zero → Hero is a one-way switch
+ *     triggered by switching out and back in, so the realistic default
+ *     is Zero; the user flips this to 'palafin-hero' to model the
+ *     post-switch state).
+ *   - Aegislash: Stance Change auto-flips (Blade when attacking,
+ *     Shield when defending). The user can force a single forme via
+ *     'aegislash-shield' / 'aegislash-blade' for turn-1 / King's-Shield
+ *     scenarios.
+ *
+ * Other species ignore this field.
+ */
+export type InBattleForme = '' | 'palafin-hero' | 'aegislash-shield' | 'aegislash-blade';
+
 export interface SavedMon {
   id: string; // uuid v4
   species: string; // canonical species name (e.g. "Garchomp")
@@ -27,6 +43,7 @@ export interface SavedMon {
   sps: Partial<Record<StatID, number>>; // each 0..32, sum ≤ 66
   moves: [string, string, string, string]; // '' for empty
   mega: MegaState; // '' = no mega; 'mega', 'mega-x', or 'mega-y'
+  inBattleForme?: InBattleForme; // override for Palafin / Aegislash
   currentHp?: number; // raw HP; undefined = full
   status?: StatusName;
   boosts: Partial<Record<StatIDExceptHP, number>>; // -6..+6

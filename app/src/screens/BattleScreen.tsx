@@ -193,7 +193,12 @@ export function BattleScreen() {
               (patched) => upsertMon(team.id, patched),
             );
             setAddMonPicker(false);
-            setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
+            // Only open the editor when the mon arrives fully populated
+            // from a curated build. For un-curated species the synth
+            // fills moves / item / ability asynchronously, so opening
+            // the editor here would flash an empty profile until the
+            // patch lands. The user can tap the slot to edit afterward.
+            if (mon.buildName) setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
           }}
         />
         {editor && editorMon && (
@@ -249,6 +254,11 @@ export function BattleScreen() {
             onChangeHp={(hp) =>
               youOverride ? setYouOverride({ ...youOverride, currentHp: hp }) : upsertMon(team.id, { ...you!, currentHp: hp })
             }
+            onChangeInBattleForme={(inBattleForme) =>
+              youOverride
+                ? setYouOverride({ ...youOverride, inBattleForme })
+                : upsertMon(team.id, { ...you!, inBattleForme })
+            }
             onChangeMega={(mega) =>
               youOverride ? setYouOverride({ ...youOverride, mega }) : upsertMon(team.id, { ...you!, mega })
             }
@@ -301,6 +311,7 @@ export function BattleScreen() {
             onSwap={() => setOppPicker(true)}
             onChangeHp={(hp) => updateOpponent({ currentHp: hp })}
             onChangeMega={(mega) => updateOpponent({ mega })}
+            onChangeInBattleForme={(inBattleForme) => updateOpponent({ inBattleForme })}
             onChangeStatus={(status) => updateOpponent({ status })}
             onChangeBoosts={(boosts) => updateOpponent({ boosts })}
             onChangeAbility={(ability) => updateOpponent({ ability })}
@@ -471,7 +482,9 @@ export function BattleScreen() {
             (patched) => upsertMon(team.id, patched),
           );
           setAddMonPicker(false);
-          setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
+          // Only auto-open the editor for curated builds. See the
+          // identical guard on the earlier branch (~L196).
+          if (mon.buildName) setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
         }}
       />
       <SpeciesPicker

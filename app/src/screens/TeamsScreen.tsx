@@ -218,7 +218,11 @@ export function TeamsScreen() {
               (patched) => upsertMon(picker.teamId, patched),
             );
             setPicker(null);
-            setEditor({ kind: 'team-mon', teamId: picker.teamId, monId: mon.id });
+            // See BattleScreen's add-mon picker: only auto-open the
+            // editor for curated builds so un-curated species (e.g.
+            // Aegislash-Shield) don't flash an empty profile while the
+            // background synth resolves.
+            if (mon.buildName) setEditor({ kind: 'team-mon', teamId: picker.teamId, monId: mon.id });
           }}
         />
       )}

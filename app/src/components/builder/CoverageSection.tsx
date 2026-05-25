@@ -45,7 +45,10 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
       () => useStore.getState().teams.find((t) => t.id === team.id)?.mons.find((m) => m.id === mon.id),
       (patched) => upsertMon(team.id, patched),
     );
-    setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
+    // Only auto-open the editor for curated builds. Un-curated species
+    // get filled by the async synth in the background, so opening
+    // immediately would flash an empty profile.
+    if (mon.buildName) setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
     setPickingSlot(null);
   }
 

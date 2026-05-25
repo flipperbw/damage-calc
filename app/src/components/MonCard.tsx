@@ -5,6 +5,7 @@ import { GEN, toID } from '@/calc/gen';
 import { effectiveAbility, megaFormeName, natureMods } from '@/calc/helpers';
 import { AbilityDetailSheet } from '@/components/AbilityDetailSheet';
 import { ChipDetailSheet } from '@/components/ChipDetailSheet';
+import { FormeToggle } from '@/components/FormeToggle';
 import { HpBar } from '@/components/HpBar';
 import { MegaToggle } from '@/components/MegaToggle';
 import { AbilityPicker } from '@/components/pickers/AbilityPicker';
@@ -15,7 +16,7 @@ import { StatusPicker } from '@/components/pickers/StatusPicker';
 import { StatChip } from '@/components/StatChip';
 import { Sprite } from '@/components/Sprite';
 import { TypeBadge } from '@/components/TypeBadge';
-import { STAT_LABEL, STAT_ORDER_NO_HP, type MegaState, type SavedMon, type StatIDExceptHP, type StatusName } from '@/types';
+import { STAT_LABEL, STAT_ORDER_NO_HP, type InBattleForme, type MegaState, type SavedMon, type StatIDExceptHP, type StatusName } from '@/types';
 
 interface Props {
   mon: SavedMon;
@@ -26,6 +27,13 @@ interface Props {
   onEdit: () => void;
   onChangeHp: (hp: number | undefined) => void;
   onChangeMega: (mega: MegaState) => void;
+  /**
+   * Optional in-battle forme mutator. Wired for Palafin (Zero / Hero)
+   * and Aegislash (Auto / Shield / Blade); the FormeToggle below renders
+   * nothing for any other species so the prop is harmless to pass through
+   * unconditionally.
+   */
+  onChangeInBattleForme?: (next: InBattleForme) => void;
   onChangeStatus?: (status: StatusName | undefined) => void;
   onChangeBoosts?: (boosts: Partial<Record<StatIDExceptHP, number>>) => void;
   /**
@@ -59,6 +67,7 @@ export function MonCard({
   onEdit,
   onChangeHp,
   onChangeMega,
+  onChangeInBattleForme,
   onChangeStatus,
   onChangeBoosts,
   onChangeAbility,
@@ -142,6 +151,9 @@ export function MonCard({
               {mon.species}
             </button>
             <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+              {onChangeInBattleForme && (
+                <FormeToggle species={mon.species} value={mon.inBattleForme ?? ''} onChange={onChangeInBattleForme} />
+              )}
               <MegaToggle mega={mon.mega} species={mon.species} item={mon.item} onChange={onChangeMega} />
               {onSwap ? (
                 <button

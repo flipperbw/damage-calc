@@ -266,9 +266,10 @@ describe('priority override propagates through the adapter', () => {
     }
   });
 
-  it('Palafin uses Hero-form stats in both attacker and defender roles', () => {
-    // Palafin-Zero: 70 Atk. Palafin-Hero: 160 Atk. We expect Hero's stats
-    // when Palafin is the attacker — and Hero's bulk when defending.
+  it('Palafin defaults to Zero form (Hero is opt-in via inBattleForme)', () => {
+    // At battle start Palafin is Zero; Hero only activates after a switch-
+    // out-and-back-in. The default with no inBattleForme override stays as
+    // Zero, so attacker stats stay around Zero's 70 Atk + nature/SPs.
     const palafin: SavedMon = {
       id: 'pal',
       species: 'Palafin',
@@ -279,16 +280,56 @@ describe('priority override propagates through the adapter', () => {
       mega: '',
       boosts: {},
     };
+    const zero = calculateMatchup(palafin, tyranitar, blankField());
+    // Zero's 70 Atk + Adamant + 32 SP lands around ~140; Hero would be ~225.
+    expect(zero.attackerStats.atk).toBeLessThan(180);
+  });
+
+  it('Palafin with inBattleForme="palafin-hero" uses Hero-form stats', () => {
+    const palafin: SavedMon = {
+      id: 'pal-hero',
+      species: 'Palafin',
+      ability: 'Zero to Hero',
+      nature: 'Adamant',
+      sps: { atk: 32, spe: 32 },
+      moves: ['Jet Punch', '', '', ''],
+      mega: '',
+      inBattleForme: 'palafin-hero',
+      boosts: {},
+    };
     const asAttacker = calculateMatchup(palafin, tyranitar, blankField());
-    // Hero-form Atk after Adamant + 32 SP should be well above Zero's ~95.
+    // Hero's 160 Atk + Adamant + 32 SP is well above Zero's ~140.
     expect(asAttacker.attackerStats.atk).toBeGreaterThan(180);
 
     const asDefender = calculateMatchup(garchomp, palafin, blankField());
-    // Hero-form Def 97 vs Zero-form Def 72 — defender HP/Def are higher,
-    // so Earthquake's percent range should be lower against Hero than it
-    // would be against Zero. Sanity-check it's not catastrophically high.
+    // Hero-form Def 97 vs Zero-form Def 72; Earthquake shouldn't OHKO.
     const eq = asDefender.attackerMoves.find((r) => r.moveName === 'Earthquake')!;
     expect(eq.percentRange[1]).toBeLessThan(100);
+  });
+
+  it('Aegislash with inBattleForme="aegislash-shield" forces Shield in both roles', () => {
+    // Default Auto would swap to Blade when attacking (high Atk/SpA). With
+    // the Shield override the attacker stats stay Shield (50/50 offence),
+    // so damage is much lower than Auto's Blade-attacking damage would be.
+    const auto: SavedMon = {
+      id: 'aegi-auto',
+      species: 'Aegislash-Shield',
+      ability: 'Stance Change',
+      nature: 'Adamant',
+      sps: { atk: 32, spe: 0 },
+      moves: ['Iron Head', '', '', ''],
+      mega: '',
+      boosts: {},
+    };
+    const shield: SavedMon = { ...auto, id: 'aegi-shield', inBattleForme: 'aegislash-shield' };
+    const blade: SavedMon = { ...auto, id: 'aegi-blade', inBattleForme: 'aegislash-blade' };
+    const autoAtk = calculateMatchup(auto, garchomp, blankField()).attackerStats.atk;
+    const shieldAtk = calculateMatchup(shield, garchomp, blankField()).attackerStats.atk;
+    const bladeAtk = calculateMatchup(blade, garchomp, blankField()).attackerStats.atk;
+    // Auto-as-attacker == Blade-forced (both pick Blade for the attacker role).
+    expect(autoAtk).toBe(bladeAtk);
+    // Shield-forced has the 50 Atk base, so it's much smaller.
+    expect(shieldAtk).toBeLessThan(autoAtk);
   });
 });
 

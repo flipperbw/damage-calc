@@ -57,9 +57,11 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
       (patched) => upsertMon(team.id, patched),
     );
     toast.success(`Added ${species} to ${team.name}`);
-    // Drop the user into the editor on the new mon so they can pick a build /
-    // moves immediately - same flow as the Coverage roster's "+ slot" path.
-    setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
+    // Drop the user into the editor only when the curated build filled
+    // everything up-front. For un-curated species the editor would open
+    // on the empty pre-synth state and look broken; the synth lands
+    // moments later and the user can tap to edit afterward.
+    if (mon.buildName) setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
   }
 
   // Use the seeded "Most-Used" list as the threat reference. We look up by

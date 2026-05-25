@@ -1,7 +1,7 @@
 import { buildSeedThreatLists } from '@/data/seed-threats';
 import type { AppState } from '@/types';
 
-export const CURRENT_VERSION = 6;
+export const CURRENT_VERSION = 7;
 
 export interface PersistedShape {
   version: number;
@@ -69,6 +69,27 @@ const MIGRATORS: Record<number, Migrator> = {
     if (!s || typeof s !== 'object') return s;
     if ('lastSeenChangelogHeading' in s) return s;
     return { ...s, lastSeenChangelogHeading: null };
+  },
+  // v6 -> v7: introduce inBattleForme overrides on SavedMon for Palafin
+  // (Zero / Hero) and Aegislash (Auto / Shield / Blade). Older states
+  // didn't carry the field; default to '' (= species-specific automatic
+  // behaviour) on every drafted mon, opponent, recent opponent, and
+  // threat-list entry.
+  7: (s: any) => {
+    if (!s || typeof s !== 'object') return s;
+    const stamp = (m: any) => (m && typeof m === 'object' && !('inBattleForme' in m) ? { ...m, inBattleForme: '' } : m);
+    const stampArray = (arr: any) => (Array.isArray(arr) ? arr.map(stamp) : arr);
+    const teams = Array.isArray(s.teams)
+      ? s.teams.map((t: any) => (t && typeof t === 'object' ? { ...t, mons: stampArray(t.mons) } : t))
+      : s.teams;
+    const opponent = s.opponent ? stamp(s.opponent) : s.opponent;
+    const recentOpponents = Array.isArray(s.recentOpponents)
+      ? s.recentOpponents.map((r: any) => (r && typeof r === 'object' && r.mon ? { ...r, mon: stamp(r.mon) } : r))
+      : s.recentOpponents;
+    const threatLists = Array.isArray(s.threatLists)
+      ? s.threatLists.map((l: any) => (l && typeof l === 'object' ? { ...l, mons: stampArray(l.mons) } : l))
+      : s.threatLists;
+    return { ...s, teams, opponent, recentOpponents, threatLists };
   },
 };
 
