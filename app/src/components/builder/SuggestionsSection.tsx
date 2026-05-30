@@ -64,16 +64,19 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
     if (mon.buildName) setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
   }
 
-  // Use the seeded "Most-Used" list as the threat reference. We look up by
-  // the stable seedKey rather than display name so a renamed seed still
-  // resolves correctly. Falls back to any other seed, then any list.
+  // Reference threat list for "All threats" mode: top three of the seeded
+  // doubles list. The old "Most-Used" seed was a separate 3-mon list that
+  // duplicated this slice — removed in favour of computing it inline so
+  // there's one less seed to keep in sync.
   const reference = useMemo(() => {
-    return threatLists.find((l) => l.seedKey === 'most-used') ?? threatLists.find((l) => l.isSeed) ?? threatLists[0] ?? null;
+    const doubles = threatLists.find((l) => l.seedKey === 'doubles');
+    if (doubles) return { ...doubles, mons: doubles.mons.slice(0, 3) };
+    return threatLists.find((l) => l.isSeed) ?? threatLists[0] ?? null;
   }, [threatLists]);
 
   // Single-threat focus: when set, scoring uses only this mon as the
-  // threat list. Empty string === "All threats" (the default behavior
-  // backed by the Most-Used reference list).
+  // threat list. Empty string === "All threats" (scored against the
+  // top-three slice of the seeded doubles list).
   const [focusThreatId, setFocusThreatId] = useState<string>('');
   // Drop stale focus when the selected threat list changes underneath us.
   const focusValid = !!focusThreatId && !!focusableThreats?.some((m) => m.id === focusThreatId);
@@ -146,7 +149,7 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
             data-testid="suggestions-focus"
             className="flex-1 min-w-0 bg-surface border border-surface-hi rounded-lg px-2 py-1.5 text-sm text-text"
           >
-            <option value="" className="bg-bg-base">All threats (Most-Used)</option>
+            <option value="" className="bg-bg-base">All threats</option>
             {focusableThreats.map((m) => (
               <option key={m.id} value={m.id} className="bg-bg-base">
                 {m.species}
@@ -270,7 +273,7 @@ function SuggestionCard({
         ))}
         <span
           className="text-[10px] font-bold bg-accent/20 text-accent rounded px-1 py-0.5 leading-none ml-auto"
-          title="Match strength: +3 per coverage gap closed, +2 per shared weakness, +1 per favorable matchup vs Most-Used"
+          title="Match strength: +3 per coverage gap closed, +2 per shared weakness, +1 per favorable matchup vs top threats"
         >
           +{suggestion.score}
         </span>

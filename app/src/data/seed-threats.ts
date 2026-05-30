@@ -1,4 +1,5 @@
 import { GEN, toID } from '@/calc/gen';
+import { PIKALYTICS_TOP_THREATS } from '@/data/generated/pikalytics-threats.generated';
 import { defaultOpponentMon } from '@/store/factories';
 import type { Format, SavedMon, SeedKey, ThreatList } from '@/types';
 import { uuid } from '@/util/uuid';
@@ -21,14 +22,26 @@ interface SeedSpec {
   entries: SeedEntry[];
 }
 
-// Curated lists. These are the source of truth for the v4 migration's seed
-// state. Order is preserved (used in the picker UI).
+// Doubles entries are derived from Pikalytics's Champions VGC tournament usage
+// (pikalytics-threats.generated.ts). Pikalytics encodes mega formes as separate
+// species ("Charizard-Mega-Y") — we pass those through verbatim so calc looks
+// up the right stat block; the mega flag is implicit in the species name.
 //
-// Some entries specify a `mega` evolution + the corresponding Mega Stone.
-// `buildSeedThreatLists` validates each item against calc's data and silently
-// drops the override when the item isn't known - the mon still gets the
-// `mega` flag so it shows as Mega-evolved, just without an explicit item set.
+// Singles stays hand-curated because Pikalytics doesn't track a Champions
+// singles meta. Sourced from the small overlap of competitive singles play.
+const DOUBLES_ENTRIES: SeedEntry[] = PIKALYTICS_TOP_THREATS.map((t) => ({ species: t.species }));
+
+// Curated lists. These are the source of truth for the v4 migration's seed
+// state. Order is preserved (used in the picker UI) — doubles leads because
+// Champions is a doubles-first format and most users land on the doubles
+// threat list by default.
 const SPECS: SeedSpec[] = [
+  {
+    seedKey: 'doubles',
+    name: 'Top Threats - Doubles / VGC',
+    format: 'doubles',
+    entries: DOUBLES_ENTRIES,
+  },
   {
     seedKey: 'singles',
     name: 'Top Threats - Singles',
@@ -42,29 +55,6 @@ const SPECS: SeedSpec[] = [
       { species: 'Kangaskhan' },
       { species: 'Floette-Eternal' },
     ],
-  },
-  {
-    seedKey: 'doubles',
-    name: 'Top Threats - Doubles / VGC',
-    format: 'doubles',
-    entries: [
-      { species: 'Incineroar' },
-      { species: 'Sneasler' },
-      { species: 'Garchomp' },
-      { species: 'Kangaskhan' },
-      { species: 'Floette-Eternal' },
-      { species: 'Kingambit' },
-      { species: 'Pelipper' },
-      // Rillaboom is not in calc's Champions legal list; Aegislash-Shield
-      // stands in as a popular Doubles threat that *is* legal.
-      { species: 'Aegislash-Shield' },
-    ],
-  },
-  {
-    seedKey: 'most-used',
-    name: 'Most-Used',
-    format: 'any',
-    entries: [{ species: 'Incineroar' }, { species: 'Kingambit' }, { species: 'Garchomp' }],
   },
 ];
 

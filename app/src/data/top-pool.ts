@@ -1,4 +1,5 @@
 import { GEN, toID } from '@/calc/gen';
+import { PIKALYTICS_TOP_POOL } from '@/data/generated/pikalytics-pool.generated';
 
 /**
  * One candidate species the suggestion engine can recommend. The `types`
@@ -11,121 +12,26 @@ export interface TopPoolEntry {
   types: readonly string[];
 }
 
-// Curated list of candidate species. Every entry has been verified against
-// calc's Champions legal list (calc/src/data/species.ts ChampionsLegal). In
-// dev mode `buildTopPool` THROWS if a candidate is missing - silent drops
-// would shrink the suggestion universe without anyone noticing.
-//
-// Champions doesn't include several popular VGC mons (Heatran, Ferrothorn,
-// Magnezone, Rillaboom, Mawile, Urshifu, Tapu*) - only species that are
-// part of the Champions-legal subset are listed below.
-const CANDIDATE_NAMES: readonly string[] = [
-  // Top S-tier offensive
-  'Garchomp',
-  'Sneasler',
-  'Pelipper',
-  'Charizard',
-  'Primarina',
-  'Kangaskhan',
-  'Floette-Eternal',
-  'Incineroar',
-  'Kingambit',
-  'Greninja',
-  'Gengar',
-  'Delphox',
-  'Hawlucha',
-  // Common defensive / coverage staples
-  'Toxapex',
-  'Clefable',
-  'Skarmory',
-  'Tyranitar',
-  'Excadrill',
-  // Aegislash exists in Champions only as its formes; the Shield (defensive
-  // stance) is the canonical reference.
-  'Aegislash-Shield',
-  // Versatile picks that round out coverage
-  'Volcarona',
-  'Mamoswine',
-  'Rotom-Wash',
-  'Hydreigon',
-  'Gardevoir',
-  'Conkeldurr',
-  'Dragapult',
-  // Expanded pool - additional physical attackers / sweepers
-  'Dragonite',
-  'Scizor',
-  'Lucario',
-  'Heracross',
-  'Gyarados',
-  'Krookodile',
-  'Aerodactyl',
-  'Lopunny',
-  'Pinsir',
-  'Talonflame',
-  'Mimikyu',
-  'Decidueye',
-  'Quaquaval',
-  'Meowscarada',
-  'Skeledirge',
-  'Ceruledge',
-  'Banette',
-  'Zoroark',
-  'Houndoom',
-  'Manectric',
-  'Salazzle',
-  'Glimmora',
-  'Beedrill',
-  'Aggron',
-  'Diggersby',
-  // Special attackers
-  'Alakazam',
-  'Sylveon',
-  'Roserade',
-  'Jolteon',
-  'Vaporeon',
-  'Espeon',
-  'Leafeon',
-  'Glaceon',
-  'Armarouge',
-  'Pidgeot',
-  'Slowking-Galar',
-  'Hydrapple',
-  'Goodra-Hisui',
-  'Espathra',
-  'Typhlosion-Hisui',
-  'Samurott-Hisui',
-  // Defensive / bulky / pivots
-  'Snorlax',
-  'Umbreon',
-  'Slowbro',
-  'Slowking',
-  'Cofagrigus',
-  'Tinkaton',
-  'Garganacl',
-  'Empoleon',
-  'Hippowdon',
-  'Farigiraf',
-  'Maushold',
-  'Palafin',
-];
-
+// Candidate species pool comes from Pikalytics's Champions VGC usage leader-
+// board (top 60 by usage). Replaces the prior hand-curated list — the meta is
+// the meta, and chasing it manually was always going to drift. Calc's gen-0
+// Champions-legal subset is the constraint; species the scraper picks up but
+// calc doesn't recognise (e.g. some Champions-exclusive megas not in calc's
+// data) get silently dropped here, with a dev-mode error so the gap is visible.
 function buildTopPool(): readonly TopPoolEntry[] {
   const out: TopPoolEntry[] = [];
   const missing: string[] = [];
-  for (const name of CANDIDATE_NAMES) {
-    const sp = GEN.species.get(toID(name) as any);
+  for (const entry of PIKALYTICS_TOP_POOL) {
+    const sp = GEN.species.get(toID(entry.species) as any);
     if (!sp) {
-      missing.push(name);
+      missing.push(entry.species);
       continue;
     }
     const types = (sp.types as readonly string[] | undefined) ?? [];
     out.push({ species: sp.name, types: [...types] });
   }
   if (missing.length > 0) {
-    const msg = `top-pool: ${missing.length} candidate species missing from calc gen 0: ${missing.join(', ')}`;
-    // In dev/test, fail loudly so a refactor that breaks calc-data lookup
-    // doesn't silently shrink the suggestion pool. In production, downgrade
-    // to a console.error so a stale-data load doesn't take the app down.
+    const msg = `top-pool: ${missing.length} Pikalytics species missing from calc gen 0: ${missing.join(', ')}`;
     // eslint-disable-next-line no-console
     if (typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV) {
       throw new Error(msg);

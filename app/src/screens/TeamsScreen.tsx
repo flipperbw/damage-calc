@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { GEN, toID } from '@/calc/gen';
+import { megaFormeName } from '@/calc/helpers';
 import { ActionMenu } from '@/components/ActionMenu';
 import { useConfirm, usePrompt } from '@/components/ConfirmDialog';
 import { MonEditor } from '@/components/editor/MonEditor';
@@ -9,6 +11,7 @@ import { SpeciesPicker } from '@/components/pickers/SpeciesPicker';
 import { ShowdownImportDialog } from '@/components/ShowdownImportDialog';
 import { Sprite } from '@/components/Sprite';
 import { TeamMonCard } from '@/components/TeamMonCard';
+import { TypeBadge } from '@/components/TypeBadge';
 import { PRESET_TEAMS, type PresetTeam } from '@/data/preset-teams';
 import { useStore } from '@/store';
 import { teamToShowdownText } from '@/store/exporters';
@@ -29,9 +32,6 @@ export function TeamsScreen() {
   const setTeamFormat = useStore((s) => s.setTeamFormat);
   const duplicateTeam = useStore((s) => s.duplicateTeam);
   const deleteTeam = useStore((s) => s.deleteTeam);
-  const recents = useStore((s) => s.recentOpponents);
-  const clearRecent = useStore((s) => s.clearRecent);
-
   const confirm = useConfirm();
   const prompt = usePrompt();
 
@@ -171,36 +171,7 @@ export function TeamsScreen() {
         />
       )}
 
-      {recents.length > 0 && (
-        <div className="mt-6">
-          <div className="text-xxs uppercase tracking-wider opacity-50 px-1 mb-2">Recent opponents</div>
-          <div className="rounded-card border border-surface-hi divide-y divide-surface-hi overflow-hidden">
-            {recents.map((r) => (
-              <div
-                key={r.id}
-                data-testid={`recent-${r.mon.species}`}
-                data-use-count={r.useCount}
-                className="flex items-center gap-2.5 px-3 py-2 hover:bg-white/[0.02]"
-              >
-                <Sprite species={r.mon.species} className="w-8 h-8 rounded" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate">{r.mon.species}</div>
-                  <div className="text-[10px] opacity-50 truncate">
-                    {r.mon.buildName ?? 'Custom'} · {r.useCount} battles
-                  </div>
-                </div>
-                <button
-                  onClick={() => clearRecent(r.id)}
-                  aria-label={`Remove ${r.mon.species} from recents`}
-                  className="w-7 h-7 flex items-center justify-center rounded text-text-mute hover:text-danger hover:bg-danger/10"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {teams.length > 0 && <MetaTeamsSection onUsePreset={handleUsePreset} />}
 
       {picker && (
         <SpeciesPicker
@@ -356,26 +327,24 @@ function TeamCard({
           ⋮
         </button>
       </div>
-      <div className="flex gap-1.5 mt-2.5">
+      <div className="flex gap-1.5 mt-2.5 md:gap-2 md:justify-center">
         {slots.map((mon, i) => (
-          <button
-            key={i}
-            onClick={() => onSlot(i)}
-            data-testid={mon ? `team-slot-filled-${i}` : `team-slot-empty-${i}`}
-            aria-label={mon ? `Edit ${mon.species}` : `Add Pokémon to slot ${i + 1}`}
-            className="flex-1 aspect-square bg-surface border border-surface-hi rounded-lg flex items-center justify-center"
-          >
-            {mon ? <Sprite species={mon.species} className="w-3/4 h-3/4" /> : <span className="opacity-30 text-xs">＋</span>}
-          </button>
+          <TeamSlot key={i} mon={mon} onClick={() => onSlot(i)} testId={mon ? `team-slot-filled-${i}` : `team-slot-empty-${i}`} index={i} />
         ))}
       </div>
       {expanded && team.mons.length > 0 && (
         // Single column on mobile (each card readable at full width); three
         // columns on desktop so a full 6-mon team lays out as 2 rows × 3.
+        // Empty slots get a dashed-border placeholder card that opens the
+        // species picker — keeps the grid balanced and signals where to add.
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
           {team.mons.map((mon) => (
             <TeamMonCard key={mon.id} mon={mon} onEdit={() => onOpenMon(mon.id)} />
           ))}
+          {Array.from({ length: 6 - team.mons.length }, (_, k) => {
+            const slotIndex = team.mons.length + k;
+            return <EmptyMonCard key={`empty-${slotIndex}`} onClick={() => onSlot(slotIndex)} />;
+          })}
         </div>
       )}
     </div>
@@ -437,10 +406,147 @@ function EmptyState({
   );
 }
 
+function EmptyMonCard({ onClick }: { onClick: () => void }) {
+  // Sized to roughly match TeamMonCard's footprint so the grid stays balanced
+  // when a team is short of six mons. Dashed border + accent-on-hover signals
+  // "tap to fill" without competing with the real cards visually.
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid="team-mon-empty-card"
+      aria-label="Add Pokémon to this slot"
+      className="bg-surface/40 border border-dashed border-surface-hi rounded-card p-3 min-h-[180px] flex flex-col items-center justify-center gap-1.5 text-text-mute hover:border-accent/50 hover:text-accent transition-colors"
+    >
+      <span className="text-2xl leading-none opacity-60">＋</span>
+      <span className="text-[11px] uppercase tracking-wider font-semibold opacity-70">Empty slot</span>
+    </button>
+  );
+}
+
+function TeamSlot({ mon, onClick, testId, index }: { mon: SavedMon | null; onClick: () => void; testId: string; index: number }) {
+  // Compact desktop tile: sprite + species + types. Mobile keeps the bare
+  // sprite-square — the row needs to fit six tiles across an iPhone-SE.
+  const effectiveSpecies = mon?.mega ? megaFormeName(mon.species, mon.mega, mon.item) : mon?.species ?? '';
+  const sp = mon ? GEN.species.get(toID(effectiveSpecies) as any) ?? GEN.species.get(toID(mon.species) as any) : undefined;
+  const types = (sp?.types ?? []) as string[];
+  return (
+    <button
+      onClick={onClick}
+      data-testid={testId}
+      aria-label={mon ? `Edit ${mon.species}` : `Add Pokémon to slot ${index + 1}`}
+      className={`flex-1 md:flex-none md:w-[140px] aspect-square md:aspect-auto bg-surface rounded-lg flex flex-col items-center justify-center md:px-2 md:py-2.5 md:gap-1.5 hover:border-accent/40 ${mon ? 'border border-surface-hi' : 'border border-dashed border-surface-hi/70'}`}
+    >
+      {mon ? (
+        <>
+          <Sprite species={effectiveSpecies} className="w-3/4 h-3/4 md:w-20 md:h-20" />
+          <div className="hidden md:flex flex-col items-center w-full min-w-0">
+            <div className="flex items-center gap-1 w-full justify-center">
+              <span className="font-semibold text-[12px] truncate">{mon.species}</span>
+              {mon.mega && <span className="text-[8px] uppercase tracking-wider text-accent font-bold shrink-0">✦</span>}
+            </div>
+            <div className="flex gap-1 mt-1">
+              {types.map((t) => (
+                <TypeBadge key={t} type={t} />
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col items-center gap-1 opacity-40">
+          <span className="text-base leading-none">＋</span>
+          <span className="hidden md:block text-[10px] uppercase tracking-wider font-semibold">Empty slot</span>
+        </div>
+      )}
+    </button>
+  );
+}
+
+// Pre-tokenize each preset team into a single searchable lowercase blob.
+// `name` already encodes "<tournament> – <author> <record>" and `blurb`
+// repeats it, so author + record + tournament come along for free. We also
+// fold in every species (with a "mega <name>" alias for mega formes), the
+// abilities, and the items so queries like "garchomp", "maddo", "11-0",
+// "intimidate", and "sitrus" all hit.
+const PRESET_SEARCH_INDEX: { team: PresetTeam; blob: string }[] = PRESET_TEAMS.map((p) => {
+  const parts: string[] = [p.name, p.blurb];
+  for (const m of p.mons) {
+    parts.push(m.species);
+    if (m.mega) parts.push(`mega ${m.species}`);
+    if (m.ability) parts.push(m.ability);
+    if (m.item) parts.push(m.item);
+  }
+  return { team: p, blob: parts.join(' ').toLowerCase() };
+});
+
+function MetaTeamsSection({ onUsePreset }: { onUsePreset: (preset: PresetTeam) => void }) {
+  const [open, setOpen] = useState(true);
+  const [query, setQuery] = useState('');
+  const trimmed = query.trim().toLowerCase();
+  const filtered = trimmed
+    ? PRESET_SEARCH_INDEX.filter((entry) => entry.blob.includes(trimmed)).map((e) => e.team)
+    : PRESET_TEAMS;
+
+  return (
+    <div className="mt-8 -mx-3 px-3 py-4 border-t border-b border-accent/20 bg-accent/4">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        data-testid="meta-teams-toggle"
+        className="w-full flex items-center justify-between mb-3 group"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-accent text-lg leading-none">✦</span>
+          <span className="text-sm font-bold uppercase tracking-wider text-accent">Meta teams</span>
+          <span className="text-[10px] uppercase tracking-wider opacity-50">
+            {trimmed ? `${filtered.length} / ${PRESET_TEAMS.length}` : PRESET_TEAMS.length}
+          </span>
+        </span>
+        <span className="text-accent opacity-70 group-hover:opacity-100">{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <>
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter by species, author, or tournament…"
+              aria-label="Filter meta teams"
+              data-testid="meta-teams-filter"
+              className="flex-1 min-w-0 bg-surface border border-surface-hi rounded-lg px-3 py-2 text-sm text-text placeholder:text-text-mute focus:border-accent/60 outline-none"
+            />
+            {trimmed && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                aria-label="Clear filter"
+                className="px-2 py-2 rounded-lg bg-surface border border-surface-hi text-xs opacity-70 hover:opacity-100"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {filtered.length === 0 ? (
+            <p className="text-[12px] opacity-50 px-1 py-3">No teams match "{trimmed}".</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+              {filtered.map((p) => (
+                <PresetCard key={p.name} preset={p} onUse={() => onUsePreset(p)} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function PresetCard({ preset, onUse }: { preset: PresetTeam; onUse: () => void }) {
   return (
     <div
-      className="bg-surface border border-surface-hi rounded-card p-3 flex flex-col gap-2.5"
+      className="bg-surface border border-surface-hi rounded-card p-3 flex flex-col gap-4"
       data-testid={`preset-${preset.name.toLowerCase().replace(/\s+/g, '-')}`}
     >
       <div>
@@ -463,7 +569,7 @@ function PresetCard({ preset, onUse }: { preset: PresetTeam; onUse: () => void }
         onClick={onUse}
         aria-label={`Use ${preset.name} template`}
         style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.15)' }}
-        className="min-h-[40px] mt-0.5 rounded-lg bg-accent/15 border border-accent/40 text-accent text-sm font-semibold select-none cursor-pointer hover:bg-accent/25"
+        className="min-h-10 mt-0.5 rounded-lg bg-accent/15 border border-accent/40 text-accent text-sm font-semibold select-none cursor-pointer hover:bg-accent/25"
       >
         Use team
       </button>

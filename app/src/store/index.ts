@@ -244,20 +244,64 @@ export const useStore = create<AppState & Actions>()(
         })),
       ensureSeedThreatLists: () =>
         set((s) => {
-          // Drop seeds whose seedKey is no longer shipped (e.g. "megas" after
-          // we removed Top Megas from the curated specs). This makes obsolete
-          // seeds disappear automatically on app load — the user doesn't have
-          // to manually clear them. User-created (non-seed) lists are
-          // untouched.
+          // Three jobs in one pass, every Builder mount:
+          //   1. Drop seeds whose seedKey is no longer shipped (e.g. "megas"
+          //      or "most-used" after their curated specs were removed).
+          //   2. For each remaining seed, compare against the current spec —
+          //      if mons.length differs or the first mon species changed,
+          //      refresh the seed's mons/format in place. Catches stale
+          //      persisted state when the spec evolves between releases (or
+          //      a migration didn't fire / was skipped). The seed's id /
+          //      name / createdAt are preserved so any in-flight references
+          //      remain valid.
+          //   3. Reorder so seeds appear in spec order ahead of user lists.
+          //      If the user has no seeds at all after pruning, repopulate.
           const validKeys = new Set<string>(CURRENT_SEED_KEYS);
-          const pruned = s.threatLists.filter((l) => !l.isSeed || (l.seedKey !== undefined && validKeys.has(l.seedKey)));
-          // If, after pruning, there are no seeds at all, repopulate them.
-          const hasSeeds = pruned.some((l) => l.isSeed);
-          if (!hasSeeds) {
-            return { threatLists: [...buildSeedThreatLists(), ...pruned] };
+          const fresh = buildSeedThreatLists();
+
+          const persistedSeedByKey = new Map<string, ThreatList>();
+          const userLists: ThreatList[] = [];
+          for (const l of s.threatLists) {
+            if (l.isSeed && l.seedKey !== undefined && validKeys.has(l.seedKey)) {
+              persistedSeedByKey.set(l.seedKey, l);
+            } else if (!l.isSeed) {
+              userLists.push(l);
+            }
+            // Else: orphaned seed → dropped.
           }
-          if (pruned.length === s.threatLists.length) return {};
-          return { threatLists: pruned };
+
+          if (persistedSeedByKey.size === 0) {
+            // No valid seeds left — repopulate from the spec while keeping
+            // any user-created lists at the end.
+            return { threatLists: [...fresh, ...userLists] };
+          }
+
+          let changed = false;
+          const refreshedSeeds = fresh
+            .filter((f) => persistedSeedByKey.has(f.seedKey as string))
+            .map((f) => {
+              const existing = persistedSeedByKey.get(f.seedKey as string)!;
+              const stale = existing.mons.length !== f.mons.length || existing.mons[0]?.species !== f.mons[0]?.species;
+              if (!stale) return existing;
+              changed = true;
+              return {
+                ...f,
+                id: existing.id,
+                name: existing.name,
+                createdAt: existing.createdAt,
+                updatedAt: Date.now(),
+              };
+            });
+
+          // Detect reorder / drop too: if the existing array of seeded lists
+          // isn't already in spec order, we need to rewrite the array.
+          const existingSeedOrder = s.threatLists.filter((l) => l.isSeed && l.seedKey !== undefined && validKeys.has(l.seedKey)).map((l) => l.seedKey);
+          const targetSeedOrder = refreshedSeeds.map((l) => l.seedKey);
+          const orderChanged = existingSeedOrder.length !== targetSeedOrder.length || existingSeedOrder.some((k, i) => k !== targetSeedOrder[i]);
+          const droppedOrphans = s.threatLists.length !== refreshedSeeds.length + userLists.length;
+
+          if (!changed && !orderChanged && !droppedOrphans) return {};
+          return { threatLists: [...refreshedSeeds, ...userLists] };
         }),
 
       setField: (patch) => set((s) => ({ field: { ...s.field, ...patch } })),

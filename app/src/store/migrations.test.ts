@@ -93,11 +93,9 @@ describe('migrate', () => {
     };
     const out = migrate(v3)!;
     expect(out.version).toBe(CURRENT_VERSION);
-    expect(out.state.threatLists).toHaveLength(3);
     const names = out.state.threatLists.map((l) => l.name);
     expect(names).toContain('Top Threats - Singles');
     expect(names).toContain('Top Threats - Doubles / VGC');
-    expect(names).toContain('Most-Used');
     // All seeds should be flagged isSeed and have mons populated.
     for (const list of out.state.threatLists) {
       expect(list.isSeed).toBe(true);
@@ -134,7 +132,10 @@ describe('migrate', () => {
   });
 
   it('v4 -> v5 adds an empty pinnedFieldKeys slice when missing', () => {
-    const seeds: ThreatList[] = [{ id: 's1', name: 'Seed', format: 'any', mons: [], isSeed: true, createdAt: 0, updatedAt: 0 }];
+    // Use a user-list (isSeed:false) so the v8 migrator's seed-list refresh
+    // pass leaves it alone — this test is about pinnedFieldKeys defaults,
+    // not threat-list mutation.
+    const userLists: ThreatList[] = [{ id: 'u1', name: 'My List', format: 'any', mons: [], isSeed: false, createdAt: 0, updatedAt: 0 }];
     const v4 = {
       version: 4,
       state: {
@@ -145,12 +146,12 @@ describe('migrate', () => {
         recentOpponents: [],
         notation: 'percent',
         editor: null,
-        threatLists: seeds,
+        threatLists: userLists,
       },
     };
     const out = migrate(v4)!;
     expect(out.version).toBe(CURRENT_VERSION);
-    expect(out.state.threatLists).toEqual(seeds);
+    expect(out.state.threatLists).toEqual(userLists);
     expect(out.state.pinnedFieldKeys).toEqual([]);
   });
 

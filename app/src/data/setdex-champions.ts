@@ -1,4 +1,13 @@
-import type { StatID } from '@/types';
+import { PIKALYTICS_BUILDS } from '@/data/generated/pikalytics-builds.generated';
+import type { MegaState, StatID } from '@/types';
+
+/**
+ * Source of a curated build. Surfaced in the build dropdown so the user can
+ * tell at a glance whether they're picking a live-meta set (✓ current) or a
+ * legacy SM/USUM Smogon set kept around as a fallback for species the new
+ * data doesn't cover.
+ */
+export type BuildOrigin = 'pikalytics' | 'legacy';
 
 export interface ChampionsBuild {
   ability: string;
@@ -6,6 +15,14 @@ export interface ChampionsBuild {
   nature: string;
   moves: string[];
   sps: Partial<Record<StatID, number>>;
+  origin: BuildOrigin;
+  /**
+   * Mega state implied by the build. Set on meta variants that come from a
+   * mega forme (e.g. Charizard's "Sweeper · Mega Y" carries mega='mega-y'
+   * and item='Charizardite Y'); applying such a build also flips the mon
+   * into that mega forme. Empty / undefined for non-mega builds.
+   */
+  mega?: MegaState;
 }
 
 type Setdex = Record<string, Record<string, ChampionsBuild>>;
@@ -4839,31 +4856,81 @@ const RAW: Record<string, Record<string, any>> = {
 };
 // END PORTED DATA
 
+/**
+ * SM/USUM-era Smogon sets, kept around as a legacy fallback for species
+ * Pikalytics's Champions data doesn't cover. Public consumers should reach
+ * the *merged* getters (`getBuildsForSpecies`, `getBuild`) so they don't have
+ * to know which source serviced their lookup.
+ */
 export const SETDEX_CHAMPIONS: Setdex = Object.fromEntries(
   Object.entries(RAW).map(([species, builds]) => [
     species,
-    Object.fromEntries(Object.entries(builds).map(([name, b]) => [name, { ...b, sps: translateSps(b.sps ?? {}) } as ChampionsBuild])),
+    Object.fromEntries(
+      Object.entries(builds).map(([name, b]) => [
+        name,
+        { ...b, sps: translateSps(b.sps ?? {}), origin: 'legacy' as const } as ChampionsBuild,
+      ]),
+    ),
   ]),
 );
 
+// Pikalytics setdex: same Setdex shape, keyed off `pikalytics-builds.generated.ts`.
+// One species → one entry per variant (e.g. "Sitrus Pivot", "Scarf Sweeper").
+const PIKALYTICS_SETDEX: Setdex = Object.fromEntries(
+  PIKALYTICS_BUILDS.map((b) => [
+    b.species,
+    Object.fromEntries(
+      b.variants.map((v) => [
+        v.name,
+        {
+          ability: v.ability,
+          item: v.item,
+          nature: v.nature,
+          sps: { ...v.sps },
+          moves: [...v.moves],
+          origin: 'pikalytics' as const,
+          mega: v.mega,
+        } satisfies ChampionsBuild,
+      ]),
+    ),
+  ]),
+);
+
+/**
+ * Build dropdown ordering: Pikalytics variants first (in the order the
+ * scraper emits — highest item-bucket usage first), then SM/USUM sets that
+ * aren't already represented by a same-named Pikalytics variant.
+ *
+ * If the same buildName exists in both sources (unlikely since Pikalytics
+ * names look like "Sitrus Pivot" while legacy names look like "SM OU Dragon
+ * Dance"), Pikalytics wins.
+ */
 export function getBuildsForSpecies(species: string): string[] {
-  return Object.keys(SETDEX_CHAMPIONS[species] ?? {});
+  const pika = Object.keys(PIKALYTICS_SETDEX[species] ?? {});
+  const legacy = Object.keys(SETDEX_CHAMPIONS[species] ?? {});
+  if (pika.length === 0) return legacy;
+  const seen = new Set(pika);
+  return [...pika, ...legacy.filter((n) => !seen.has(n))];
 }
 
 export function getBuild(species: string, buildName: string): ChampionsBuild | undefined {
-  return SETDEX_CHAMPIONS[species]?.[buildName];
+  return PIKALYTICS_SETDEX[species]?.[buildName] ?? SETDEX_CHAMPIONS[species]?.[buildName];
 }
 
 /**
- * Union of move names appearing across all curated builds for a species.
- * Used as an approximate "Champions-known moveset" for filtering pickers,
- * since calc doesn't ship learnsets. Order is alphabetical.
+ * Union of move names appearing across all curated builds for a species —
+ * Pikalytics variants and SM/USUM sets combined. Used as an approximate
+ * "Champions-known moveset" for filtering pickers, since calc doesn't ship
+ * learnsets. Order is alphabetical.
  */
 export function getKnownMovesForSpecies(species: string): string[] {
-  const builds = SETDEX_CHAMPIONS[species];
-  if (!builds) return [];
   const set = new Set<string>();
-  for (const b of Object.values(builds)) {
+  for (const b of Object.values(PIKALYTICS_SETDEX[species] ?? {})) {
+    for (const m of b.moves) {
+      if (m) set.add(m);
+    }
+  }
+  for (const b of Object.values(SETDEX_CHAMPIONS[species] ?? {})) {
     for (const m of b.moves) {
       if (m) set.add(m);
     }

@@ -37,7 +37,11 @@ export function monFromBuild(species: string, buildName: string): SavedMon | nul
     // the SETDEX_CHAMPIONS object; future in-place edits stay isolated.
     sps: { ...b.sps },
     moves: [b.moves[0] ?? '', b.moves[1] ?? '', b.moves[2] ?? '', b.moves[3] ?? ''],
-    mega: '',
+    // Pikalytics meta variants extracted from a mega forme carry their own
+    // mega state (e.g. Charizard "Sweeper · Mega Y" → mega='mega-y'). Apply
+    // it so picking that build flips the mon to the right forme; default '' for
+    // non-mega builds and legacy SM/USUM sets that don't carry the flag.
+    mega: b.mega ?? '',
     boosts: {},
   };
 }

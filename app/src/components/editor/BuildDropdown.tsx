@@ -32,6 +32,7 @@ interface ChampionsBuildLite {
   nature: string;
   moves: string[];
   sps: Partial<Record<StatID, number>>;
+  origin?: 'pikalytics' | 'legacy';
 }
 
 /**
@@ -92,6 +93,11 @@ export function BuildDropdown({ species, selectedName, onApply }: Props) {
         nature: built.nature,
         sps: built.sps,
         moves: built.moves,
+        // Pikalytics meta variants extracted from a mega forme carry mega state
+        // — flow it through so picking "Sweeper · Mega Y" auto-mega-evolves
+        // the mon. Legacy / non-mega picks reset mega to '' so re-picking a
+        // base set after a mega variant clears the forme cleanly.
+        mega: built.mega,
       },
       name,
     );
@@ -168,16 +174,42 @@ export function BuildDropdown({ species, selectedName, onApply }: Props) {
           {builds.length === 0 && !summary && <div className="px-2 py-2 text-xs opacity-60">No builds for {species}</div>}
           {builds.map((name) => {
             const b = getBuild(species, name);
-            const role = b ? deriveRoleLabel(b) : null;
+            // Pikalytics builds carry their own item+role in the name
+            // ("Sitrus Pivot"); skip the legacy role inference so we don't
+            // override the picker label with a less-specific guess.
+            const role = b && b.origin !== 'pikalytics' ? deriveRoleLabel(b) : null;
+            const origin = b?.origin;
             return (
-              <button key={name} onClick={() => pick(name)} className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-surface">
-                {role ? (
-                  <>
-                    <div className="font-semibold">{role}</div>
-                    <div className="text-[11px] opacity-60 italic">{name}</div>
-                  </>
-                ) : (
-                  <span>{name}</span>
+              <button
+                key={name}
+                onClick={() => pick(name)}
+                className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-surface flex justify-between items-center gap-2"
+              >
+                <span className="min-w-0 flex-1">
+                  {role ? (
+                    <>
+                      <div className="font-semibold truncate">{role}</div>
+                      <div className="text-[11px] opacity-60 italic truncate">{name}</div>
+                    </>
+                  ) : (
+                    <span className="font-semibold truncate block">{name}</span>
+                  )}
+                </span>
+                {origin === 'pikalytics' && (
+                  <span
+                    title="Current Champions VGC meta"
+                    className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent"
+                  >
+                    Meta
+                  </span>
+                )}
+                {origin === 'legacy' && (
+                  <span
+                    title="Legacy SM/USUM Smogon set"
+                    className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-surface-hi opacity-60"
+                  >
+                    SM
+                  </span>
                 )}
               </button>
             );

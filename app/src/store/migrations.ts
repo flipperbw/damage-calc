@@ -1,7 +1,7 @@
-import { buildSeedThreatLists } from '@/data/seed-threats';
+import { buildSeedThreatLists, CURRENT_SEED_KEYS } from '@/data/seed-threats';
 import type { AppState } from '@/types';
 
-export const CURRENT_VERSION = 7;
+export const CURRENT_VERSION = 9;
 
 export interface PersistedShape {
   version: number;
@@ -9,6 +9,45 @@ export interface PersistedShape {
 }
 
 type Migrator = (s: any) => any;
+
+// Shared helper: rebuild persisted threatLists so seeded entries match the
+// current spec (mons, format, order), preserving the persisted id/name/
+// createdAt where keys match. Drops seeds whose key is no longer shipped;
+// leaves user-created lists untouched and appended after the seeds.
+function refreshSeededThreatLists(s: any): any {
+  if (!s || typeof s !== 'object') return s;
+  if (!Array.isArray(s.threatLists)) return s;
+  const validKeys = new Set<string>(CURRENT_SEED_KEYS);
+  const persistedSeedByKey = new Map<string, any>();
+  const userLists: any[] = [];
+  for (const l of s.threatLists) {
+    if (!l || typeof l !== 'object') continue;
+    if (l.isSeed && typeof l.seedKey === 'string' && validKeys.has(l.seedKey)) {
+      persistedSeedByKey.set(l.seedKey, l);
+    } else if (!l.isSeed) {
+      userLists.push(l);
+    }
+    // Else: orphaned seed (key no longer shipped) — silently dropped.
+  }
+  // Only refresh seeds the user actually had. We don't inject new seeds
+  // here — the store's ensureSeedThreatLists handles "user has no seeds
+  // at all" by re-seeding on Builder mount. This preserves the v4
+  // migrator's "user opted out of seeds → leave them alone" invariant.
+  const now = Date.now();
+  const refreshedSeeds = buildSeedThreatLists()
+    .filter((fresh) => persistedSeedByKey.has(fresh.seedKey as string))
+    .map((fresh) => {
+      const existing = persistedSeedByKey.get(fresh.seedKey as string)!;
+      return {
+        ...fresh,
+        id: existing.id,
+        name: existing.name,
+        createdAt: existing.createdAt,
+        updatedAt: now,
+      };
+    });
+  return { ...s, threatLists: [...refreshedSeeds, ...userLists] };
+}
 
 function migrateMon(mon: any): any {
   if (!mon || typeof mon !== 'object') return mon;
@@ -70,6 +109,25 @@ const MIGRATORS: Record<number, Migrator> = {
     if ('lastSeenChangelogHeading' in s) return s;
     return { ...s, lastSeenChangelogHeading: null };
   },
+  // v7 -> v8: rebuild the seeded portion of threatLists from the current
+  // spec. Several things changed at once:
+  //   - Doubles seed grew from 8 to ~40 entries (live Pikalytics meta).
+  //   - Doubles is now first in spec order (was second).
+  //   - The "Most-Used" seed was deleted (its content was just doubles.slice(0,3)).
+  // We refresh in place by matching on seedKey, preserving each persisted
+  // seed's id / name / createdAt so any in-flight references stay valid.
+  // Seeds whose key is no longer shipped (e.g. 'most-used') get dropped.
+  // User-created (non-seed) lists are kept verbatim, appended after the
+  // refreshed seeds so the list order ends up: seeds-in-spec-order, then
+  // user lists in their original relative order.
+  8: (s: any) => refreshSeededThreatLists(s),
+  // v8 -> v9: re-run the same seed-list refresh as v8. The first round of
+  // v8 (shipped earlier) used different semantics — preserved Most-Used,
+  // didn't reorder. Users who already migrated through that earlier v8 are
+  // stuck at version 8 with the old shape; this version bump forces the
+  // current refresh logic to apply to them too. No-op for anyone whose v8
+  // state already matches the current spec.
+  9: (s: any) => refreshSeededThreatLists(s),
   // v6 -> v7: introduce inBattleForme overrides on SavedMon for Palafin
   // (Zero / Hero) and Aegislash (Auto / Shield / Blade). Older states
   // didn't carry the field; default to '' (= species-specific automatic

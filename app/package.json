@@ -17,7 +17,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.{ts,tsx}\"",
     "fetch-sprites": "node scripts/fetch-sprites.mjs",
-    "process-sprites": "node scripts/process-sprites.mjs"
+    "process-sprites": "node scripts/process-sprites.mjs",
+    "scrape:pikalytics": "node scripts/scrape-pikalytics.mjs"
   },
   "dependencies": {
     "@pkmn/data": "^0.10.7",

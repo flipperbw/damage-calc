@@ -30,26 +30,7 @@ test('recent species appears as a Recent row in the species picker', async ({ pa
   await expect(shell.getByRole('button', { name: /^Clefable$/ }).first()).toBeVisible();
 });
 
-test('useCount increments on species change, not on HP edit', async ({ page }) => {
-  await pickOpponent(page, 'Skarmory');
-
-  // Tweak HP - should NOT increment useCount.
-  const oppHpSlider = page.locator('[data-testid="swap-opp"] input[aria-label="HP"]');
-  await oppHpSlider.evaluate((el: HTMLInputElement) => {
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
-    setter.call(el, '1');
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-
-  await nav(page, 'Teams');
-  await expect(page.getByTestId('recent-Skarmory')).toHaveAttribute('data-use-count', '1');
-
-  // Swap to Clefable, then back to Skarmory - useCount should bump to 2.
-  await nav(page, 'Battle');
-  await swapOpponent(page, 'Clefable');
-  await swapOpponent(page, 'Skarmory');
-
-  await nav(page, 'Teams');
-  await expect(page.getByTestId('recent-Skarmory')).toHaveAttribute('data-use-count', '2');
-});
+// The previous "useCount increments" e2e test surfaced from the Teams-page
+// Recent Opponents block. That block was removed in favour of the
+// Browse-meta-teams section; useCount increment semantics still have
+// store-level coverage in store/index.test.ts.
