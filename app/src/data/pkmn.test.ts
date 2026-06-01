@@ -77,6 +77,21 @@ describe('getLearnableMoveIds', () => {
     expect(ids.has('thunderbolt')).toBe(true);
     expect(ids.has('discharge')).toBe(true);
   });
+
+  it('uses the vendored Champions learnsets table — Froslass learns Nasty Plot', async () => {
+    // @pkmn/data's gen-9 Froslass learnset doesn't include Nasty Plot,
+    // but the Champions mod's authoritative table does (Froslass picks
+    // it up via TM and it's Champions-legal). Confirms the vendored
+    // table is the primary source.
+    const ids = await getLearnableMoveIds('Froslass');
+    expect(ids.has('nastyplot')).toBe(true);
+  });
+
+  it('Floette-Eternal learns both Draining Kiss and Light of Ruin from Champions table', async () => {
+    const ids = await getLearnableMoveIds('Floette-Eternal');
+    expect(ids.has('drainingkiss')).toBe(true);
+    expect(ids.has('lightofruin')).toBe(true);
+  });
 });
 
 describe('canLearn', () => {

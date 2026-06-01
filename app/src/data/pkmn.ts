@@ -1,19 +1,17 @@
 /**
- * Thin wrapper around @pkmn/data + @pkmn/dex providing learnsets and prose
- * descriptions for moves and abilities. There is no Champions slice in
- * @pkmn/data — Champions is calc's synthetic gen 0 — so we use the latest
- * dex (gen 9) for species/learnset/ability data and fall back to gen 7
- * only for prose descriptions of moves and abilities the latest dex
- * dropped (Z-moves, Hidden Power, etc.).
+ * Wrapper providing learnsets and prose descriptions for moves and abilities.
  *
- * Why gen 9 for learnsets specifically: it covers the Champions-legal
- * gen-9 species (Sneasler / Basculegion / Archaludon / Kingambit / …)
- * which aren't in gen 7 at all, and @pkmn/data preserves historical
- * learnset entries for moves that were removed from the gen-9 move pool
- * (Light of Ruin still appears under Floette-Eternal's gen-9 learnset
- * even though the move itself was dropped). MovePicker's "Show all moves"
- * toggle is the safety valve for legal-but-rare moves the latest dex
- * didn't tag on a particular species.
+ * Learnsets come from the vendored Champions mod table (`@pkmn/ps`'s
+ * `mods/src/champions/learnsets.ts`, pulled via `npm run vendor:champions`).
+ * That file is the authoritative legality list for the Champions format —
+ * it carries TM-added moves the upstream gen tables miss (Froslass's Nasty
+ * Plot, for example) and only includes moves the format actually allows.
+ * `@pkmn/data` gen 9 is the defensive fallback for any species not in the
+ * Champions table.
+ *
+ * Prose descriptions still come from `@pkmn/data` (gen 9 primary, gen 7
+ * fallback for moves/abilities the latest dex dropped — Z-moves, Hidden
+ * Power, etc.).
  *
  * Lazy-loaded: the @pkmn/data + @pkmn/dex bundle pulls in ~600 KB of move,
  * ability and learnset JSON. We dynamic-import once on first use so the
@@ -28,6 +26,8 @@
  */
 import { useEffect, useState } from 'react';
 import { toID } from '@smogon/calc';
+
+import { CHAMPIONS_LEARNSETS } from '@/data/generated/champions-learnsets.generated';
 
 const TARGET_GEN = 7;
 
@@ -368,50 +368,52 @@ function stripFormeSuffix(name: string): string | null {
 
 /**
  * Bulk variant: returns the set of move IDs `species` can learn. Intended
- * for the MovePicker, which filters a long ALL_MOVES list - calling
+ * for the MovePicker, which filters a long ALL_MOVES list — calling
  * canLearn() per row would issue O(N) async lookups.
  *
- * Queries the latest gen (9) only. Gen 9's learnset table preserves
- * historical entries for moves that were dropped from the gen-9 move pool
- * (Light of Ruin, etc.), so Champions-revived moves still come through.
+ * Primary source: the vendored Champions learnsets table (`@pkmn/ps`'s
+ * `mods/src/champions/learnsets.ts`). This is the authoritative legality
+ * list for the Champions format — it carries TM-added moves the upstream
+ * generation tables miss (Froslass's Nasty Plot, etc.) and only includes
+ * moves the format actually allows. When the table has an entry for a
+ * species we use it verbatim, no chain walking.
  *
- * Inheritance rules — conservative on purpose, since over-inheriting was
- * making half the dex able to learn anything:
+ * Mega formes and Stance-Change-style variants don't get their own
+ * Champions entry; we strip the hyphenated forme suffix and look up the
+ * base id (Charizard-Mega-Y → charizard, Aegislash-Blade → aegislash).
  *
- *   • `prevo` chain: always followed. Sneasler ← Sneasel-Hisui carries
- *     shared evolution-line moves like Feint.
- *   • `changesFrom`: always followed. This is the @pkmn/data flag for
- *     "in-battle / appliance / cosmetic formes that share a learnset",
- *     covering Rotom-Wash ← Rotom (appliance), Mimikyu-Busted ← Mimikyu
- *     (Disguise broken), and similar. Regional variants like
- *     Sneasel-Hisui / Tauros-Paldea-Aqua deliberately don't carry the
- *     field, so they don't inherit from their base species's learnset.
- *   • `baseSpecies`: followed ONLY for mega formes (suffix `-Mega`,
- *     `-Mega-X`, `-Mega-Y`). Mega formes share their base's learnset.
- *     For non-megas we rely on `changesFrom` above, avoiding the
- *     regional-variant cross-leak that `baseSpecies` alone would cause.
- *   • Forme-suffix strip: last-resort when the species lookup misses
- *     entirely (Floette-Eternal isn't in gen 9's species index even
- *     though its learnset is). Treats the strip target as a base.
- *
- * There is no official Champions move-legality list in @pkmn/data —
- * Champions is calc's synthetic gen-0. The "Show all moves" toggle in
- * MovePicker remains the safety valve for legal-but-rare moves the
- * latest dex didn't tag on a particular species.
+ * Fallback: @pkmn/data gen 9 with a conservative walk (prevo +
+ * changesFrom only; baseSpecies only for mega formes). Used for any
+ * species the vendored Champions table doesn't cover (off-meta picks
+ * not yet in the format, or in case we ship before the next vendor pass).
+ * The "Show all moves" toggle in MovePicker remains the safety valve.
  */
 export async function getLearnableMoveIds(species: string): Promise<Set<string>> {
-  // Ensure gen 7 has been loaded too so latestGenCache (gen 9) is populated.
+  // Need @pkmn/data loaded for two reasons: (a) `changesFrom` lookups to
+  // resolve appliance-style formes (Rotom-Wash's Champions entry only
+  // carries its appliance signature, the rest of the Electric kit lives
+  // on the Rotom entry), and (b) the defensive gen-9 fallback below.
   await loadPkmnGen();
+  const api: PkmnApi | null = latestGenCache;
+
+  // Authoritative Champions lookup first. Try the species id directly,
+  // then the suffix-stripped base id for formes that share a learnset.
+  const championsHit = championsLearnableIds(species, api);
+  if (championsHit) return championsHit;
+
+  // Fallback: gen-9 @pkmn/data walk. Defensive — every Champions-legal
+  // species *should* be in the vendored table, but a stale vendor pass
+  // shouldn't break the picker entirely.
   const out = new Set<string>();
-  if (!latestGenCache) return out;
-  const api: PkmnApi = latestGenCache;
+  if (!api) return out;
 
   const visited = new Set<string>();
+  const fallbackApi = api;
   async function include(name: string): Promise<void> {
     if (visited.has(name)) return;
     visited.add(name);
     try {
-      const ls = await api.learnsets.get(name);
+      const ls = await fallbackApi.learnsets.get(name);
       if (ls?.learnset) {
         for (const id of Object.keys(ls.learnset)) out.add(id);
       }
@@ -420,27 +422,18 @@ export async function getLearnableMoveIds(species: string): Promise<Set<string>>
     }
     const sp = (() => {
       try {
-        return api.species.get(name);
+        return fallbackApi.species.get(name);
       } catch {
         return undefined;
       }
     })();
     if (!sp) {
-      // Species missing from the index entirely (Floette-Eternal et al.).
-      // Strip the hyphenated forme suffix and treat that as the base.
       const stripped = stripFormeSuffix(name);
       if (stripped) await include(stripped);
       return;
     }
-    // Evolution line — always inherit from prevo.
     if (sp.prevo && sp.prevo !== name) await include(sp.prevo);
-    // In-battle / appliance / cosmetic formes that share their base's
-    // learnset (Rotom-Wash ← Rotom, Mimikyu-Busted ← Mimikyu, …).
-    // Regional variants don't carry this field.
     if (sp.changesFrom && sp.changesFrom !== name) await include(sp.changesFrom);
-    // Mega forme — inherit from base species. Regional variants point
-    // baseSpecies at a biologically separate Pokémon; deliberately skip
-    // following it for those.
     if (isMegaFormeName(name) && sp.baseSpecies && sp.baseSpecies !== name) {
       await include(sp.baseSpecies);
     }
@@ -452,4 +445,53 @@ export async function getLearnableMoveIds(species: string): Promise<Set<string>>
 
 function isMegaFormeName(name: string): boolean {
   return /-Mega(?:-X|-Y)?$/.test(name);
+}
+
+/**
+ * Look up `species` in the vendored Champions learnsets table. Returns
+ * the set of move ids, or null when the species isn't covered (caller
+ * should fall back to the gen-9 walk).
+ *
+ * The Champions table keys species by lowercased-id (hyphens stripped)
+ * — same as `toID()`. Mega formes and Stance Change variants share the
+ * base species's entry, so when `toID(name)` misses we strip the forme
+ * suffix and retry: `charizardmegay` → miss → `charizard` → hit.
+ *
+ * For appliance-style formes (Rotom-Wash et al.), the Champions table's
+ * forme entry only carries the appliance signature move; the rest of
+ * the kit lives on the base species's entry. We union via gen-9
+ * `changesFrom` when @pkmn/data is loaded — it's the same pattern the
+ * mod author expects consumers to handle.
+ */
+function championsLearnableIds(species: string, api: PkmnApi | null): Set<string> | null {
+  const direct = CHAMPIONS_LEARNSETS[toID(species) as unknown as string];
+  if (direct) {
+    const out = new Set<string>(direct.learnset ? Object.keys(direct.learnset) : []);
+    addChangesFromMoves(out, species, api);
+    return out;
+  }
+  const stripped = stripFormeSuffix(species);
+  if (stripped) {
+    const fallback = CHAMPIONS_LEARNSETS[toID(stripped) as unknown as string];
+    if (fallback) {
+      const out = new Set<string>(fallback.learnset ? Object.keys(fallback.learnset) : []);
+      addChangesFromMoves(out, stripped, api);
+      return out;
+    }
+  }
+  return null;
+}
+
+function addChangesFromMoves(out: Set<string>, name: string, api: PkmnApi | null): void {
+  if (!api) return;
+  let base: string | undefined;
+  try {
+    base = api.species.get(name)?.changesFrom;
+  } catch {
+    base = undefined;
+  }
+  if (!base) return;
+  const baseEntry = CHAMPIONS_LEARNSETS[toID(base) as unknown as string];
+  if (!baseEntry?.learnset) return;
+  for (const id of Object.keys(baseEntry.learnset)) out.add(id);
 }

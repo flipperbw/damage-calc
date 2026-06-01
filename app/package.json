@@ -18,7 +18,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.{ts,tsx}\"",
     "fetch-sprites": "node scripts/fetch-sprites.mjs",
     "process-sprites": "node scripts/process-sprites.mjs",
-    "scrape:pikalytics": "node scripts/scrape-pikalytics.mjs"
+    "scrape:pikalytics": "node scripts/scrape-pikalytics.mjs",
+    "vendor:champions": "node scripts/vendor-champions.mjs"
   },
   "dependencies": {
     "@pkmn/data": "^0.10.7",
