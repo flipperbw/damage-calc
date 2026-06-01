@@ -64,15 +64,16 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
     if (mon.buildName) setEditor({ kind: 'team-mon', teamId: team.id, monId: mon.id });
   }
 
-  // Reference threat list for "All threats" mode: top three of the seeded
-  // doubles list. The old "Most-Used" seed was a separate 3-mon list that
-  // duplicated this slice — removed in favour of computing it inline so
-  // there's one less seed to keep in sync.
+  // Reference threat list for "All threats" mode: top three from the seed
+  // matching the team's format. Singles teams should be scored against
+  // singles threats; doubles teams against doubles. Falls back to any
+  // seed (then any list) if the format-matching seed is missing.
   const reference = useMemo(() => {
-    const doubles = threatLists.find((l) => l.seedKey === 'doubles');
-    if (doubles) return { ...doubles, mons: doubles.mons.slice(0, 3) };
+    const wantKey = team?.format === 'singles' ? 'singles' : 'doubles';
+    const matching = threatLists.find((l) => l.seedKey === wantKey);
+    if (matching) return { ...matching, mons: matching.mons.slice(0, 3) };
     return threatLists.find((l) => l.isSeed) ?? threatLists[0] ?? null;
-  }, [threatLists]);
+  }, [threatLists, team?.format]);
 
   // Single-threat focus: when set, scoring uses only this mon as the
   // threat list. Empty string === "All threats" (scored against the

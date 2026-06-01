@@ -135,9 +135,9 @@ export function MonCard({
             surfaceAction();
           }
         },
-        className: `bg-surface border ${dashed} rounded-card p-3 mb-3 cursor-pointer`,
+        className: `relative bg-surface border ${dashed} rounded-card p-3 mb-3 cursor-pointer`,
       }
-    : { className: `bg-surface border ${dashed} rounded-card p-3 mb-3` };
+    : { className: `relative bg-surface border ${dashed} rounded-card p-3 mb-3` };
 
   const { plus: naturePlus, minus: natureMinus } = natureMods(mon.nature);
 
@@ -148,12 +148,28 @@ export function MonCard({
 
   return (
     <div {...swapProps}>
-      {/* Card header: sprite on the left, then a middle column with two
-          rows — row 1 holds the species name + the Mega/Swap cluster
-          side-by-side; row 2 holds the type badges. Keeping Mega/Swap in
-          the name row (not floating across the full middle-column
-          height) avoids the visual overlap where MEGA ACTIVE's bottom
-          edge would land at the same Y as the badge row. */}
+      {/* Edit pencil — corner badge pinned to the top-left of the card,
+          floating off the surface as a discrete affordance. Solid
+          background so it stands clear of the card border underneath;
+          stopPropagation prevents the underlying card's swap-on-tap
+          surface from catching badge taps. Swap stays in the header
+          cluster below (alongside MEGA) since the two often pair. */}
+      <button
+        type="button"
+        onClick={(e) => stop(e, onEdit)}
+        data-testid={`edit-btn-${side}`}
+        aria-label={`Edit ${mon.species} build`}
+        title="Edit build"
+        style={{ touchAction: 'manipulation' }}
+        className="absolute -top-3 -left-3 w-7 h-7 z-10 flex items-center justify-center rounded-full bg-surface-solid border border-surface-hi text-text-mute shadow-md hover:border-accent hover:text-accent"
+      >
+        <span aria-hidden className="text-xs leading-none" style={{ pointerEvents: 'none' }}>
+          ✎
+        </span>
+      </button>
+
+      {/* Card header: sprite on the left, species name + Mega/Swap
+          cluster to the right. */}
       <div className="flex gap-2.5 items-center mb-4">
         <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-sprite-${side}`}>
           {/* Use the effective species so a mega-evolved mon shows the mega

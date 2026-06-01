@@ -10,6 +10,13 @@ import { uuid } from '@/util/uuid';
 const TEAM_CAP = 6;
 const EXAMPLE = `Garchomp @ Choice Scarf\nAbility: Rough Skin\nEVs: 32 Atk / 32 Spe\nAdamant Nature\n- Earthquake\n- Outrage\n- Stone Edge\n- Fire Fang`;
 
+// Matches a bare pokepaste URL — both the modern 16-hex id (`/abcdef0123456789`)
+// and the legacy numeric id (`/1234567`), with or without a `/raw` or `/json`
+// suffix. Whitespace before/after is fine so the user can paste mid-sentence
+// and we still trigger. Source server runs at https://pokepast.es and sets
+// `Access-Control-Allow-Origin: *` on `/raw`, so a client-side fetch works.
+const POKEPASTE_RE = /^\s*https?:\/\/pokepast\.es\/([0-9a-f]{16}|\d{1,10})(?:\/(?:raw|json))?\/?\s*$/i;
+
 type Props =
   | { mode: 'team'; open: boolean; onClose: () => void }
   | {
@@ -31,6 +38,7 @@ export function ShowdownImportDialog(props: Props) {
   const excludeSpecies = mode === 'slot' ? props.excludeSpecies : undefined;
   const [text, setText] = useState('');
   const [debounced, setDebounced] = useState('');
+  const [fetchingPokepaste, setFetchingPokepaste] = useState(false);
 
   const createTeam = useStore((s) => s.createTeam);
   const upsertMon = useStore((s) => s.upsertMon);
@@ -50,8 +58,45 @@ export function ShowdownImportDialog(props: Props) {
     if (open) {
       setText('');
       setDebounced('');
+      setFetchingPokepaste(false);
     }
   }, [open]);
+
+  // Pokepaste URL → fetch the raw paste, swap it into the textarea, and
+  // let the existing showdown parser take it from there. Triggers any time
+  // the textarea content is *just* a pokepaste link (no surrounding text)
+  // so a paste-and-go flow works. The fetched text replaces the textarea
+  // so the user can see and edit the resolved content before importing.
+  useEffect(() => {
+    if (!open) return;
+    const match = POKEPASTE_RE.exec(text);
+    if (!match) return;
+    const id = match[1];
+    let cancelled = false;
+    setFetchingPokepaste(true);
+    fetch(`https://pokepast.es/${id}/raw`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`pokepaste returned ${res.status}`);
+        return res.text();
+      })
+      .then((body) => {
+        if (cancelled) return;
+        if (!body.trim()) throw new Error('pokepaste returned an empty body');
+        setText(body);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // eslint-disable-next-line no-console
+        console.warn('[pokepaste] fetch failed', err);
+        toast.error('Could not load pokepaste — check the URL or paste the team text directly');
+      })
+      .finally(() => {
+        if (!cancelled) setFetchingPokepaste(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [text, open]);
 
   const parsed = useMemo(() => parseShowdownText(debounced), [debounced]);
 
@@ -168,7 +213,7 @@ export function ShowdownImportDialog(props: Props) {
             autoFocus
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Paste a Showdown team or single mon block here"
+            placeholder="Paste a Showdown team, single mon block, or pokepaste URL"
             spellCheck={false}
             data-testid="showdown-import-textarea"
             // iOS Safari auto-zooms any focused input/textarea whose
@@ -178,9 +223,16 @@ export function ShowdownImportDialog(props: Props) {
             style={{ fontSize: 16 }}
           />
 
-          {!hasContent && (
+          {fetchingPokepaste && (
+            <div className="mt-2 text-xs opacity-70 flex items-center gap-2" data-testid="pokepaste-fetching">
+              <span className="inline-block w-3 h-3 rounded-full border-2 border-accent border-t-transparent animate-spin" aria-hidden />
+              Fetching from pokepast.es…
+            </div>
+          )}
+
+          {!hasContent && !fetchingPokepaste && (
             <div className="mt-4 text-xs opacity-60 leading-relaxed">
-              <div className="mb-2">Paste a team from Showdown / Smogon. Multiple mons separated by blank lines.</div>
+              <div className="mb-2">Paste a team from Showdown / Smogon (multiple mons separated by blank lines), or drop a <span className="font-mono">pokepast.es</span> URL on its own line.</div>
               <pre className="text-[11px] bg-surface border border-surface-hi rounded-lg p-2 whitespace-pre-wrap leading-snug">
                 {EXAMPLE}
               </pre>
