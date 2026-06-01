@@ -38,6 +38,45 @@ describe('getLearnableMoveIds', () => {
     expect(ids.has('drainingkiss')).toBe(true);
     expect(ids.has('lightofruin')).toBe(true);
   });
+
+  it('inherits moves from prevo chain in the latest gen (Sneasler → Sneasel-Hisui → Feint)', async () => {
+    // Sneasler is gen-9 only — not in gen 7. Feint comes via prevo
+    // (Sneasel-Hisui → Feint). getLearnableMoveIds should walk prevo
+    // and pick up Feint.
+    const ids = await getLearnableMoveIds('Sneasler');
+    expect(ids.has('feint')).toBe(true);
+    // Sneasler's own signature pick should still be there too.
+    expect(ids.has('direclaw')).toBe(true);
+  });
+
+  it('does NOT cross-leak moves from regional-variant baseSpecies (Sneasler does not learn Dragon Dance)', async () => {
+    // Sneasel-Hisui.baseSpecies = "Sneasel" (regular Sneasel — a
+    // biologically separate Pokémon with a different learnset).
+    // Walking baseSpecies for regional variants would wrongly inherit
+    // Dragon Dance, Beat Up, etc. from regular Sneasel. The walk should
+    // only follow baseSpecies for mega formes.
+    const ids = await getLearnableMoveIds('Sneasler');
+    expect(ids.has('dragondance')).toBe(false);
+  });
+
+  it('inherits via baseSpecies for mega formes (Charizard-Mega-Y learns Flamethrower)', async () => {
+    // Mega formes share the base species's learnset. Charizard's
+    // staple Flamethrower must surface on the mega forme even though
+    // the mega entry itself is sparse.
+    const ids = await getLearnableMoveIds('Charizard-Mega-Y');
+    expect(ids.has('flamethrower')).toBe(true);
+  });
+
+  it('inherits via changesFrom for appliance formes (Rotom-Wash learns Thunderbolt)', async () => {
+    // Rotom-Wash's own learnset only carries Hydro Pump (its appliance
+    // signature). The rest of the Electric staple kit (Thunderbolt,
+    // Discharge, …) lives on base Rotom and is inherited via the
+    // `changesFrom` field.
+    const ids = await getLearnableMoveIds('Rotom-Wash');
+    expect(ids.has('hydropump')).toBe(true);
+    expect(ids.has('thunderbolt')).toBe(true);
+    expect(ids.has('discharge')).toBe(true);
+  });
 });
 
 describe('canLearn', () => {

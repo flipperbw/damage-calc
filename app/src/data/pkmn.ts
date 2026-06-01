@@ -1,19 +1,19 @@
 /**
  * Thin wrapper around @pkmn/data + @pkmn/dex providing learnsets and prose
- * descriptions for moves and abilities, scoped to the generation that best
- * matches our Champions data.
+ * descriptions for moves and abilities. There is no Champions slice in
+ * @pkmn/data — Champions is calc's synthetic gen 0 — so we use the latest
+ * dex (gen 9) for species/learnset/ability data and fall back to gen 7
+ * only for prose descriptions of moves and abilities the latest dex
+ * dropped (Z-moves, Hidden Power, etc.).
  *
- * Why gen 7 (Sun/Moon)?
- * ---------------------
- * Champions is calc's synthetic gen 0; @pkmn/data has no equivalent. We grep
- * the legacy SETDEX_CHAMPIONS for set-name prefixes and overwhelmingly find
- * "SM …" entries (Mega Stones, Z-moves, USUM-era picks) - the rest are
- * tagged "SV …" but always for Pokémon that pre-date gen 9 and would lose
- * their Mega abilities under gen 9 mechanics. Gen 7 maximises learnset
- * coverage for the curated builds while still recognising every move and
- * ability used by SM/USUM mons; SV-flavoured moves added later (Trailblaze
- * etc.) are absent here, so MovePicker's "Show all moves" escape hatch
- * remains the safety valve when a curated build references a newer move.
+ * Why gen 9 for learnsets specifically: it covers the Champions-legal
+ * gen-9 species (Sneasler / Basculegion / Archaludon / Kingambit / …)
+ * which aren't in gen 7 at all, and @pkmn/data preserves historical
+ * learnset entries for moves that were removed from the gen-9 move pool
+ * (Light of Ruin still appears under Floette-Eternal's gen-9 learnset
+ * even though the move itself was dropped). MovePicker's "Show all moves"
+ * toggle is the safety valve for legal-but-rare moves the latest dex
+ * didn't tag on a particular species.
  *
  * Lazy-loaded: the @pkmn/data + @pkmn/dex bundle pulls in ~600 KB of move,
  * ability and learnset JSON. We dynamic-import once on first use so the
@@ -60,10 +60,13 @@ interface PkmnApi {
   };
   abilities: { get(name: string): { desc?: string; shortDesc?: string } | undefined };
   items: { get(name: string): { desc?: string; shortDesc?: string } | undefined };
-  learnsets: { canLearn(species: string, move: string): Promise<boolean> };
+  learnsets: {
+    canLearn(species: string, move: string): Promise<boolean>;
+    get(name: string): Promise<{ learnset?: Record<string, unknown> } | undefined>;
+  };
   species: {
-    get(name: string): { id?: string; name?: string; baseSpecies?: string; abilities?: Record<string, string> } | undefined;
-    [Symbol.iterator](): Iterator<{ id?: string; name?: string; baseSpecies?: string; abilities?: Record<string, string> }>;
+    get(name: string): { id?: string; name?: string; baseSpecies?: string; prevo?: string; changesFrom?: string; abilities?: Record<string, string> } | undefined;
+    [Symbol.iterator](): Iterator<{ id?: string; name?: string; baseSpecies?: string; prevo?: string; changesFrom?: string; abilities?: Record<string, string> }>;
   };
 }
 
@@ -368,56 +371,85 @@ function stripFormeSuffix(name: string): string | null {
  * for the MovePicker, which filters a long ALL_MOVES list - calling
  * canLearn() per row would issue O(N) async lookups.
  *
- * Walks the baseSpecies chain so formes inherit their base species's
- * learnset. @pkmn/data only stores forme-exclusive moves on a forme's
- * own learnset entry (e.g. Floette-Eternal carries Light of Ruin but
- * not Draining Kiss — the base Floette has Draining Kiss). Without the
- * walk, the picker would hide every shared move on every non-base forme.
+ * Queries the latest gen (9) only. Gen 9's learnset table preserves
+ * historical entries for moves that were dropped from the gen-9 move pool
+ * (Light of Ruin, etc.), so Champions-revived moves still come through.
  *
- * Some formes (Floette-Eternal in gen 7, several Champions-exclusive megas)
- * aren't in @pkmn/data's species index at all, so gen.species.get returns
- * undefined and we can't read baseSpecies. As a fallback we strip the
- * hyphenated forme suffix ("Floette-Eternal" → "Floette") and walk from
- * there.
+ * Inheritance rules — conservative on purpose, since over-inheriting was
+ * making half the dex able to learn anything:
+ *
+ *   • `prevo` chain: always followed. Sneasler ← Sneasel-Hisui carries
+ *     shared evolution-line moves like Feint.
+ *   • `changesFrom`: always followed. This is the @pkmn/data flag for
+ *     "in-battle / appliance / cosmetic formes that share a learnset",
+ *     covering Rotom-Wash ← Rotom (appliance), Mimikyu-Busted ← Mimikyu
+ *     (Disguise broken), and similar. Regional variants like
+ *     Sneasel-Hisui / Tauros-Paldea-Aqua deliberately don't carry the
+ *     field, so they don't inherit from their base species's learnset.
+ *   • `baseSpecies`: followed ONLY for mega formes (suffix `-Mega`,
+ *     `-Mega-X`, `-Mega-Y`). Mega formes share their base's learnset.
+ *     For non-megas we rely on `changesFrom` above, avoiding the
+ *     regional-variant cross-leak that `baseSpecies` alone would cause.
+ *   • Forme-suffix strip: last-resort when the species lookup misses
+ *     entirely (Floette-Eternal isn't in gen 9's species index even
+ *     though its learnset is). Treats the strip target as a base.
+ *
+ * There is no official Champions move-legality list in @pkmn/data —
+ * Champions is calc's synthetic gen-0. The "Show all moves" toggle in
+ * MovePicker remains the safety valve for legal-but-rare moves the
+ * latest dex didn't tag on a particular species.
  */
 export async function getLearnableMoveIds(species: string): Promise<Set<string>> {
-  const gen = await loadPkmnGen();
+  // Ensure gen 7 has been loaded too so latestGenCache (gen 9) is populated.
+  await loadPkmnGen();
   const out = new Set<string>();
-  const learnsetsApi = (gen as unknown as {
-    learnsets: { get(name: string): Promise<{ learnset?: Record<string, unknown> } | undefined> };
-  }).learnsets;
+  if (!latestGenCache) return out;
+  const api: PkmnApi = latestGenCache;
 
   const visited = new Set<string>();
   async function include(name: string): Promise<void> {
     if (visited.has(name)) return;
     visited.add(name);
     try {
-      const ls = await learnsetsApi.get(name);
+      const ls = await api.learnsets.get(name);
       if (ls?.learnset) {
         for (const id of Object.keys(ls.learnset)) out.add(id);
       }
     } catch {
-      // species not in learnset table — ignore and let the parent supply it
+      // species not in learnset table — try the fallback
     }
-    let parent: string | undefined;
-    try {
-      parent = gen.species.get(name)?.baseSpecies;
-    } catch {
-      parent = undefined;
-    }
-    if (!parent || parent === name) {
-      // No baseSpecies via the species API. Fall back to stripping a forme
-      // suffix off the name itself — that's how we get from Floette-Eternal
-      // to Floette when the species index doesn't carry the forme.
-      const stripped = stripFormeSuffix(name);
-      if (stripped && !visited.has(stripped)) {
-        await include(stripped);
+    const sp = (() => {
+      try {
+        return api.species.get(name);
+      } catch {
+        return undefined;
       }
+    })();
+    if (!sp) {
+      // Species missing from the index entirely (Floette-Eternal et al.).
+      // Strip the hyphenated forme suffix and treat that as the base.
+      const stripped = stripFormeSuffix(name);
+      if (stripped) await include(stripped);
       return;
     }
-    await include(parent);
+    // Evolution line — always inherit from prevo.
+    if (sp.prevo && sp.prevo !== name) await include(sp.prevo);
+    // In-battle / appliance / cosmetic formes that share their base's
+    // learnset (Rotom-Wash ← Rotom, Mimikyu-Busted ← Mimikyu, …).
+    // Regional variants don't carry this field.
+    if (sp.changesFrom && sp.changesFrom !== name) await include(sp.changesFrom);
+    // Mega forme — inherit from base species. Regional variants point
+    // baseSpecies at a biologically separate Pokémon; deliberately skip
+    // following it for those.
+    if (isMegaFormeName(name) && sp.baseSpecies && sp.baseSpecies !== name) {
+      await include(sp.baseSpecies);
+    }
   }
 
   await include(species);
   return out;
+}
+
+function isMegaFormeName(name: string): boolean {
+  return /-Mega(?:-X|-Y)?$/.test(name);
 }
