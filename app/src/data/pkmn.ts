@@ -62,7 +62,8 @@ interface PkmnApi {
   items: { get(name: string): { desc?: string; shortDesc?: string } | undefined };
   learnsets: { canLearn(species: string, move: string): Promise<boolean> };
   species: {
-    [Symbol.iterator](): Iterator<{ id?: string; name?: string; abilities?: Record<string, string> }>;
+    get(name: string): { id?: string; name?: string; baseSpecies?: string; abilities?: Record<string, string> } | undefined;
+    [Symbol.iterator](): Iterator<{ id?: string; name?: string; baseSpecies?: string; abilities?: Record<string, string> }>;
   };
 }
 
@@ -334,27 +335,89 @@ export async function canLearn(species: string, moveName: string): Promise<boole
   }
 }
 
+// Names whose hyphen is intrinsic to the species (not a forme indicator).
+// stripFormeSuffix leaves these alone so we don't accidentally strip
+// "Porygon-Z" down to "Porygon".
+const INTRINSIC_HYPHEN_NAMES = new Set([
+  'Ho-Oh',
+  'Porygon-Z',
+  'Jangmo-o',
+  'Hakamo-o',
+  'Kommo-o',
+]);
+
+/**
+ * Strips a forme suffix off a species name when present. Returns null if the
+ * name has no hyphenated forme or is itself intrinsically hyphenated.
+ *
+ *   Floette-Eternal → Floette
+ *   Charizard-Mega-Y → Charizard
+ *   Rotom-Wash → Rotom
+ *   Porygon-Z → null   (intrinsic)
+ *   Pikachu → null     (no hyphen)
+ */
+function stripFormeSuffix(name: string): string | null {
+  if (INTRINSIC_HYPHEN_NAMES.has(name)) return null;
+  const idx = name.indexOf('-');
+  if (idx <= 0) return null;
+  return name.slice(0, idx);
+}
+
 /**
  * Bulk variant: returns the set of move IDs `species` can learn. Intended
  * for the MovePicker, which filters a long ALL_MOVES list - calling
  * canLearn() per row would issue O(N) async lookups.
+ *
+ * Walks the baseSpecies chain so formes inherit their base species's
+ * learnset. @pkmn/data only stores forme-exclusive moves on a forme's
+ * own learnset entry (e.g. Floette-Eternal carries Light of Ruin but
+ * not Draining Kiss — the base Floette has Draining Kiss). Without the
+ * walk, the picker would hide every shared move on every non-base forme.
+ *
+ * Some formes (Floette-Eternal in gen 7, several Champions-exclusive megas)
+ * aren't in @pkmn/data's species index at all, so gen.species.get returns
+ * undefined and we can't read baseSpecies. As a fallback we strip the
+ * hyphenated forme suffix ("Floette-Eternal" → "Floette") and walk from
+ * there.
  */
 export async function getLearnableMoveIds(species: string): Promise<Set<string>> {
   const gen = await loadPkmnGen();
   const out = new Set<string>();
-  try {
-    // @pkmn/data exposes learnsets.get(name) -> Promise<Learnset|undefined>;
-    // the .learnset object is { moveid: string[] } where keys are move ids.
-    const ls = await (
-      gen as unknown as {
-        learnsets: { get(name: string): Promise<{ learnset?: Record<string, unknown> } | undefined> };
+  const learnsetsApi = (gen as unknown as {
+    learnsets: { get(name: string): Promise<{ learnset?: Record<string, unknown> } | undefined> };
+  }).learnsets;
+
+  const visited = new Set<string>();
+  async function include(name: string): Promise<void> {
+    if (visited.has(name)) return;
+    visited.add(name);
+    try {
+      const ls = await learnsetsApi.get(name);
+      if (ls?.learnset) {
+        for (const id of Object.keys(ls.learnset)) out.add(id);
       }
-    ).learnsets.get(species);
-    if (ls?.learnset) {
-      for (const id of Object.keys(ls.learnset)) out.add(id);
+    } catch {
+      // species not in learnset table — ignore and let the parent supply it
     }
-  } catch {
-    // species not in dex, or learnset missing - leave the set empty
+    let parent: string | undefined;
+    try {
+      parent = gen.species.get(name)?.baseSpecies;
+    } catch {
+      parent = undefined;
+    }
+    if (!parent || parent === name) {
+      // No baseSpecies via the species API. Fall back to stripping a forme
+      // suffix off the name itself — that's how we get from Floette-Eternal
+      // to Floette when the species index doesn't carry the forme.
+      const stripped = stripFormeSuffix(name);
+      if (stripped && !visited.has(stripped)) {
+        await include(stripped);
+      }
+      return;
+    }
+    await include(parent);
   }
+
+  await include(species);
   return out;
 }

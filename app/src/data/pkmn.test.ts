@@ -29,6 +29,15 @@ describe('getLearnableMoveIds', () => {
     expect(ids).toBeInstanceOf(Set);
     expect(ids.size).toBe(0);
   });
+
+  it('inherits moves from the base species (Floette-Eternal → Floette → Draining Kiss)', async () => {
+    // Floette-Eternal's own learnset entry in @pkmn/data only holds forme-
+    // exclusive moves (Light of Ruin). Draining Kiss lives on the base
+    // Floette learnset; getLearnableMoveIds should union the chain.
+    const ids = await getLearnableMoveIds('Floette-Eternal');
+    expect(ids.has('drainingkiss')).toBe(true);
+    expect(ids.has('lightofruin')).toBe(true);
+  });
 });
 
 describe('canLearn', () => {
