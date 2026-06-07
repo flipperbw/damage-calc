@@ -1,27 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { useConfirm } from '@/components/ConfirmDialog';
 import { FeedbackDialog } from '@/components/FeedbackDialog';
 import { MarkdownSheet } from '@/components/MarkdownSheet';
-import CHANGELOG_SOURCE from '@/content/CHANGELOG.md?raw';
 import ROADMAP_SOURCE from '@/content/ROADMAP.md?raw';
+import { CHANGELOG_SOURCE, LATEST_CHANGELOG_HEADING } from '@/data/changelog';
 import { PERSISTED_KEYS, useStore } from '@/store';
 import { isImportShape } from '@/store/import-shape';
 import type { AppState } from '@/types';
-
-/**
- * Extract the most recent `## heading` from a CHANGELOG.md source. Used
- * to drive the "What's new" unread dot: when the latest heading differs
- * from the persisted lastSeenChangelogHeading, we show a dot.
- */
-function latestChangelogHeading(source: string): string | null {
-  for (const line of source.split(/\r?\n/)) {
-    const t = line.trim();
-    if (t.startsWith('## ')) return t.slice(3).trim();
-  }
-  return null;
-}
 
 const APP_VERSION = '0.1.0';
 const REPO_URL = 'https://github.com/flipperbw/damage-calc';
@@ -46,12 +33,11 @@ export function SettingsScreen() {
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [roadmapOpen, setRoadmapOpen] = useState(false);
 
-  const latestHeading = useMemo(() => latestChangelogHeading(CHANGELOG_SOURCE), []);
-  const hasUnseenChangelog = !!latestHeading && lastSeenChangelogHeading !== latestHeading;
+  const hasUnseenChangelog = !!LATEST_CHANGELOG_HEADING && lastSeenChangelogHeading !== LATEST_CHANGELOG_HEADING;
 
   function openChangelog() {
     setChangelogOpen(true);
-    if (latestHeading && hasUnseenChangelog) markChangelogSeen(latestHeading);
+    if (LATEST_CHANGELOG_HEADING && hasUnseenChangelog) markChangelogSeen(LATEST_CHANGELOG_HEADING);
   }
 
   function exportJson() {
@@ -181,7 +167,7 @@ function Action({ label, onClick, tone, badge }: { label: string; onClick: () =>
       {badge === 'new' && (
         <span
           aria-label="New"
-          className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent text-white leading-none"
+          className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-ok text-white leading-none"
         >
           New
         </span>

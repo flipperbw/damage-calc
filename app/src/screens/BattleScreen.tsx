@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { calculateMatchup } from '@/calc/adapter';
@@ -92,6 +92,26 @@ export function BattleScreen() {
     () => (you && opponent ? calculateMatchup(you, opponent, field, team?.format) : null),
     [you, opponent, field, team?.format],
   );
+
+  // Per-side spread-view toggle. Default 'spread' matches what calc returns
+  // (the 0.75x-reduced damage of a multi-target hit). Flipping to 'single'
+  // shows the full-damage equivalent on every spread move in that section;
+  // non-spread moves ignore the toggle. State is intentionally ephemeral —
+  // doesn't persist across mon swaps or format changes, since the answer
+  // it gives no longer applies. The header button only renders in Doubles
+  // *and* when the relevant side actually has a spread move queued up.
+  const [yourSpreadView, setYourSpreadView] = useState<'spread' | 'single'>('spread');
+  const [theirSpreadView, setTheirSpreadView] = useState<'spread' | 'single'>('spread');
+  const yourHasSpread = !!matchup?.attackerMoves.some((m) => m.isSpread);
+  const theirHasSpread = !!matchup?.defenderMoves.some((m) => m.isSpread);
+  const isDoubles = team?.format === 'doubles';
+  // Reset both sides when the format flips or the active mons change so we
+  // don't carry a "single" view into a context where it no longer makes
+  // sense.
+  useEffect(() => {
+    setYourSpreadView('spread');
+    setTheirSpreadView('spread');
+  }, [team?.format, you?.id, opponent?.id]);
 
   // Priority-flips-order warning. Fires when:
   // - You outspeed but opponent has a positive-priority move (they hit first), or
@@ -285,10 +305,15 @@ export function BattleScreen() {
             </button>
           )}
           <div>
-            <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Your moves → opponent</div>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="text-xxs uppercase tracking-wider opacity-55">Your moves → opponent</div>
+              {isDoubles && yourHasSpread && (
+                <SpreadToggle value={yourSpreadView} onChange={setYourSpreadView} testId="your-spread-toggle" />
+              )}
+            </div>
             <DisguiseBanner mon={opponent} />
             {matchup.attackerMoves.map((r, i) => (
-              <MoveRow key={i} result={r} defenderForSturdy={opponent} />
+              <MoveRow key={i} result={r} defenderForSturdy={opponent} spreadView={yourSpreadView} />
             ))}
           </div>
         </div>
@@ -407,10 +432,15 @@ export function BattleScreen() {
             )}
           </div>
           <div>
-            <div className="text-xxs uppercase tracking-wider opacity-55 mb-1.5">Their moves → you</div>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="text-xxs uppercase tracking-wider opacity-55">Their moves → you</div>
+              {isDoubles && theirHasSpread && (
+                <SpreadToggle value={theirSpreadView} onChange={setTheirSpreadView} testId="their-spread-toggle" />
+              )}
+            </div>
             <DisguiseBanner mon={you} />
             {matchup.defenderMoves.map((r, i) => (
-              <MoveRow key={i} result={r} defenderForSturdy={you} />
+              <MoveRow key={i} result={r} defenderForSturdy={you} spreadView={theirSpreadView} />
             ))}
           </div>
         </div>
@@ -536,5 +566,48 @@ export function BattleScreen() {
         }}
       />
     </div>
+  );
+}
+
+/**
+ * Two-state segmented toggle for the spread-move damage view. A single tap
+ * flips between "Spread" (the 0.75x-reduced damage calc returns by default
+ * for multi-target moves in Doubles) and "Single" (the full damage as if
+ * aimed at one mon). Visual treatment matches the small pill chips used
+ * elsewhere on the BattleScreen.
+ */
+function SpreadToggle({
+  value,
+  onChange,
+  testId,
+}: {
+  value: 'spread' | 'single';
+  onChange: (next: 'spread' | 'single') => void;
+  testId?: string;
+}) {
+  function toggle() {
+    onChange(value === 'spread' ? 'single' : 'spread');
+  }
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      data-testid={testId}
+      aria-pressed={value === 'single'}
+      title={
+        value === 'spread'
+          ? 'Showing spread damage (×0.75). Tap to see single-target damage.'
+          : 'Showing single-target damage. Tap to revert to spread.'
+      }
+      style={{ touchAction: 'manipulation' }}
+      className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border select-none cursor-pointer ${
+        value === 'single'
+          ? 'bg-accent/20 text-accent border-accent/40'
+          : 'bg-white/[0.04] text-text-mute border-surface-hi'
+      }`}
+    >
+      <span aria-hidden className="mr-1">✥</span>
+      {value === 'spread' ? 'Spread' : 'Single'}
+    </button>
   );
 }

@@ -1,6 +1,7 @@
 import type { MouseEvent } from 'react';
 
 import { Logo } from '@/components/Logo';
+import { LATEST_CHANGELOG_HEADING } from '@/data/changelog';
 import { useStore } from '@/store';
 import type { Tab } from '@/types';
 
@@ -33,6 +34,11 @@ function handleTabClick(e: MouseEvent<HTMLAnchorElement>, setTab: (t: Tab) => vo
 export function Nav() {
   const tab = useStore((s) => s.tab);
   const setTab = useStore((s) => s.setTab);
+  // Pulse a small dot on the Settings tab when CHANGELOG.md has an entry
+  // newer than the one the user last dismissed. The Settings screen owns
+  // the "mark as seen" action - opening "What's new" there clears it.
+  const lastSeenChangelogHeading = useStore((s) => s.lastSeenChangelogHeading);
+  const hasUnseenChangelog = !!LATEST_CHANGELOG_HEADING && lastSeenChangelogHeading !== LATEST_CHANGELOG_HEADING;
   return (
     <>
       {/* Mobile: icon-only brand + label-only tabs (no leading emoji) so
@@ -55,9 +61,9 @@ export function Nav() {
               key={it.id}
               href={tabHref(it.id)}
               onClick={(e) => handleTabClick(e, setTab, it.id)}
-              aria-label={it.label}
+              aria-label={it.label + (it.id === 'settings' && hasUnseenChangelog ? ' (unread changelog)' : '')}
               style={{ touchAction: 'manipulation' }}
-              className={`min-h-[40px] flex items-center justify-center rounded-lg text-[13px] font-semibold select-none transition-colors no-underline ${
+              className={`relative min-h-[40px] flex items-center justify-center rounded-lg text-[13px] font-semibold select-none transition-colors no-underline ${
                 tab === it.id
                   ? 'bg-accent-gradient text-white shadow-[0_2px_10px_rgba(124,92,255,0.35)]'
                   : 'bg-surface border border-surface-hi text-text-mute hover:text-text'
@@ -66,6 +72,7 @@ export function Nav() {
               <span style={{ pointerEvents: 'none' }} className={it.iconOnlyMobile ? 'text-base leading-none' : ''}>
                 {it.iconOnlyMobile ? it.icon : it.label}
               </span>
+              {/* {it.id === 'settings' && hasUnseenChangelog && <UnreadDot />} */}
             </a>
           ))}
         </nav>
@@ -90,10 +97,12 @@ export function Nav() {
               key={it.id}
               href={tabHref(it.id)}
               onClick={(e) => handleTabClick(e, setTab, it.id)}
-              className={`px-4 py-2 rounded-lg text-sm no-underline ${tab === it.id ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70 text-text'}`}
+              aria-label={it.id === 'settings' && hasUnseenChangelog ? `${it.label} (unread changelog)` : undefined}
+              className={`relative px-4 py-2 rounded-lg text-sm no-underline ${tab === it.id ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70 text-text'}`}
             >
               <span className="mr-1.5">{it.icon}</span>
               {it.label}
+              {/* {it.id === 'settings' && hasUnseenChangelog && <UnreadDot />} */}
             </a>
           ))}
         </nav>
@@ -101,3 +110,19 @@ export function Nav() {
     </>
   );
 }
+
+// Temporarily disabled. Mantine-style indicator: solid colored disc that
+// overlaps the corner of its host (half-inside, half-outside) so it reads as
+// a separate notification mark rather than a chip stuck inside. To re-enable,
+// uncomment the JSX call sites above (the `{it.id === 'settings' &&
+// hasUnseenChangelog && <UnreadDot />}` lines) and this function body.
+//
+// function UnreadDot() {
+//   return (
+//     <span
+//       aria-hidden
+//       data-testid="unread-changelog-dot"
+//       className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-ok shadow"
+//     />
+//   );
+// }

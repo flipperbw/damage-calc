@@ -4,15 +4,24 @@ import type { MoveResult } from '@/calc/adapter';
 import { effectivenessBadge, koBadge, koTagFromText, priorityFlag, sturdyWarning } from '@/calc/format';
 import { MoveDetailSheet } from '@/components/MoveDetailSheet';
 import { TypeBadge } from '@/components/TypeBadge';
-import { moveAccuracy, usePkmnReady } from '@/data/pkmn';
+import { effectiveMoveAccuracy, usePkmnReady } from '@/data/pkmn';
+import { useStore } from '@/store';
 import type { SavedMon } from '@/types';
 
 interface Props {
   result: MoveResult;
   defenderForSturdy?: SavedMon;
+  /**
+   * Whether spread moves should be rendered with their spread-reduced
+   * damage (today's default — 0.75x baked in) or the single-target full
+   * damage. The toggle is driven by a section-level button in
+   * BattleScreen; non-spread moves ignore it. Optional so non-doubles
+   * callers don't have to thread it.
+   */
+  spreadView?: 'spread' | 'single';
 }
 
-export function MoveRow({ result, defenderForSturdy }: Props) {
+export function MoveRow({ result, defenderForSturdy, spreadView = 'spread' }: Props) {
   const [showDetail, setShowDetail] = useState(false);
   // Subscribe to @pkmn/data readiness — moveAccuracy returns null until
   // the cache is warm, so without this the "acc 90%" badge only shows up
@@ -20,7 +29,16 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
   // mons). Calling the hook triggers the preload AND re-renders the row
   // when the data lands.
   usePkmnReady();
-  const ko = koTagFromText(result.koChanceText);
+  // Current weather drives the effective-accuracy lookup. Subscribing here
+  // means weather toggles re-render rows even when the row's `result` is
+  // memoised against the matchup.
+  const weather = useStore((s) => s.field.weather);
+  // For spread moves, swap in the single-target alt range when the
+  // section toggle is on. Calc already pre-ran both calls; we just pick.
+  const useSingleTarget = spreadView === 'single' && result.isSpread && result.singleTargetRange;
+  const displayPercentRange = useSingleTarget ? result.singleTargetRange!.percentRange : result.percentRange;
+  const displayKoText = useSingleTarget ? result.singleTargetRange!.koChanceText : result.koChanceText;
+  const ko = koTagFromText(displayKoText);
   const prio = priorityFlag(result.priority);
   // If the move would OHKO but the defender has Sturdy at full HP, the actual
   // outcome is a 2HKO at best - flag this distinctly.
@@ -67,11 +85,15 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
           )}
           {sturdyApplies && <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-warn/30 text-warn">Sturdy</span>}
           {(() => {
-            const acc = moveAccuracy(result.moveName);
+            // Effective accuracy applies weather modifiers — Hurricane /
+            // Thunder / *Storm hit 100% in Rain (50% in Sun); Blizzard
+            // never misses in Snow. The chip only renders when accuracy
+            // is below 100%, so a Rain-buffed Hurricane correctly hides.
+            const acc = effectiveMoveAccuracy(result.moveName, weather);
             if (typeof acc === 'number' && acc < 100) {
               return (
                 <span
-                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white/[0.06] border border-surface-hi text-text-mute tabular-nums flex items-center gap-0.5"
+                  className="text-[10px] font-semibold px-1.5 rounded bg-white/[0.06] border border-surface-hi text-text-mute tabular-nums flex items-center gap-0.5"
                   aria-label={`Accuracy ${acc}%`}
                   title={`Accuracy: ${acc}%`}
                 >
@@ -86,7 +108,7 @@ export function MoveRow({ result, defenderForSturdy }: Props) {
             <span className="opacity-40 text-sm">-</span>
           ) : (
             <span className="font-bold tabular-nums text-[13px] min-w-[60px] text-right">
-              {result.percentRange[0]}–{result.percentRange[1]}%
+              {displayPercentRange[0]}–{displayPercentRange[1]}%
             </span>
           )}
         </div>

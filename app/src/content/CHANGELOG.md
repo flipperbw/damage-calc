@@ -1,3 +1,23 @@
+## 2026-06-07
+
+- **Spread damage toggle.** Doubles move sections get a `✥ Spread / ✥ Single` chip that swaps the 0.75× spread reduction for full single-target damage.
+- **Weather-aware accuracy.** Hurricane / Thunder / *Storm hit 100% in Rain, 50% in Sun; Blizzard never misses in Snow.
+
+## 2026-06-01
+
+- **Pokepaste URL import.** Drop a `pokepast.es/<id>` link in the Showdown importer and the team loads automatically.
+- **Format-aware suggestions.** Builder scores singles teams against singles threats, doubles against doubles.
+- **Edit pencil on opponent card.** Top-left ✎ badge opens the MonEditor - makes editing the opponent's build discoverable.
+- **Champions move legality.** Picker now sources from `@pkmn/ps`'s Champions learnsets - Froslass gets Nasty Plot, Floette-Eternal gets Light of Ruin, Sneasler stops cross-leaking Dragon Dance from regular Sneasel.
+
+## 2026-05-30
+
+- **Live Champions meta.** Sets, top threats, candidate pool, and Teams templates now come from real Pikalytics tournament data. Top threats grew 8 → 40; build dropdown tags meta variants as `META`.
+- **Meta teams browser.** Permanent collapsible section on Teams with 20 tournament finishers and a search box (species / author / tournament).
+- **Doubles threats lead the Builder.** Was Singles → Doubles, now Doubles → Singles.
+- **Nav middle-click.** Tabs support middle-click and ⌘/Ctrl-click to open in a new browser tab.
+- **Settings labelled on desktop.** Mobile keeps the icon-only gear.
+
 ## 2026-05-24
 
 - **Empty Teams screen reborn.** Land on a sparkle hero with Create + Import CTAs and three preset tournament teams (Altkyle Rain, imstone Sand, Feis Fairy Spam) you can use in one tap.

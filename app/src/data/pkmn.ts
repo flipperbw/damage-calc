@@ -233,6 +233,42 @@ export function moveAccuracy(moveName: string): number | true | null {
   return ACCURACY_CACHE.get(toID(moveName) as unknown as string) ?? null;
 }
 
+// Moves that scale to perfect (100%) accuracy in Rain and halve in Sun.
+// Hurricane / Thunder are the long-standing pair; the gen-9 Bleakwind /
+// Wildbolt / Sandsear Storm trio follow the same rule by design.
+const RAIN_PERFECTED_MOVES = new Set([
+  'hurricane',
+  'thunder',
+  'bleakwindstorm',
+  'wildboltstorm',
+  'sandsearstorm',
+]);
+
+/**
+ * Returns the *effective* accuracy of a move given the current weather. Lifts
+ * Hurricane / Thunder / *Storm to 100% in Rain (halves them in Sun), and
+ * Blizzard to always-hit in Snow. Falls back to the base accuracy otherwise.
+ *
+ * Returns `null` until @pkmn/data's accuracy cache is warm, mirroring
+ * `moveAccuracy`.
+ */
+export function effectiveMoveAccuracy(
+  moveName: string,
+  weather: 'Sun' | 'Rain' | 'Sand' | 'Snow' | undefined,
+): number | true | null {
+  const base = moveAccuracy(moveName);
+  if (base === null) return null;
+  const id = toID(moveName) as unknown as string;
+  if (RAIN_PERFECTED_MOVES.has(id)) {
+    if (weather === 'Rain') return 100;
+    // In harsh sunlight Hurricane / Thunder / *Storm have a flat 50% per
+    // game mechanics — not "base halved" (which would land at 35).
+    if (weather === 'Sun') return 50;
+  }
+  if (id === 'blizzard' && weather === 'Snow') return true;
+  return base;
+}
+
 /**
  * Full ability list (slot 0 / 1 / hidden, in pokedex order) for a species,
  * sourced from @pkmn/data. Returns null when the cache is cold OR when the

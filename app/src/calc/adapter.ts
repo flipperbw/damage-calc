@@ -36,6 +36,26 @@ export interface MoveResult {
    * type isn't found in the chart.
    */
   effectiveness: number;
+  /**
+   * True iff this is a multi-target spread move (Earthquake, Discharge,
+   * Hyper Voice, Heat Wave, …) in a doubles match. Calc's primary range
+   * above already includes the 0.75x spread reduction; `singleTargetRange`
+   * is populated with the full-damage alternative so the UI can toggle
+   * "what if I aimed it at just one mon?".
+   * False in singles for every move (no spread mechanic) and false in
+   * doubles for single-target moves.
+   */
+  isSpread: boolean;
+  /**
+   * Damage as if the spread move were fired at a single target — i.e. the
+   * 0.75x reduction lifted. Same fields as the row-level damage but with
+   * the override applied. Populated only when `isSpread` is true.
+   */
+  singleTargetRange?: {
+    damageRange: [number, number];
+    percentRange: [number, number];
+    koChanceText: string;
+  };
 }
 
 export interface ComputedStats {
@@ -225,6 +245,13 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
     console.warn(`calc failed for move "${moveName}":`, err);
     return emptyMoveResult();
   }
+  // Spread moves: when `target` is allAdjacent / allAdjacentFoes and the
+  // game type is Doubles, calc applies the 0.75x reduction internally. We
+  // expose `isSpread` + a single-target alt range so the UI can offer a
+  // "what if this hit one mon" toggle without re-doing the field setup.
+  const target = (move as unknown as { target?: string }).target;
+  const isSpread =
+    field.gameType !== 'Singles' && (target === 'allAdjacent' || target === 'allAdjacentFoes');
   const range = result.range(); // [min, max] raw damage
   const maxHp = defender.maxHP();
   const isStatus = move.category === 'Status';
@@ -239,6 +266,39 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
     koText = noDamage ? '' : result.kochance().text;
   } catch {
     koText = '';
+  }
+  // Single-target alt for spread moves: re-run calc with `target` overridden
+  // to a single-target value so the 0.75x reduction lifts. The override has
+  // to be passed via the Move constructor's `overrides` option — calc clones
+  // the Move via `Move.clone()` and rebuilds from `originalName`, which
+  // overwrites any direct `target = …` mutation done after construction.
+  // Skip when the move does no damage (status, type/ability immunity) since
+  // the spread reduction is moot there.
+  let singleTargetRange: MoveResult['singleTargetRange'];
+  if (isSpread && !noDamage) {
+    try {
+      const singleMove = new Move(GEN, moveName, { overrides: { target: 'normal' as 'normal' } });
+      const singleResult = calculate(GEN, attacker, defender, singleMove, field);
+      const sRange = singleResult.range();
+      const sPercent: [number, number] = [
+        Math.floor((sRange[0] / maxHp) * 100),
+        Math.floor((sRange[1] / maxHp) * 100),
+      ];
+      let sKoText = '';
+      try {
+        sKoText = singleResult.kochance().text;
+      } catch {
+        sKoText = '';
+      }
+      singleTargetRange = {
+        damageRange: [sRange[0], sRange[1]],
+        percentRange: sPercent,
+        koChanceText: sKoText,
+      };
+    } catch {
+      // If the alt calc throws, just don't expose the single-target range
+      // — the UI falls back to hiding the toggle for this one move.
+    }
   }
   // Effectiveness shown on the row uses the type chart but cross-checks
   // against calc's actual damage range so ability overrides land correctly:
@@ -275,6 +335,8 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
     isStatus,
     isImmune,
     effectiveness,
+    isSpread,
+    singleTargetRange,
   };
 }
 
@@ -339,6 +401,7 @@ function emptyMoveResult(): MoveResult {
     isStatus: true,
     isImmune: false,
     effectiveness: 1,
+    isSpread: false,
   };
 }
 
