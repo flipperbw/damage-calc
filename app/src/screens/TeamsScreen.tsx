@@ -435,7 +435,7 @@ function TeamSlot({ mon, onClick, testId, index }: { mon: SavedMon | null; onCli
       onClick={onClick}
       data-testid={testId}
       aria-label={mon ? `Edit ${mon.species}` : `Add Pokémon to slot ${index + 1}`}
-      className={`flex-1 md:flex-none md:w-[140px] aspect-square md:aspect-auto bg-surface rounded-lg flex flex-col items-center justify-center md:px-2 md:py-2.5 md:gap-1.5 hover:border-accent/40 ${mon ? 'border border-surface-hi' : 'border border-dashed border-surface-hi/70'}`}
+      className={`flex-1 md:flex-none md:w-[140px] md:min-h-[140px] aspect-square md:aspect-auto bg-surface rounded-lg flex flex-col items-center justify-center md:px-2 md:py-2.5 md:gap-1.5 hover:border-accent/40 ${mon ? 'border border-surface-hi' : 'border border-dashed border-surface-hi/70'}`}
     >
       {mon ? (
         <>

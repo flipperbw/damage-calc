@@ -1,3 +1,9 @@
+## 2026-06-13
+
+- **Quick battle without a team.** Battle screen lets you pick two Pokémon to compare even when you have no teams, with a prominent Create / Browse CTA on top and skeleton "Tap to pick" cards side-by-side below.
+- **Empty team slots match the filled-tile height.** Slot rows no longer shrink when a team has no mons yet.
+- **Latest meta refresh.** Pikalytics scrape re-run; 89 species with build variants and 20 fresh tournament-finisher teams.
+
 ## 2026-06-07
 
 - **Spread damage toggle.** Doubles move sections get a `✥ Spread / ✥ Single` chip that swaps the 0.75× spread reduction for full single-target damage.
