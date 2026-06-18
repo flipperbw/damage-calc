@@ -23,8 +23,8 @@
 //                                              cores.
 //
 // Period fallback: starts from currentMonth - 1, decrements until an endpoint
-// returns a non-empty payload. Hard stops at 2026-04 (the earliest Champions
-// period). Bail if all periods 404 / return empty.
+// returns a non-empty payload. Hard stops at EARLIEST_PERIOD. Bail if all
+// periods 404 / return empty.
 
 import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -34,8 +34,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAW_CACHE_PATH = path.resolve(__dirname, 'pikalytics-raw-cache.json');
 const OUT_DIR = path.resolve(__dirname, '..', 'src', 'data', 'generated');
 
-const FORMAT_SLUG = 'gen9championsvgc2026regma-1760';
-const EARLIEST_PERIOD = '2026-04'; // hard floor — Champions launched here
+// Regulation M-B (launched 2026-06; M-B ruleset was ladder-playable from
+// ~2026-05, so Pikalytics's 2026-05 period already carries mature M-B usage).
+const FORMAT_SLUG = 'gen9championsvgc2026regmb-1760';
+const EARLIEST_PERIOD = '2026-05'; // hard floor — earliest populated M-B period
 
 // Variant clustering tuning
 const VARIANT_USAGE_THRESHOLD = 0.15; // ≥15 % of that species's sheets
@@ -53,6 +55,13 @@ const PRESET_TEAMS_COUNT = 20;
 // (rank > BUILDS_LIMIT) fall back to SM/USUM → synth in the dropdown.
 const BUILDS_LIMIT = 150;
 const FETCH_CONCURRENCY = 6;
+// Retry genuine HTTP failures (network error / non-200) with backoff. A 200
+// with an empty `teams` array is NOT a failure — that species just has no
+// top-team sheets yet (common for mid-tier mons early in a regulation), so we
+// accept it without retrying.
+const PER_SPECIES_RETRIES = 3;
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ───────────────────────────────────────────────────────────────────────────
 // Period helpers
@@ -139,12 +148,30 @@ async function fetchPerSpeciesBatch(period, speciesNames) {
       if (!name) return;
       const slug = speciesSlug(name);
       const url = `https://www.pikalytics.com/api/p/${period}/${FORMAT_SLUG}/${slug}`;
-      const { ok, status, body } = await fetchJson(url);
+      let body = null;
+      let lastStatus = 'empty';
+      for (let attempt = 0; attempt < PER_SPECIES_RETRIES; attempt += 1) {
+        const res = await fetchJson(url);
+        if (res.ok) {
+          // 200 + valid JSON. A populated `teams` array gives us build
+          // variants; an empty one is legitimate (no top-team sheets) — either
+          // way it's a definitive answer, so stop here.
+          if (Array.isArray(res.body?.teams) && res.body.teams.length > 0) {
+            body = res.body;
+          }
+          break;
+        }
+        // Genuine failure (network / non-200) — back off and retry.
+        lastStatus = res.status;
+        if (attempt < PER_SPECIES_RETRIES - 1) {
+          await delay(500 * 2 ** attempt + Math.floor(Math.random() * 250));
+        }
+      }
       done += 1;
-      if (!ok || !body || !Array.isArray(body.teams) || body.teams.length === 0) {
-        failures.push({ name, status: ok ? 'empty' : status });
-      } else {
+      if (body) {
         out.set(name, body);
+      } else {
+        failures.push({ name, status: lastStatus });
       }
       if (done % 25 === 0 || done === total) {
         console.log(`  per-species: ${done}/${total} (worker ${id})`);
@@ -502,28 +529,61 @@ function itemShortName(item) {
   return item;
 }
 
+// Per-species usage as a finite percentage. Pikalytics changed the leaderboard
+// schema between regulations: M-A exposed a top-level `percent` (% of teams),
+// M-B dropped it for raw `games` counts. Fall back to each species' share of
+// total games so usage stays a meaningful, finite, descending-sortable number
+// in both schemas (0 when neither field is present).
+function leaderboardUsage(sp, totalGames) {
+  const pct = parseFloat(sp.percent);
+  if (Number.isFinite(pct)) return pct;
+  const games = Number(sp.games);
+  if (Number.isFinite(games) && totalGames > 0) {
+    return Math.round((games / totalGames) * 1000) / 10;
+  }
+  return 0;
+}
+
+function totalLeaderboardGames(leaderboard) {
+  return leaderboard.reduce((sum, sp) => sum + (Number(sp.games) || 0), 0);
+}
+
+// Canonical usage ordering. Pikalytics ranks by % of teams, but the field
+// exposing that order differs by schema: M-A carries `percent`, M-B carries an
+// explicit `rank`. Return a key where ASCENDING sort puts the most-used first,
+// so the top-N selections match Pikalytics's own ordering in both schemas.
+function leaderboardSortKey(sp) {
+  const pct = parseFloat(sp.percent);
+  if (Number.isFinite(pct)) return -pct; // M-A: higher percent ranks first
+  const rank = parseInt(sp.rank, 10);
+  if (Number.isFinite(rank)) return rank; // M-B: lower rank ranks first
+  return Number.MAX_SAFE_INTEGER;
+}
+
 function transformThreats(leaderboard) {
+  const totalGames = totalLeaderboardGames(leaderboard);
   return leaderboard
     .slice()
-    .sort((a, b) => parseFloat(b.percent) - parseFloat(a.percent))
+    .sort((a, b) => leaderboardSortKey(a) - leaderboardSortKey(b))
     .slice(0, TOP_THREATS_COUNT)
     .map((sp, i) => ({
       species: canonicalSpecies(sp.name),
-      usagePercent: parseFloat(sp.percent),
+      usagePercent: leaderboardUsage(sp, totalGames),
       winRate: parseFloat(sp.winPercent ?? '0'),
       rank: i + 1,
     }));
 }
 
 function transformPool(leaderboard) {
+  const totalGames = totalLeaderboardGames(leaderboard);
   return leaderboard
     .slice()
-    .sort((a, b) => parseFloat(b.percent) - parseFloat(a.percent))
+    .sort((a, b) => leaderboardSortKey(a) - leaderboardSortKey(b))
     .slice(0, TOP_POOL_COUNT)
     .map((sp) => ({
       species: canonicalSpecies(sp.name),
       types: sp.types ?? [],
-      usagePercent: parseFloat(sp.percent),
+      usagePercent: leaderboardUsage(sp, totalGames),
     }));
 }
 
@@ -739,7 +799,7 @@ async function main() {
     //     nature/SPs from the modal spread we extract here)
     const byUsage = leaderboard
       .slice()
-      .sort((a, b) => parseFloat(b.percent) - parseFloat(a.percent));
+      .sort((a, b) => leaderboardSortKey(a) - leaderboardSortKey(b));
     const targetSet = new Set(byUsage.slice(0, BUILDS_LIMIT).map((sp) => sp.name));
     for (const t of topteams.landingTeams ?? []) {
       for (const m of t.pokemon ?? []) {
