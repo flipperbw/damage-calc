@@ -18,10 +18,12 @@ export function koTagFromText(text: string): KoTag | null {
   }
   const chance = /(\d+(?:\.\d+)?)% chance to (\dHKO|OHKO)/.exec(text);
   if (chance) {
-    // Round UP so a 0.6% chance shows as "1% 4HKO", never "0%". Tiny
-    // probabilities are still surfaced; users care that there's any chance
-    // at all, not the precise odds.
-    const pct = Math.ceil(parseFloat(chance[1]));
+    // Round UP so a 0.6% chance shows as "1% 4HKO", never "0%" — tiny
+    // probabilities are still surfaced. Cap at 99 though: @smogon/calc clamps
+    // a non-guaranteed chance to at most 99.9% (it reserves "guaranteed" for a
+    // true 100%), so ceil()'ing 99.9 -> 100 would mislead by implying a
+    // guaranteed KO. 100% stays exclusive to actual guaranteed KOs.
+    const pct = Math.min(99, Math.ceil(parseFloat(chance[1])));
     // A chance to OHKO ranks just below a guaranteed OHKO and above a
     // guaranteed 2HKO, so it gets its own tier (orange, between red OHKO
     // and yellow 2HKO). Weaker chances (to 2HKO, 3HKO, ...) stay 'chance'.

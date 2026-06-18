@@ -21,6 +21,12 @@ describe('koTagFromText', () => {
   it('rounds up tiny probabilities so 0.6% does not display as 0%', () => {
     expect(koTagFromText('0.6% chance to 4HKO')).toEqual({ label: '1% 4HKO', kind: 'chance' });
   });
+  it('caps near-certain chances at 99% so a non-guaranteed KO never shows 100%', () => {
+    // @smogon/calc clamps to 99.9% max for non-guaranteed KOs; ceil() must not
+    // bump that back to a misleading "100%".
+    expect(koTagFromText('99.9% chance to 2HKO')).toEqual({ label: '99% 2HKO', kind: 'chance' });
+    expect(koTagFromText('99.9% chance to OHKO')).toEqual({ label: '99% OHKO', kind: 'chanceOhko' });
+  });
   it('returns null for empty', () => {
     expect(koTagFromText('')).toBeNull();
   });

@@ -5,6 +5,7 @@
 - **M-B move and balance changes.** New moves (Rage Fist, Make It Rain, Spirit Break, ...) and tweaks (Make It Rain now drops Special Attack two stages; Metagross loses Heavy Slam; Sceptile gains Earth Power).
 - **Forme learnset fix.** Cosmetic formes that share a base learnset (e.g. Gourgeist-Super) no longer show an empty move list.
 - **Chance-to-OHKO badge.** A move with a % chance to OHKO now gets its own orange badge and row tint, slotting between a guaranteed 2HKO (yellow) and a guaranteed OHKO (red) instead of rendering like a plain non-KO move.
+- **No more misleading "100%" KO odds.** A near-certain but not guaranteed KO now caps at "99%" instead of rounding up to "100%"; 100% is reserved for truly guaranteed KOs.
 - **M-B meta data.** Sets, top threats, candidate pool, and tournament teams now come from live Regulation M-B usage, with the new mons (Staraptor, Metagross, Gholdengo, Grimmsnarl, and more) ranked among the top threats.
 
 ## 2026-06-13
