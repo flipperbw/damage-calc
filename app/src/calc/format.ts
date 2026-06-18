@@ -1,6 +1,6 @@
 import type { SavedMon } from '@/types';
 
-export type KoKind = 'ohko' | 'thko' | 'chance' | 'multi';
+export type KoKind = 'ohko' | 'chanceOhko' | 'thko' | 'chance' | 'multi';
 export interface KoTag {
   label: string;
   kind: KoKind;
@@ -22,7 +22,11 @@ export function koTagFromText(text: string): KoTag | null {
     // probabilities are still surfaced; users care that there's any chance
     // at all, not the precise odds.
     const pct = Math.ceil(parseFloat(chance[1]));
-    return { label: `${pct}% ${chance[2]}`, kind: 'chance' };
+    // A chance to OHKO ranks just below a guaranteed OHKO and above a
+    // guaranteed 2HKO, so it gets its own tier (orange, between red OHKO
+    // and yellow 2HKO). Weaker chances (to 2HKO, 3HKO, ...) stay 'chance'.
+    const kind: KoKind = chance[2] === 'OHKO' ? 'chanceOhko' : 'chance';
+    return { label: `${pct}% ${chance[2]}`, kind };
   }
   return null;
 }
@@ -63,6 +67,8 @@ export function koBadge(kind: KoKind): { cls: string } {
   switch (kind) {
     case 'ohko':
       return { cls: 'bg-danger text-white' };
+    case 'chanceOhko':
+      return { cls: 'bg-priority text-black' };
     case 'thko':
       return { cls: 'bg-warn text-black' };
     case 'multi':

@@ -48,9 +48,11 @@ export function MoveRow({ result, defenderForSturdy, spreadView = 'spread' }: Pr
     ? 'bg-warn/12 border-warn/30'
     : ko?.kind === 'ohko'
       ? 'bg-danger/15 border-danger/40'
-      : ko?.kind === 'thko'
-        ? 'bg-warn/12 border-warn/30'
-        : 'bg-surface border-surface-hi';
+      : ko?.kind === 'chanceOhko'
+        ? 'bg-priority/12 border-priority/30'
+        : ko?.kind === 'thko'
+          ? 'bg-warn/12 border-warn/30'
+          : 'bg-surface border-surface-hi';
 
   if (!result.moveName) {
     return <div className="px-3 py-2 rounded-lg border border-dashed border-white/10 text-text-mute text-xs">- empty slot -</div>;

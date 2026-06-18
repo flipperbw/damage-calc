@@ -1,6 +1,7 @@
 import type { MouseEvent } from 'react';
 
 import { Logo } from '@/components/Logo';
+import { RegulationBadge } from '@/components/RegulationBadge';
 import { LATEST_CHANGELOG_HEADING } from '@/data/changelog';
 import { useStore } from '@/store';
 import type { Tab } from '@/types';
@@ -50,10 +51,11 @@ export function Nav() {
           href={tabHref('battle')}
           onClick={(e) => handleTabClick(e, setTab, 'battle')}
           aria-label="FutureSight — home"
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center select-none shrink-0"
+          className="relative min-w-[44px] min-h-[44px] flex items-center justify-center select-none shrink-0"
           style={{ touchAction: 'manipulation' }}
         >
           <Logo className="w-7 h-7" />
+          <RegulationBadge className="absolute bottom-0 -right-0.5 text-[7px] leading-none px-0.5 py-px" />
         </a>
         <nav aria-label="Primary" className="mobile-nav flex-1 grid grid-cols-4 gap-1.5">
           {ITEMS.map((it) => (
@@ -90,6 +92,7 @@ export function Nav() {
         >
           <Logo className="w-7 h-7" />
           <span className="font-semibold tracking-tight text-sm">FutureSight</span>
+          <RegulationBadge className="text-[9px] px-1 py-0.5" />
         </a>
         <nav className="flex gap-1">
           {ITEMS.map((it) => (

@@ -15,6 +15,9 @@ describe('koTagFromText', () => {
   it('maps "44.5% chance to 2HKO" to chance (ceiling)', () => {
     expect(koTagFromText('44.5% chance to 2HKO')).toEqual({ label: '45% 2HKO', kind: 'chance' });
   });
+  it('maps a chance to OHKO to its own chanceOhko tier', () => {
+    expect(koTagFromText('7% chance to OHKO')).toEqual({ label: '7% OHKO', kind: 'chanceOhko' });
+  });
   it('rounds up tiny probabilities so 0.6% does not display as 0%', () => {
     expect(koTagFromText('0.6% chance to 4HKO')).toEqual({ label: '1% 4HKO', kind: 'chance' });
   });

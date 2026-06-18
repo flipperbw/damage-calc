@@ -1,9 +1,10 @@
-## 2026-06-17
+## 2026-06-18
 
-- **Regulation M-B.** Added the new regulation's roster: 22 newly-legal Pokémon (Annihilape, Gholdengo, Grimmsnarl, Metagross, Swampert, Sceptile, Blaziken, Mawile, and more) plus 15 new Mega Evolutions, with their abilities (including Fire Mane and Eelevate).
+- **Regulation M-B.** Added the new regulation's roster: 22 newly-legal Pokémon (Annihilape, Gholdengo, Grimmsnarl, Metagross, Swampert, Sceptile, Blaziken, Mawile, and more) plus 15 new Mega Evolutions, with their abilities (including Fire Mane and Eelevate). The current regulation now shows as a badge on the site logo.
 - **New held items, with correct damage.** Life Orb (1.3×), Muscle Band / Wise Glasses (1.1×), Expert Belt (1.2× on super-effective), and Metronome now calculate properly; plus weather rocks, Light Clay, Big Root, Iron Ball, Shed Shell, Wide/Zoom Lens.
 - **M-B move and balance changes.** New moves (Rage Fist, Make It Rain, Spirit Break, ...) and tweaks (Make It Rain now drops Special Attack two stages; Metagross loses Heavy Slam; Sceptile gains Earth Power).
 - **Forme learnset fix.** Cosmetic formes that share a base learnset (e.g. Gourgeist-Super) no longer show an empty move list.
+- **Chance-to-OHKO badge.** A move with a % chance to OHKO now gets its own orange badge and row tint, slotting between a guaranteed 2HKO (yellow) and a guaranteed OHKO (red) instead of rendering like a plain non-KO move.
 
 ## 2026-06-13
 
