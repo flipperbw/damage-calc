@@ -90,11 +90,13 @@ describe('parseShowdownText', () => {
   });
 
   it('drops a non-Champions item and records item-dropped', () => {
-    const text = ['Salamence @ Life Orb', 'Ability: Intimidate', '- Outrage'].join('\n');
+    // Choice Band is still illegal in Champions (Life Orb became legal in
+    // Regulation M-B, so it's no longer a valid "illegal item" fixture).
+    const text = ['Salamence @ Choice Band', 'Ability: Intimidate', '- Outrage'].join('\n');
     const r = parseShowdownText(text);
     expect(r.mons[0].draft.item).toBeUndefined();
     const change = r.changes.find((c) => c.kind === 'item-dropped');
-    expect(change).toMatchObject({ field: 'item', before: 'Life Orb' });
+    expect(change).toMatchObject({ field: 'item', before: 'Choice Band' });
   });
 
   it('drops an unknown move and leaves the slot empty', () => {

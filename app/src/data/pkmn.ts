@@ -501,16 +501,20 @@ function isMegaFormeName(name: string): boolean {
  */
 function championsLearnableIds(species: string, api: PkmnApi | null): Set<string> | null {
   const direct = CHAMPIONS_LEARNSETS[toID(species) as unknown as string];
-  if (direct) {
-    const out = new Set<string>(direct.learnset ? Object.keys(direct.learnset) : []);
+  if (direct?.learnset) {
+    const out = new Set<string>(Object.keys(direct.learnset));
     addChangesFromMoves(out, species, api);
     return out;
   }
+  // Either there's no entry, or it's a bare `{}` cosmetic-forme entry —
+  // which upstream uses to mean "no own learnset, inherit from the base
+  // species" (e.g. Gourgeist-Super → gourgeist). Both cases fall through
+  // to the suffix-stripped base lookup.
   const stripped = stripFormeSuffix(species);
   if (stripped) {
     const fallback = CHAMPIONS_LEARNSETS[toID(stripped) as unknown as string];
-    if (fallback) {
-      const out = new Set<string>(fallback.learnset ? Object.keys(fallback.learnset) : []);
+    if (fallback?.learnset) {
+      const out = new Set<string>(Object.keys(fallback.learnset));
       addChangesFromMoves(out, stripped, api);
       return out;
     }

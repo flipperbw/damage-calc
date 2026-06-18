@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { GEN } from '@/calc/gen';
 import { abilityDescription, canLearn, getLearnableMoveIds, moveDescription, preloadPkmn, priorityOverride } from '@/data/pkmn';
 
 /**
@@ -91,6 +92,80 @@ describe('getLearnableMoveIds', () => {
     const ids = await getLearnableMoveIds('Floette-Eternal');
     expect(ids.has('drainingkiss')).toBe(true);
     expect(ids.has('lightofruin')).toBe(true);
+  });
+});
+
+describe('Regulation M-B drift guards', () => {
+  // Newly-legal base species in Regulation M-B. Each must resolve to a
+  // non-empty learnset from the vendored Champions table — a species added
+  // to the calc allowlist but missing from the learnset vendor pass would
+  // surface an empty MovePicker in the app.
+  const MB_NEW_SPECIES = [
+    'Annihilape', 'Barbaracle', 'Blaziken', 'Dragalge', 'Eelektross',
+    'Falinks', 'Gholdengo', 'Grimmsnarl', 'Houndstone', 'Malamar',
+    'Mawile', 'Metagross', 'Musharna', 'Overqwil', 'Pyroar', 'Qwilfish',
+    'Sceptile', 'Scolipede', 'Scrafty', 'Staraptor', 'Swampert', 'Vileplume',
+  ];
+
+  it.each(MB_NEW_SPECIES)('new species %s resolves to a non-empty learnset', async (name) => {
+    const ids = await getLearnableMoveIds(name);
+    expect(ids.size).toBeGreaterThan(0);
+  });
+
+  // Newly-legal Mega formes. These have no standalone learnset entry; they
+  // must resolve via suffix-strip to the base species (Sceptile-Mega →
+  // sceptile). Raichu-Mega-X/Y strip to the pre-existing Raichu.
+  const MB_NEW_MEGAS = [
+    'Barbaracle-Mega', 'Blaziken-Mega', 'Dragalge-Mega', 'Eelektross-Mega',
+    'Falinks-Mega', 'Malamar-Mega', 'Mawile-Mega', 'Metagross-Mega',
+    'Pyroar-Mega', 'Raichu-Mega-X', 'Raichu-Mega-Y', 'Sceptile-Mega',
+    'Scolipede-Mega', 'Scrafty-Mega', 'Staraptor-Mega', 'Swampert-Mega',
+  ];
+
+  it.each(MB_NEW_MEGAS)('new mega %s inherits its base learnset via suffix-strip', async (name) => {
+    const ids = await getLearnableMoveIds(name);
+    expect(ids.size).toBeGreaterThan(0);
+  });
+
+  it('mega forme learnset equals its base species (Sceptile-Mega → Sceptile)', async () => {
+    const base = await getLearnableMoveIds('Sceptile');
+    const mega = await getLearnableMoveIds('Sceptile-Mega');
+    expect(mega.has('leafblade')).toBe(true);
+    expect(mega.has('earthpower')).toBe(true);
+    // Suffix-strip should yield exactly the base kit, not a superset/subset.
+    expect([...mega].sort()).toEqual([...base].sort());
+  });
+
+  it('signature M-B moves are present on their owners', async () => {
+    // Use getLearnableMoveIds (the vendored Champions table the MovePicker
+    // reads) rather than canLearn, which queries the gen-7 @pkmn bundle
+    // where these gen-9 species don't exist.
+    expect((await getLearnableMoveIds('Annihilape')).has('ragefist')).toBe(true);
+    expect((await getLearnableMoveIds('Gholdengo')).has('makeitrain')).toBe(true);
+  });
+
+  it('M-B move changes are reflected in the vendored data', async () => {
+    // Removal: Metagross lost Heavy Slam in M-B.
+    const metagross = await getLearnableMoveIds('Metagross');
+    expect(metagross.has('heavyslam')).toBe(false);
+    // Addition: Sceptile gained Earth Power in M-B.
+    const sceptile = await getLearnableMoveIds('Sceptile');
+    expect(sceptile.has('earthpower')).toBe(true);
+  });
+});
+
+describe('Champions learnset coverage (comprehensive drift guard)', () => {
+  // The strongest future-proofing: every species the calc treats as
+  // Champions-legal (gen-0) must resolve to a non-empty learnset. Catches
+  // the whole class of "allowlisted a species but the learnset vendor pass
+  // doesn't cover it" drift, for this regulation and every future one.
+  it('every gen-0 (Champions) species resolves to a non-empty learnset', async () => {
+    const empties: string[] = [];
+    for (const sp of GEN.species) {
+      const ids = await getLearnableMoveIds(sp.name);
+      if (ids.size === 0) empties.push(sp.name);
+    }
+    expect(empties).toEqual([]);
   });
 });
 

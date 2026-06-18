@@ -1,3 +1,10 @@
+## 2026-06-17
+
+- **Regulation M-B.** Added the new regulation's roster: 22 newly-legal Pokémon (Annihilape, Gholdengo, Grimmsnarl, Metagross, Swampert, Sceptile, Blaziken, Mawile, and more) plus 15 new Mega Evolutions, with their abilities (including Fire Mane and Eelevate).
+- **New held items, with correct damage.** Life Orb (1.3×), Muscle Band / Wise Glasses (1.1×), Expert Belt (1.2× on super-effective), and Metronome now calculate properly; plus weather rocks, Light Clay, Big Root, Iron Ball, Shed Shell, Wide/Zoom Lens.
+- **M-B move and balance changes.** New moves (Rage Fist, Make It Rain, Spirit Break, ...) and tweaks (Make It Rain now drops Special Attack two stages; Metagross loses Heavy Slam; Sceptile gains Earth Power).
+- **Forme learnset fix.** Cosmetic formes that share a base learnset (e.g. Gourgeist-Super) no longer show an empty move list.
+
 ## 2026-06-13
 
 - **Quick battle without a team.** Battle screen lets you pick two Pokémon to compare even when you have no teams, with a prominent Create / Browse CTA on top and skeleton "Tap to pick" cards side-by-side below.
