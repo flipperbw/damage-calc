@@ -1,3 +1,7 @@
+## 2026-06-19
+
+- **Keyboard navigation in pickers.** Search pickers (species, item, ability, move, nature) now let you arrow up/down through the results and hit Enter to pick - keep typing to filter while the highlight tracks the top match.
+
 ## 2026-06-18
 
 - **Regulation M-B.** Added the new regulation's roster: 22 newly-legal Pokémon (Annihilape, Gholdengo, Grimmsnarl, Metagross, Swampert, Sceptile, Blaziken, Mawile, and more) plus 15 new Mega Evolutions, with their abilities (including Fire Mane and Eelevate). The current regulation now shows as a badge on the site logo.

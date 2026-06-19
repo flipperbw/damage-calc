@@ -53,6 +53,7 @@ export function NaturePicker({ open, onClose, onPick }: Props) {
                 onPick(n.name);
                 onClose();
               }}
+              data-picker-option
               className="w-full flex justify-between items-center px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
             >
               <span className="font-medium">{n.name}</span>

@@ -521,6 +521,7 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent, excl
             onClose();
           }}
           data-testid="move-row-pick-none"
+          data-picker-option
           className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm opacity-70"
         >
           (none)
@@ -585,6 +586,7 @@ function Row({ option, onPick, onInfo }: { option: MoveOption; onPick: () => voi
         type="button"
         onClick={onPick}
         data-testid={`move-row-pick-${option.name}`}
+        data-picker-option
         className="flex-1 flex items-center gap-2 px-1.5 py-1 rounded text-left"
       >
         <TypeBadge type={option.type} fixedWidth />

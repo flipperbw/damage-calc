@@ -353,7 +353,7 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true, exclu
 
 function Row({ species, onPick }: { species: string; onPick: () => void }) {
   return (
-    <button type="button" onClick={onPick} className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface text-left">
+    <button type="button" onClick={onPick} data-picker-option className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface text-left">
       <Sprite species={species} className="w-8 h-8 rounded" />
       <span className="font-medium">{species}</span>
     </button>

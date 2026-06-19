@@ -1,4 +1,4 @@
-import { ReactNode, RefObject, useEffect, useRef } from 'react';
+import { ReactNode, RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 interface SearchProps {
   value: string;
@@ -100,6 +100,12 @@ export function PickerShell({ open, onClose, title, children, align = 'sheet', s
         data-testid="picker-shell"
         className={`w-full max-w-md bg-bg-base bg-panel-gradient border border-surface-hi rounded-card p-3.5 ${sizing} flex flex-col`}
         onClick={(e) => e.stopPropagation()}
+        // Contain keydowns too (mirrors the click containment above). The
+        // picker is rendered inside interactive surfaces like MonCard's
+        // role="button" card, whose Enter/Space handler opens the species
+        // picker — without this, pressing Enter to pick an item would bubble
+        // up and re-open that picker. A modal owns its own keyboard.
+        onKeyDown={(e) => e.stopPropagation()}
       >
         {title && <h3 className="text-base font-bold mb-2">{title}</h3>}
         {search ? <SearchBody search={search} filters={filters}>{children}</SearchBody> : children}
@@ -116,10 +122,87 @@ export function PickerShell({ open, onClose, title, children, align = 'sheet', s
  */
 function SearchBody({ search, filters, children }: { search: SearchProps; filters?: ReactNode; children: ReactNode }) {
   const { value, onChange, placeholder, autoFocus = true, testId, inputRef } = search;
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const localInputRef = useRef<HTMLInputElement>(null);
+  const resolvedInputRef = inputRef ?? localInputRef;
+  // Keyboard navigation uses "virtual focus": the search input keeps real DOM
+  // focus (so the user can keep typing to filter), while a highlighted index
+  // tracks the active option. Options are opaque children, so we drive the
+  // highlight imperatively against the DOM — any picker row tagged with
+  // `data-picker-option` participates automatically.
+  const [activeIndex, setActiveIndex] = useState(0);
+  // Mirror activeIndex into a ref so the document-level key listener (bound once
+  // on open) always reads the latest value without re-binding.
+  const activeIndexRef = useRef(0);
+  activeIndexRef.current = activeIndex;
+
+  function optionEls(): HTMLElement[] {
+    if (!bodyRef.current) return [];
+    return Array.from(bodyRef.current.querySelectorAll<HTMLElement>('[data-picker-option]'));
+  }
+
+  // Focus the search input on open so the user can type to filter immediately.
+  // Keyboard *navigation* no longer depends on this (see the document listener
+  // below) — it's purely for typing convenience.
+  useEffect(() => {
+    if (autoFocus) resolvedInputRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keyboard navigation, bound at the document level (capture phase) while the
+  // picker is open. This is deliberately FOCUS-INDEPENDENT: relying on the
+  // search input holding focus is fragile for a modal opened from inside the
+  // editor (a stolen/never-granted focus silently kills the feature, and a
+  // bubbled Enter/Space hits MonCard's role="button" and opens the species
+  // picker). Capturing at document means arrows/Enter work regardless of what
+  // holds focus, and stopPropagation keeps them from leaking to the card.
+  // Letters/Backspace are left untouched so typing still filters.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return;
+      const opts = optionEls();
+      if (opts.length === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'ArrowDown') {
+        setActiveIndex((i) => Math.min(i + 1, opts.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        setActiveIndex((i) => Math.max(i - 1, 0));
+      } else {
+        opts[Math.min(activeIndexRef.current, opts.length - 1)]?.click();
+      }
+    }
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // A new filter string re-orders/replaces the list, so snap back to the top
+  // result — Enter should pick the best match without an extra arrow press.
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [value]);
+
+  // Re-apply the highlight after every render (the option list changes as the
+  // user types/filters) and keep the active row scrolled into view. block:
+  // 'nearest' is a no-op when it's already visible, so manual scrolls aren't
+  // yanked — and the body only re-renders on navigation-style changes anyway.
+  useLayoutEffect(() => {
+    const opts = optionEls();
+    if (opts.length === 0) return;
+    const idx = Math.min(activeIndex, opts.length - 1);
+    opts.forEach((el, i) => {
+      if (i === idx) el.setAttribute('data-active', 'true');
+      else el.removeAttribute('data-active');
+    });
+    // Optional-chain the method too: jsdom (test env) doesn't implement it.
+    opts[idx]?.scrollIntoView?.({ block: 'nearest' });
+  });
+
   return (
     <>
       <input
-        ref={inputRef}
+        ref={resolvedInputRef}
         autoFocus={autoFocus}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -133,6 +216,7 @@ function SearchBody({ search, filters, children }: { search: SearchProps; filter
       />
       {filters}
       <div
+        ref={bodyRef}
         // overscroll-behavior contains scroll chaining (pull-to-refresh,
         // bounce affecting the page underneath). touch-action pan-y is a
         // belt-and-suspenders hint to iOS WebKit that this region is a

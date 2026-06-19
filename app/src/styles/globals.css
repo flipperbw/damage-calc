@@ -207,3 +207,11 @@ body {
 .hp-slider:active::-moz-range-thumb {
   cursor: grabbing;
 }
+
+/* Keyboard-navigation highlight for picker option rows. The search input keeps
+   real focus (so typing keeps filtering), so the active row can't rely on
+   :focus — PickerShell toggles data-active on the row tagged data-picker-option.
+   Accent tint distinguishes it from the grey :hover state. */
+[data-picker-option][data-active='true'] {
+  background-color: color-mix(in oklab, var(--color-accent) 18%, transparent);
+}

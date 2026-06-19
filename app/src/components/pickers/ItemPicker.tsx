@@ -131,7 +131,7 @@ export function ItemPicker({ open, onClose, onPick, species }: Props) {
 
 function ItemRow({ name, short, onPick }: { name: string; short: string | null | undefined; onPick: () => void }) {
   return (
-    <button onClick={onPick} className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface">
+    <button onClick={onPick} data-picker-option className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface">
       <div className="text-sm font-medium">{name}</div>
       {short && <div className="text-xxs opacity-60 leading-snug truncate">{short}</div>}
     </button>
