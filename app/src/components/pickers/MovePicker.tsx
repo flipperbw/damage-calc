@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { categoryBadge } from '@/calc/format';
 import { GEN, toID } from '@/calc/gen';
 import { MoveDetailSheet } from '@/components/MoveDetailSheet';
+import { FilterBar } from '@/components/pickers/FilterBar';
+import { NoneRow } from '@/components/pickers/NoneRow';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { TypeBadge } from '@/components/TypeBadge';
 import { getLearnableMoveIds, moveAccuracy, moveBoostsUser, moveLowersTarget, priorityOverride, usePkmnReady } from '@/data/pkmn';
@@ -291,39 +293,39 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent, excl
 
   const filtersSlot = (
     <>
-      {/* Filters toggle row. The toggle stays compact when no filters are
-          active; once the user enables anything, a count badge surfaces. */}
-      <div className="flex items-center justify-between mt-1.5 mb-1 px-1 gap-2">
-        <button
-          type="button"
-          onClick={() => setFiltersOpen((v) => !v)}
-          aria-expanded={filtersOpen}
-          aria-controls="move-filters-panel"
-          data-testid="move-filters-toggle"
-          className="text-xxs uppercase tracking-wider opacity-70 hover:opacity-100 underline underline-offset-2"
-        >
-          {filtersOpen ? 'Hide filters' : 'Filters'}
-          {filterCount > 0 && (
-            <span
-              data-testid="move-filters-count"
-              className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[16px] px-1 rounded text-[9px] font-bold bg-accent/20 text-accent border border-accent/30"
-            >
-              {filterCount}
-            </span>
-          )}
-        </button>
-        {filterCount > 0 && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            data-testid="move-filters-clear"
-            aria-label="Clear all move filters"
-            className="text-xxs uppercase tracking-wider opacity-60 hover:opacity-100 underline underline-offset-2"
-          >
-            Clear
-          </button>
-        )}
-      </div>
+      <FilterBar
+        open={filtersOpen}
+        onToggle={() => setFiltersOpen((v) => !v)}
+        count={filterCount}
+        onClear={clearFilters}
+        panelId="move-filters-panel"
+        testIdPrefix="move"
+        // Show-all override shares the filters row. Only meaningful when a
+        // species is set (otherwise there's no learnset filter to bypass).
+        trailing={
+          species ? (
+            <>
+              {isLoadingLearnset && <span className="text-xxs opacity-55 shrink-0">Loading…</span>}
+              {!isLoadingLearnset && learnset.kind === 'error' && (
+                <span className="text-xxs opacity-55 shrink-0">No learnset</span>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                aria-pressed={showAll}
+                data-testid="move-show-all"
+                className={`text-[11px] px-2 py-1 min-h-[34px] rounded-lg border transition-colors shrink-0 ${
+                  showAll
+                    ? 'border-accent/40 bg-accent/15 text-accent'
+                    : 'border-surface-hi text-text-mute hover:text-text'
+                }`}
+              >
+                {showAll ? 'Learnable only' : 'All moves'}
+              </button>
+            </>
+          ) : undefined
+        }
+      />
 
       {filtersOpen && (
         <div id="move-filters-panel" data-testid="move-filters-panel" className="mb-2 px-1 pb-2 border-t border-surface-hi pt-2 space-y-2.5">
@@ -485,23 +487,6 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent, excl
         </div>
       )}
 
-      {/* Show-all override - only meaningful when a species is set. Without
-          a species there's no learnset filter to bypass. */}
-      {species && (
-        <div className="flex items-center justify-between mt-1.5 mb-3 px-1">
-          <span className="text-xxs opacity-55">
-            {isLoadingLearnset && 'Loading learnset…'}
-            {!isLoadingLearnset && learnset.kind === 'error' && 'Learnset unavailable'}
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowAll((v) => !v)}
-            className="text-xxs uppercase tracking-wider opacity-70 hover:opacity-100 underline underline-offset-2"
-          >
-            {showAll ? 'Show learnable only' : 'Show all moves'}
-          </button>
-        </div>
-      )}
     </>
   );
 
@@ -514,18 +499,15 @@ export function MovePicker({ open, onClose, onPick, species, isForOpponent, excl
       filters={filtersSlot}
     >
       {!query && (
-        <button
-          type="button"
-          onClick={() => {
+        <NoneRow
+          label="No move"
+          hint="empties this slot"
+          testId="move-row-pick-none"
+          onSelect={() => {
             onPick('');
             onClose();
           }}
-          data-testid="move-row-pick-none"
-          data-picker-option
-          className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm opacity-70"
-        >
-          (none)
-        </button>
+        />
       )}
       {showCommonHeader && (
         <>

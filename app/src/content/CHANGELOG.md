@@ -1,6 +1,7 @@
 ## 2026-06-19
 
 - **Keyboard navigation in pickers.** Search pickers (species, item, ability, move, nature) now let you arrow up/down through the results and hit Enter to pick - keep typing to filter while the highlight tracks the top match.
+- **Picker search polish.** Search boxes get a clear (x) button, a no-results message when nothing matches, and the Filters control is now an obvious bordered button instead of a tiny text link.
 
 ## 2026-06-18
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { GEN, toID } from '@/calc/gen';
+import { FilterBar } from '@/components/pickers/FilterBar';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { ALL_TYPES, type TypeName } from '@/data/poke-types';
 import { Sprite } from '@/components/Sprite';
@@ -216,37 +217,14 @@ export function SpeciesPicker({ open, onClose, onPick, showRecents = true, exclu
 
   const filtersSlot = (
     <>
-      <div className="flex items-center justify-between mt-1.5 mb-1 px-1 gap-2">
-        <button
-          type="button"
-          onClick={() => setFiltersOpen((v) => !v)}
-          aria-expanded={filtersOpen}
-          aria-controls="species-filters-panel"
-          data-testid="species-filters-toggle"
-          className="text-xxs uppercase tracking-wider opacity-70 hover:opacity-100 underline underline-offset-2"
-        >
-          {filtersOpen ? 'Hide filters' : 'Filters'}
-          {fcount > 0 && (
-            <span
-              data-testid="species-filters-count"
-              className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[16px] px-1 rounded text-[9px] font-bold bg-accent/20 text-accent border border-accent/30"
-            >
-              {fcount}
-            </span>
-          )}
-        </button>
-        {fcount > 0 && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            data-testid="species-filters-clear"
-            aria-label="Clear all species filters"
-            className="text-xxs uppercase tracking-wider opacity-60 hover:opacity-100 underline underline-offset-2"
-          >
-            Clear
-          </button>
-        )}
-      </div>
+      <FilterBar
+        open={filtersOpen}
+        onToggle={() => setFiltersOpen((v) => !v)}
+        count={fcount}
+        onClear={clearFilters}
+        panelId="species-filters-panel"
+        testIdPrefix="species"
+      />
 
       {filtersOpen && (
         <div id="species-filters-panel" data-testid="species-filters-panel" className="mb-2 px-1 pb-2 border-t border-surface-hi pt-2 space-y-2.5">

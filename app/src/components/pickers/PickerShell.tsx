@@ -135,6 +135,9 @@ function SearchBody({ search, filters, children }: { search: SearchProps; filter
   // on open) always reads the latest value without re-binding.
   const activeIndexRef = useRef(0);
   activeIndexRef.current = activeIndex;
+  // Whether the filtered list rendered zero option rows (drives the
+  // "No results" message). Derived from the DOM in the layout effect below.
+  const [isEmpty, setIsEmpty] = useState(false);
 
   function optionEls(): HTMLElement[] {
     if (!bodyRef.current) return [];
@@ -189,6 +192,8 @@ function SearchBody({ search, filters, children }: { search: SearchProps; filter
   // yanked — and the body only re-renders on navigation-style changes anyway.
   useLayoutEffect(() => {
     const opts = optionEls();
+    // React bails out when the value is unchanged, so this won't loop.
+    setIsEmpty(opts.length === 0);
     if (opts.length === 0) return;
     const idx = Math.min(activeIndex, opts.length - 1);
     opts.forEach((el, i) => {
@@ -201,19 +206,36 @@ function SearchBody({ search, filters, children }: { search: SearchProps; filter
 
   return (
     <>
-      <input
-        ref={resolvedInputRef}
-        autoFocus={autoFocus}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        data-testid={testId}
-        // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
-        // Anything <16px triggers it; pinch-zoom stays available either way.
-        // mb-3 lands when there are no filters; when filters are passed
-        // they own their own top spacing via mt-* on the first row.
-        className={`w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-base ${filters ? '' : 'mb-3'}`}
-      />
+      {/* mb-3 lands when there are no filters; when filters are passed they
+          own their own top spacing via mt-* on the first row. */}
+      <div className={`relative ${filters ? '' : 'mb-3'}`}>
+        <input
+          ref={resolvedInputRef}
+          autoFocus={autoFocus}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          data-testid={testId}
+          // text-base (16px) avoids iOS Safari/Brave's auto-zoom on focus.
+          // Anything <16px triggers it; pinch-zoom stays available either way.
+          // pr-9 reserves room for the clear button.
+          className="w-full bg-surface border border-surface-hi rounded-lg pl-3 pr-9 py-2 text-base"
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange('');
+              resolvedInputRef.current?.focus();
+            }}
+            aria-label="Clear search"
+            data-testid="picker-search-clear"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full text-text-mute hover:text-text hover:bg-surface-hi"
+          >
+            ✕
+          </button>
+        )}
+      </div>
       {filters}
       <div
         ref={bodyRef}
@@ -228,6 +250,11 @@ function SearchBody({ search, filters, children }: { search: SearchProps; filter
         className="overflow-y-auto overflow-x-hidden flex-1 -mx-1 px-1 [overscroll-behavior:contain] [touch-action:pan-y]"
       >
         {children}
+        {isEmpty && (
+          <div data-testid="picker-no-results" className="px-3 py-10 text-center text-sm text-text-mute">
+            No results{value ? ` for "${value}"` : ''}
+          </div>
+        )}
       </div>
     </>
   );

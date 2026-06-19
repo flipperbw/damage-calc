@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { MEGA_STONES } from '@smogon/calc';
 
 import { GEN } from '@/calc/gen';
+import { NoneRow } from '@/components/pickers/NoneRow';
 import { PickerShell } from '@/components/pickers/PickerShell';
 import { itemDescription } from '@/data/pkmn';
 
@@ -102,16 +103,15 @@ export function ItemPicker({ open, onClose, onPick, species }: Props) {
       search={{ value: query, onChange: setQuery, placeholder: 'Search items' }}
     >
       {showNoneRow && (
-        <button
-          key="(none)"
-          onClick={() => {
+        <NoneRow
+          label="No item"
+          hint="no held item"
+          testId="item-row-pick-none"
+          onSelect={() => {
             onPick('');
             onClose();
           }}
-          className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-surface text-sm"
-        >
-          (none)
-        </button>
+        />
       )}
       {filteredMega.length > 0 && (
         <>
