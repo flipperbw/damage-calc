@@ -46,65 +46,48 @@ interface Props {
   item?: string;
 }
 
+// Which mega forme the held stone implies. X/Y mons (Charizard, Mewtwo) are
+// disambiguated by the stone - Charizardite X → Mega X, Charizardite Y →
+// Mega Y - NOT by a free toggle: holding the Y stone means Mega Y, full stop.
+// Single-stone mons are always 'mega'.
+function stoneVariant(item: string | undefined, opts: MegaOptions): MegaState {
+  if (opts.hasX || opts.hasY) {
+    if (/(?:\s|-)X$/i.test(item ?? '')) return 'mega-x';
+    if (/(?:\s|-)Y$/i.test(item ?? '')) return 'mega-y';
+    return opts.hasPlain ? 'mega' : opts.hasX ? 'mega-x' : 'mega-y';
+  }
+  return 'mega';
+}
+
 export function MegaToggle({ mega, onChange, species, item }: Props) {
   // Mega is an in-battle event tied to the held mega stone. Without a stone,
   // there's nothing to toggle and we render nothing.
   if (!isMegaStone(item)) return null;
   const opts = megaOptions(species);
-  // X/Y forms (Charizard, Mewtwo): show 3-state segmented [Off | X | Y].
-  // Short labels keep the cluster compact so the species name beside it
-  // doesn't truncate; min-w/min-h + touch-action manipulation make each
-  // segment a comfortable tap target on mobile (was ~24px tall).
-  if (opts.hasX && opts.hasY) {
-    return (
-      <div className="inline-flex rounded-lg border border-surface-hi overflow-hidden text-[11px] font-bold uppercase tracking-wider">
-        <SegBtn active={mega === ''} onClick={() => onChange('')} ariaLabel="Mega off">
-          Off
-        </SegBtn>
-        <SegBtn active={mega === 'mega-x'} onClick={() => onChange('mega-x')} ariaLabel="Mega X">
-          X
-        </SegBtn>
-        <SegBtn active={mega === 'mega-y'} onClick={() => onChange('mega-y')} ariaLabel="Mega Y">
-          Y
-        </SegBtn>
-      </div>
-    );
-  }
-  // Plain mega only: 2-state toggle
-  if (opts.hasPlain) {
-    const isMega = mega === 'mega';
-    return (
-      <button
-        onClick={() => onChange(isMega ? '' : 'mega')}
-        aria-label="Mega Evolve"
-        aria-pressed={isMega}
-        data-testid="mega-toggle"
-        style={{ touchAction: 'manipulation' }}
-        className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${
-          isMega ? 'bg-accent-gradient text-white border-accent' : 'bg-surface border-surface-hi opacity-70'
-        }`}
-      >
-        {/* Short single-word labels: the accent-gradient fill + sparkle on the
-            active state carries the "is it on" signal, so we don't need the
-            "Active" / "Evolve" suffix that was crowding the species name
-            beside it (Floette-Eternal was truncating to "Floette-Et..."). */}
-        {isMega ? '✦ Mega' : 'Mega'}
-      </button>
-    );
-  }
-  return null;
-}
+  if (!opts.hasPlain && !opts.hasX && !opts.hasY) return null;
 
-function SegBtn({ active, onClick, ariaLabel, children }: { active: boolean; onClick: () => void; ariaLabel: string; children: React.ReactNode }) {
+  // The forme is decided by the stone, so this is always a 2-state Off/Mega
+  // toggle - even for X/Y mons. To switch X↔Y you change the stone (item) or
+  // pick the matching profile; the toggle never offers a forme the held stone
+  // can't produce.
+  const variant = stoneVariant(item, opts);
+  const isMega = mega !== '';
+  // When on, label the actual forme; when off, label what turning on yields.
+  const shown = isMega ? mega : variant;
+  const label = shown === 'mega-x' ? 'Mega X' : shown === 'mega-y' ? 'Mega Y' : 'Mega';
+
   return (
     <button
-      onClick={onClick}
-      aria-label={ariaLabel}
-      aria-pressed={active}
+      onClick={() => onChange(isMega ? '' : variant)}
+      aria-label="Mega Evolve"
+      aria-pressed={isMega}
+      data-testid="mega-toggle"
       style={{ touchAction: 'manipulation' }}
-      className={`min-w-9 min-h-9 px-2 ${active ? 'bg-accent-gradient text-white' : 'bg-surface opacity-70'}`}
+      className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${
+        isMega ? 'bg-accent-gradient text-white border-accent' : 'bg-surface border-surface-hi opacity-70'
+      }`}
     >
-      {children}
+      {isMega ? `✦ ${label}` : label}
     </button>
   );
 }

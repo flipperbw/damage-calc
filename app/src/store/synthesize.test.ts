@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { synthesizeBuild } from '@/store/synthesize';
+import { autoSpreadFromMoves, synthesizeBuild } from '@/store/synthesize';
 
 describe('synthesizeBuild', () => {
   it('fast mons (Garchomp) get a max-speed offensive layout', async () => {
@@ -23,5 +23,19 @@ describe('synthesizeBuild', () => {
     const spd = built!.sps.spd ?? 0;
     expect(def + spd).toBe(16);
     expect(def === 16 || spd === 16).toBe(true);
+  });
+});
+
+describe('autoSpreadFromMoves', () => {
+  it('picks the attacking stat from the build moves, not the species', () => {
+    // Charizard leans special by base stats, but a physical-move set should
+    // still get a physical spread (this is the mega X/Y safety net).
+    const phys = autoSpreadFromMoves('Charizard', ['Dragon Claw', 'Flare Blitz', 'Protect', '']);
+    expect(phys.atk ?? 0).toBeGreaterThan(0);
+    expect(phys.spa ?? 0).toBe(0);
+
+    const spec = autoSpreadFromMoves('Charizard', ['Heat Wave', 'Air Slash', 'Protect', '']);
+    expect(spec.spa ?? 0).toBeGreaterThan(0);
+    expect(spec.atk ?? 0).toBe(0);
   });
 });

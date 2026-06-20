@@ -106,6 +106,35 @@ export function autoSpread(species: string): Partial<Record<StatID, number>> {
       : { [bestAtk]: 32, hp: 18, spd: 16 };
 }
 
+/**
+ * A spread for a build whose EVs are missing (curated mega profiles ship with
+ * none). Forme-agnostic by design: the attacking stat comes from the build's
+ * own moves - count damaging Physical vs Special - not from the mega forme, so
+ * a Charizard's X/Y choice (which is just the held stone) doesn't drive it.
+ * Speed / bulk come from the base species. Ties fall back to base stats.
+ */
+export function autoSpreadFromMoves(species: string, moves: readonly (string | undefined)[]): Partial<Record<StatID, number>> {
+  const sp = GEN.species.get(toID(species) as any);
+  if (!sp) return {};
+  let phys = 0;
+  let spec = 0;
+  for (const name of moves) {
+    if (!name) continue;
+    const m = GEN.moves.get(toID(name) as any) as { category?: string; bp?: number; basePower?: number } | undefined;
+    const bp = ((m?.bp ?? m?.basePower) ?? 0) as number;
+    if (!m || bp <= 0) continue;
+    if (m.category === 'Physical') phys += 1;
+    else if (m.category === 'Special') spec += 1;
+  }
+  const bestAtk: 'atk' | 'spa' = phys === spec ? (sp.baseStats.atk >= sp.baseStats.spa ? 'atk' : 'spa') : phys > spec ? 'atk' : 'spa';
+  const isFast = sp.baseStats.spe >= FAST_THRESHOLD;
+  return isFast
+    ? { [bestAtk]: 32, spe: 32, hp: 2 }
+    : sp.baseStats.def >= sp.baseStats.spd
+      ? { [bestAtk]: 32, hp: 18, def: 16 }
+      : { [bestAtk]: 32, hp: 18, spd: 16 };
+}
+
 export async function synthesizeBuild(species: string): Promise<SavedMon | null> {
   const sp = GEN.species.get(toID(species) as any);
   if (!sp) return null;

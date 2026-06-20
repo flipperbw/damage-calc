@@ -134,8 +134,11 @@ export function BuildDropdown({ species, selectedName, onApply, compact = false 
     }
   }
 
-  // Auto-build is always offered, on top of any curated builds.
-  const totalCount = builds.length + (summary ? 1 : 0);
+  // Auto-build is a fallback now that nearly every meta mon has curated
+  // profiles - only offer it when there are no curated builds at all (off-meta
+  // picks), so it doesn't clutter the list for mons that have real sets.
+  const showAuto = !!summary && builds.length === 0;
+  const totalCount = builds.length + (showAuto ? 1 : 0);
 
   // Trigger label resolution. Mirrors the curated-row template (role on top,
   // descriptive build name beneath) so the trigger and the dropdown rows
@@ -156,7 +159,7 @@ export function BuildDropdown({ species, selectedName, onApply, compact = false 
   // bottom-sheet (compact / BattleScreen) so they never drift.
   const listItems = (
     <>
-      {summary && (
+      {showAuto && (
         <button
           onClick={pickAuto}
           disabled={busy}

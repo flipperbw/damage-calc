@@ -357,3 +357,44 @@ describe('typeEffectiveness', () => {
     expect(typeEffectiveness('', ['Fire'])).toBe(1);
   });
 });
+
+describe('Weather Ball dynamic type', () => {
+  const wbUser: SavedMon = {
+    id: 'wb',
+    species: 'Politoed',
+    ability: 'Drizzle',
+    nature: 'Modest',
+    sps: { spa: 32 },
+    moves: ['Weather Ball', '', '', ''],
+    mega: '',
+    boosts: {},
+  };
+  // Venusaur (Grass/Poison): Normal neutral, Fire 2× (SE), Water 0.5×.
+  const venusaur: SavedMon = {
+    id: 'gd',
+    species: 'Venusaur',
+    ability: 'Overgrow',
+    nature: 'Bold',
+    sps: { hp: 32 },
+    moves: ['', '', '', ''],
+    mega: '',
+    boosts: {},
+  };
+
+  it('is Normal and neutral with no weather', () => {
+    const wb = calculateMatchup(wbUser, venusaur, blankField()).attackerMoves[0];
+    expect(wb.type).toBe('Normal');
+    expect(wb.effectiveness).toBe(1);
+  });
+
+  it('becomes Fire (super effective vs Grass) in Sun', () => {
+    const wb = calculateMatchup(wbUser, venusaur, { ...blankField(), weather: 'Sun' }).attackerMoves[0];
+    expect(wb.type).toBe('Fire');
+    expect(wb.effectiveness).toBe(2);
+  });
+
+  it('becomes Water in Rain and Rock in Sand', () => {
+    expect(calculateMatchup(wbUser, venusaur, { ...blankField(), weather: 'Rain' }).attackerMoves[0].type).toBe('Water');
+    expect(calculateMatchup(wbUser, venusaur, { ...blankField(), weather: 'Sand' }).attackerMoves[0].type).toBe('Rock');
+  });
+});

@@ -36,15 +36,21 @@ describe('monFromBuild', () => {
     expect(m!.moves).toEqual([expected.moves[0] ?? '', expected.moves[1] ?? '', expected.moves[2] ?? '', expected.moves[3] ?? '']);
   });
 
-  it('backfills an auto spread for a curated mega build that ships with no EVs', () => {
-    // Pikalytics mega variants have empty sps; monFromBuild fills a spread from
-    // the mega forme's stats so a mega set isn't a 0-EV mon.
-    const name = getBuildsForSpecies('Charizard').find((n) => getBuild('Charizard', n)!.mega);
-    expect(name).toBeDefined();
-    expect(getBuild('Charizard', name!)!.sps).toEqual({}); // confirm the data gap exists
-    const m = monFromBuild('Charizard', name!)!;
-    expect(m.mega).toBeTruthy();
-    expect(Object.keys(m.sps).length).toBeGreaterThan(0);
+  it('mega builds carry real EVs (grafted from the base species), remapped per forme', () => {
+    // The scraper grafts the base species' aggregate spread onto mega variants
+    // (mega-forme endpoints ship none) and remaps the attacking stat to the
+    // forme: Charizard-Mega-X is physical, Mega-Y is special.
+    const names = getBuildsForSpecies('Charizard');
+    const xName = names.find((n) => getBuild('Charizard', n)!.mega === 'mega-x');
+    const yName = names.find((n) => getBuild('Charizard', n)!.mega === 'mega-y');
+    expect(xName).toBeDefined();
+    expect(yName).toBeDefined();
+    const x = monFromBuild('Charizard', xName!)!;
+    const y = monFromBuild('Charizard', yName!)!;
+    expect(x.sps.atk ?? 0).toBeGreaterThan(0);
+    expect(x.sps.spa ?? 0).toBe(0);
+    expect(y.sps.spa ?? 0).toBeGreaterThan(0);
+    expect(y.sps.atk ?? 0).toBe(0);
   });
 
   it('returns null when the build does not exist', () => {

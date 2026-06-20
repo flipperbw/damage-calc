@@ -53,7 +53,20 @@ const PRESET_TEAMS_COUNT = 20;
 // ally likely to bring), unioned with whatever appears on top-team landingTeams
 // (so preset team mons can get a real modal nature/SPs). Off-meta species
 // (rank > BUILDS_LIMIT) fall back to SM/USUM → synth in the dropdown.
-const BUILDS_LIMIT = 150;
+// Fetch /api/p for the whole leaderboard so every meta mon gets build profiles
+// (not just the top slice). The leaderboard is ~210 species; this caps it
+// generously while staying finite.
+const BUILDS_LIMIT = 1000;
+// Minimum aggregate item usage (%) for a non-stone item to become its own
+// variant when a mon has no team sheets to cluster. Keeps fall-back variants to
+// the items people actually run.
+const ITEM_MIN_USAGE = 10; // percent
+// A base species' item usage reveals which mega formes it runs (Charizardite Y,
+// Raichunite X, …). We fetch those forme endpoints explicitly so mega coverage
+// is deterministic instead of depending on which mons happened to land in the
+// top-team snapshot. Mega stones get this lower bar (each stone is a distinct
+// forme worth surfacing, e.g. Charizardite X at ~4%).
+const MEGA_STONE_MIN_USAGE = 1; // percent
 const FETCH_CONCURRENCY = 6;
 // Retry genuine HTTP failures (network error / non-200) with backoff. A 200
 // with an empty `teams` array is NOT a failure — that species just has no
@@ -154,9 +167,14 @@ async function fetchPerSpeciesBatch(period, speciesNames) {
         const res = await fetchJson(url);
         if (res.ok) {
           // 200 + valid JSON. A populated `teams` array gives us build
-          // variants; an empty one is legitimate (no top-team sheets) — either
-          // way it's a definitive answer, so stop here.
-          if (Array.isArray(res.body?.teams) && res.body.teams.length > 0) {
+          // variants; a populated `spreads` array (even with no teams) is the
+          // EV data we fetch base always-mega species for (Charizard etc. have
+          // no team sheets of their own but carry the aggregate spread the mega
+          // variants borrow). Keep the body if either is present; an empty one
+          // is a legitimate "this mon has nothing" answer. Either way, stop.
+          const hasTeams = Array.isArray(res.body?.teams) && res.body.teams.length > 0;
+          const hasSpreads = Array.isArray(res.body?.spreads) && res.body.spreads.length > 0;
+          if (hasTeams || hasSpreads) {
             body = res.body;
           }
           break;
@@ -403,6 +421,28 @@ function modalSpread(speciesEntry) {
   return { nature: top.nature || 'Hardy', sps: parseSpSpread(top.ev) };
 }
 
+// Move the attacking EV investment onto the stat THIS forme actually uses.
+// Mega-forme /api/p endpoints carry no spread under M-B, so we borrow the base
+// species' aggregate spread — but that single modal can't tell Mega-X
+// (physical) from Mega-Y (special). Compare the forme's own base Atk vs SpA
+// (from its /api/p `stats`) and swap atk↔spa if the borrowed spread invested in
+// the wrong one. Magnitude is preserved; only the side moves.
+function remapAttackStat(sps, formeStats) {
+  const atk = sps.atk ?? 0;
+  const spa = sps.spa ?? 0;
+  if (atk === 0 && spa === 0) return { ...sps };
+  const formePhysical = (formeStats?.atk ?? 0) >= (formeStats?.spa ?? 0);
+  const out = { ...sps };
+  if (formePhysical && spa > atk) {
+    out.atk = spa;
+    delete out.spa;
+  } else if (!formePhysical && atk > spa) {
+    out.spa = atk;
+    delete out.atk;
+  }
+  return out;
+}
+
 // Friendly suffix for mega variants when we merge them under the base species.
 // Empty string for non-mega = no suffix.
 function megaSuffix(mega) {
@@ -412,71 +452,142 @@ function megaSuffix(mega) {
   return '';
 }
 
+// Is this item a mega stone? Stones end in "ite", optionally with an " X"/" Y"
+// forme suffix (Cameruptite, Raichunite Y, Sceptilite, Charizardite X). Stone
+// spellings are irregular (Raichu→Raichunite, Sceptile→Sceptilite), so we
+// detect by suffix rather than reconstructing the name. Eviolite is the one
+// non-stone "ite" item.
+function isMegaStoneItem(item) {
+  return /ite( [XY])?$/.test(item ?? '') && item !== 'Eviolite';
+}
+
+// The mega forme a stone implies for a base species, by the REGULAR
+// "{base}-Mega(-X/-Y)" pattern (which forme endpoints actually use), keyed off
+// the base species + the stone's X/Y suffix — not the stone's own spelling.
+function stoneFormeName(baseName, item) {
+  if (!isMegaStoneItem(item)) return null;
+  if (/ X$/.test(item)) return `${baseName}-Mega-X`;
+  if (/ Y$/.test(item)) return `${baseName}-Mega-Y`;
+  return `${baseName}-Mega`;
+}
+
+function formeToMegaState(forme) {
+  if (/-Mega-X$/.test(forme)) return 'mega-x';
+  if (/-Mega-Y$/.test(forme)) return 'mega-y';
+  return 'mega';
+}
+
+// Top 4 moves from a blob's aggregate move usage. The fall-back when a mon has
+// no team sheets of its own to cluster.
+function aggMoves(entry) {
+  const sorted = (entry?.moves ?? []).slice().sort((a, b) => parseFloat(b.percent) - parseFloat(a.percent));
+  const out = sorted.map((m) => cleanMove(m.move ?? m.name)).filter(Boolean).slice(0, 4);
+  while (out.length < 4) out.push('');
+  return out;
+}
+
+function aggAbility(entry) {
+  const sorted = (entry?.abilities ?? []).slice().sort((a, b) => parseFloat(b.percent) - parseFloat(a.percent));
+  return sorted[0]?.ability ?? '';
+}
+
+// Top 4 moves by frequency within a clustered item bucket of team sheets.
+function topMovesFromBucket(bucket) {
+  const counts = new Map();
+  for (const s of bucket) {
+    for (const m of s.moves) {
+      if (!m) continue;
+      counts.set(m, (counts.get(m) ?? 0) + 1);
+    }
+  }
+  const out = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([m]) => m);
+  while (out.length < 4) out.push('');
+  return out;
+}
+
+// Hybrid moves + ability for one (entry, item): prefer the entry's own team
+// sheets running that item (set-accurate, item↔move correlated); fall back to
+// the entry's aggregate usage when it has no sheets.
+function movesAbilityFor(entry, entryName, item) {
+  const sheets = extractSheets(entry, entryName);
+  const bucket = sheets.filter((s) => s.item === item);
+  if (bucket.length > 0) {
+    return { moves: topMovesFromBucket(bucket), ability: pickModal(bucket, (s) => s.ability) ?? aggAbility(entry) };
+  }
+  return { moves: aggMoves(entry), ability: aggAbility(entry) };
+}
+
 function transformBuilds(perSpecies) {
-  // bySpecies: base species name → ordered list of variants. We group "Charizard",
-  // "Charizard-Mega-X", and "Charizard-Mega-Y" under "Charizard" so the dropdown
-  // surfaces every meta build the user might pick for that mon, regardless of
-  // current mega state. Each variant carries its own mega flag so applying it
-  // also flips the mon's mega state correctly.
+  // One build line per base species. We iterate base species only; mega-forme
+  // entries (Charizard-Mega-Y, …) are pulled in as a per-forme moves/stats
+  // source for their base species's mega-stone items, not as their own line.
+  //
+  // A mon's variants come from its OWN usage:
+  //   - team-sheet item buckets when it appears on top teams (set-accurate,
+  //     item↔move correlated), else
+  //   - aggregate item usage (so every mon with data gets profiles).
+  // Mega-stone items attach the matching mega forme: moves from the forme's own
+  // endpoint (hybrid), EV spread grafted from the base species (mega endpoints
+  // ship none) and remapped to the forme's attack stat.
   const bySpecies = new Map();
   for (const [canonicalName, sp] of perSpecies) {
+    if (/-Mega(?:-[XY])?$/.test(canonicalName)) continue; // moves/stats source only
+
+    const baseSpread = modalSpread(sp);
     const sheets = extractSheets(sp, canonicalName);
-    if (sheets.length === 0) continue;
-    const norm = normalizeForm(canonicalName);
-    const buckets = clusterByItem(sheets);
-    const passing = buckets.filter((b) => b.share >= VARIANT_USAGE_THRESHOLD);
-    // Always emit at least the top bucket (even if below threshold) so popular
-    // species don't disappear from the picker just because their sheets are
-    // very fragmented across items.
-    const picked = (passing.length >= MIN_VARIANTS_PER_SPECIES ? passing : buckets.slice(0, MIN_VARIANTS_PER_SPECIES))
-      .slice(0, MAX_VARIANTS_PER_SPECIES);
 
-    const speciesSpread = modalSpread(sp);
-    const variants = picked.map(({ item, sheets: bucket, share }) => {
-      const modalAbility = pickModal(bucket, (s) => s.ability) ?? (sp.abilities?.[0]?.ability ?? '');
-      // Top 4 moves by frequency within the bucket. Tied moves keep first-seen
-      // order, which mirrors the cluster's original tournament-sheet ordering.
-      const moveCounts = new Map();
-      for (const s of bucket) {
-        for (const m of s.moves) {
-          if (!m) continue;
-          moveCounts.set(m, (moveCounts.get(m) ?? 0) + 1);
-        }
-      }
-      const topMoves = [...moveCounts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 4)
-        .map(([m]) => m);
-      while (topMoves.length < 4) topMoves.push('');
-
-      const role = inferRole({
-        item,
-        modalSps: speciesSpread.sps,
-        modalMoves: topMoves,
+    // Which items become variants for this mon.
+    let itemCandidates;
+    if (sheets.length > 0) {
+      const buckets = clusterByItem(sheets);
+      const passing = buckets.filter((b) => b.share >= VARIANT_USAGE_THRESHOLD);
+      const picked = (passing.length >= MIN_VARIANTS_PER_SPECIES ? passing : buckets.slice(0, MIN_VARIANTS_PER_SPECIES))
+        .slice(0, MAX_VARIANTS_PER_SPECIES);
+      itemCandidates = picked.map((b) => ({ item: b.item, share: b.share }));
+    } else {
+      let agg = (sp.items ?? []).filter((it) => {
+        const u = parseFloat(it.percent);
+        if (!Number.isFinite(u)) return false;
+        return u >= (isMegaStoneItem(it.item) ? MEGA_STONE_MIN_USAGE : ITEM_MIN_USAGE);
       });
-      // For mega variants, the item is the mega stone (Charizardite Y etc.)
-      // which would just restate the suffix — skip the item prefix and let
-      // " · Mega Y" carry the identity. Base-forme variants keep the item
-      // prefix because it's the only signal of the build's playstyle.
-      const name = norm.mega
-        ? `${role}${megaSuffix(norm.mega)}`
-        : `${itemShortName(item)} ${role}`;
+      if (agg.length === 0 && (sp.items?.length ?? 0) > 0) agg = [sp.items[0]];
+      itemCandidates = agg.slice(0, MAX_VARIANTS_PER_SPECIES).map((it) => ({ item: it.item, share: (parseFloat(it.percent) || 0) / 100 }));
+    }
+    if (itemCandidates.length === 0) continue;
+
+    const variants = itemCandidates.map(({ item, share }) => {
+      const forme = stoneFormeName(canonicalName, item);
+      // Every mega stone marks a mega. Some megas have their own forme endpoint
+      // (per-forme moves/stats — Charizard / Raichu X/Y); most M-B custom megas
+      // keep all their data on the base page (empty forme endpoint), so we use
+      // the base mon's data and just flip the mega flag.
+      const megaEntry = forme ? perSpecies.get(forme) : null;
+      const mega = forme ? formeToMegaState(forme) : '';
+      const src = megaEntry ?? sp;
+      const srcName = megaEntry ? forme : canonicalName;
+      const { moves, ability } = movesAbilityFor(src, srcName, item);
+      // EV spread: base aggregate, remapped to the forme's attack stat for megas
+      // (the forme's stats when we have its endpoint, else the base mon's).
+      const sps = mega ? remapAttackStat(baseSpread.sps, megaEntry?.stats ?? sp.stats) : baseSpread.sps;
+      const role = inferRole({ item, modalSps: sps, modalMoves: moves });
+      // Mega variants let " · Mega [X/Y]" carry the identity (the item is just
+      // the stone); base variants prefix the item, the only playstyle signal.
+      const name = mega ? `${role}${megaSuffix(mega)}` : `${itemShortName(item)} ${role}`;
 
       return {
         name,
         item,
-        ability: modalAbility,
-        nature: speciesSpread.nature,
-        sps: speciesSpread.sps,
-        moves: [topMoves[0] ?? '', topMoves[1] ?? '', topMoves[2] ?? '', topMoves[3] ?? ''],
-        mega: norm.mega,
+        ability: ability || (sp.abilities?.[0]?.ability ?? ''),
+        nature: baseSpread.nature,
+        sps,
+        moves: [moves[0] ?? '', moves[1] ?? '', moves[2] ?? '', moves[3] ?? ''],
+        mega,
         usageInBucket: Math.round(share * 1000) / 10,
       };
     });
 
-    // Dedupe variants by name (in case two item buckets map to the same role
-    // label, e.g. Soft Sand + Charcoal both "Physical Attacker"). Keep the
-    // higher-usage one.
+    // Dedupe variants by name (two items can map to the same role label). Keep
+    // the higher-usage one.
     const byName = new Map();
     for (const v of variants) {
       if (!byName.has(v.name) || byName.get(v.name).usageInBucket < v.usageInBucket) {
@@ -484,21 +595,18 @@ function transformBuilds(perSpecies) {
       }
     }
 
-    const base = norm.species;
+    const base = canonicalSpecies(canonicalName);
     if (!bySpecies.has(base)) bySpecies.set(base, []);
     bySpecies.get(base).push(...byName.values());
   }
-  // Final pass: sort variants within each species so non-mega variants land
-  // before mega ones (and higher usage first within each group) — that's the
-  // natural reading order in the dropdown.
+  // Final pass: sort variants by usage, most-used first. The first variant is
+  // both the dropdown's top row AND the auto-selected default when an opponent
+  // is picked, so it must be the mon's most common set — including its mega if
+  // that's how it's usually run (e.g. Raichu/Charizard are mostly mega, so the
+  // mega set leads, not a rare base set).
   const out = [];
   for (const [species, variants] of bySpecies) {
-    variants.sort((a, b) => {
-      const ag = a.mega ? 1 : 0;
-      const bg = b.mega ? 1 : 0;
-      if (ag !== bg) return ag - bg;
-      return b.usageInBucket - a.usageInBucket;
-    });
+    variants.sort((a, b) => b.usageInBucket - a.usageInBucket);
     out.push({ species, variants });
   }
   return out;
@@ -806,9 +914,36 @@ async function main() {
         if (m.name) targetSet.add(m.name);
       }
     }
+    // Always-mega mons (Charizard, Gardevoir, …) appear in the M-B leaderboard
+    // only as their mega forme(s), whose /api/p carries no EV spread. Fetch the
+    // base species too — its /api/p has the real aggregate spread we graft onto
+    // the mega variants in transformBuilds.
+    for (const name of [...targetSet]) {
+      const base = name.replace(/-Mega(?:-[XY])?$/, '');
+      if (base !== name) targetSet.add(base);
+    }
     const targetNames = [...targetSet];
-    console.log(`fetching /api/p for ${targetNames.length} species (concurrency ${FETCH_CONCURRENCY})`);
+    console.log(`fetching /api/p for ${targetNames.length} species (pass 1, concurrency ${FETCH_CONCURRENCY})`);
     const perSpeciesMap = await fetchPerSpeciesBatch(period, targetNames);
+
+    // Pass 2: discover mega formes from each base species' item usage and fetch
+    // their endpoints (per-forme moves + stats). Deterministic — coverage no
+    // longer depends on which mons happened to land in the top-team snapshot.
+    const megaToFetch = new Set();
+    for (const [name, blob] of perSpeciesMap) {
+      if (/-Mega(?:-[XY])?$/.test(name)) continue;
+      for (const it of blob.items ?? []) {
+        const u = parseFloat(it.percent);
+        if (!Number.isFinite(u) || u < MEGA_STONE_MIN_USAGE) continue;
+        const forme = stoneFormeName(name, it.item);
+        if (forme && !perSpeciesMap.has(forme)) megaToFetch.add(forme);
+      }
+    }
+    if (megaToFetch.size > 0) {
+      console.log(`fetching /api/p for ${megaToFetch.size} discovered mega formes (pass 2)`);
+      const megaMap = await fetchPerSpeciesBatch(period, [...megaToFetch]);
+      for (const [k, v] of megaMap) perSpeciesMap.set(k, v);
+    }
     const perSpecies = Object.fromEntries(perSpeciesMap);
 
     raw = {

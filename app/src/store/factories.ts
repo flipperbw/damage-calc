@@ -1,6 +1,5 @@
-import { megaFormeName } from '@/calc/helpers';
 import { getBuild, getBuildsForSpecies } from '@/data/setdex-champions';
-import { autoSpread } from '@/store/synthesize';
+import { autoSpreadFromMoves } from '@/store/synthesize';
 import type { FieldState, SavedMon } from '@/types';
 import { uuid } from '@/util/uuid';
 
@@ -30,10 +29,11 @@ export function monFromBuild(species: string, buildName: string): SavedMon | nul
   if (!b) return null;
   // Curated mega builds ship with empty EVs (Pikalytics doesn't report a
   // spread for mega formes), which would render the mon at base stats. Fall
-  // back to the auto-build spread for the *mega forme's* base stats so a
-  // mega set isn't a 0-EV mon. Non-mega builds always carry real EVs.
+  // back to a spread inferred from the build's own moves so a mega set isn't a
+  // 0-EV mon - forme-agnostic, so the X/Y stone doesn't change the EVs.
+  // Non-mega builds always carry real EVs and are copied verbatim.
   const hasSps = Object.keys(b.sps).length > 0;
-  const sps = hasSps ? { ...b.sps } : autoSpread(b.mega ? megaFormeName(species, b.mega, b.item) : species);
+  const sps = hasSps ? { ...b.sps } : autoSpreadFromMoves(species, b.moves);
   return {
     id: uuid(),
     species,

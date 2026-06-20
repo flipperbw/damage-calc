@@ -4,7 +4,12 @@
 - **Reset battle state.** A reset button by the HP bar clears HP, boosts, and status back to fresh in one tap; it stays put (enabled only when there's something to reset) so the bar doesn't jump.
 - **Opponent profile switcher.** A set picker on the opponent card lets you one-tap swap between curated meta builds (or the Auto build) for that species, keeping your current HP / status / boosts. Shares a row with the Deadliest / Tankiest buttons and opens as a bottom sheet.
 - **Collapsible mon cards (mobile).** A chevron in the card corner tucks a mon down to just its sprite + name + types and hides its move rows, so you can focus the small screen on the other side.
-- **Mega sets no longer calc at base stats.** Curated mega builds ship without an EV spread in the meta data; they now backfill a sensible spread so a mega mon isn't treated as 0 EVs.
+- **Meta profiles for every mon, not just the top teams.** The opponent set picker now has profiles for all ~207 meta Pokémon (was ~70).
+- **Opponent defaults to the most-used set.** Picking an opponent now auto-selects its single most common build (e.g. mostly-mega mons like Raichu default to their mega set, not a rare base set), and the set picker lists builds most-used first.
+- **Mega sets get their real EVs.** Pikalytics omits EV spreads on mega-forme pages, so mega sets were calcing at base stats. The scraper now grafts the base species' actual spread onto each mega set (remapping the attack stat per forme, so Charizard-Mega-X stays physical and Mega-Y special).
+- **Mega X/Y follows the held stone.** The mega toggle is a single Off/Mega control now; which forme you get (X vs Y) comes from the stone / chosen set rather than a separate X/Y switch that could contradict the item.
+- **Weather Ball shows its real type.** Weather Ball (and Terrain Pulse) now display the correct type and effectiveness in weather/terrain - Fire and super-effective in Sun, etc. - instead of always reading Normal. The damage was already correct.
+- **Auto build is a fallback.** The synthesized "Auto" set only appears for off-meta mons with no curated profiles now, instead of always topping the list.
 
 ## 2026-06-19
 
@@ -53,10 +58,3 @@
 - **In-app feedback.** Settings → Send feedback. Posts straight to me via Web3Forms — no GitHub account needed.
 - **Trick Room-aware suggestions.** Builder detects a TR team (any drafted mon with Trick Room or active field state) and re-ranks counter suggestions with a slow-mon bias so slow nukers float to the top.
 - **Counter-scoring fix.** Stopped claiming "Immune to all damaging moves" when the focused threat had no damaging moves modelled. A yellow warning chip now flags incomplete threats.
-
-### Polish
-
-- Opponent picker on the main BattleScreen now auto-synthesizes a build when you pick a species with no curated set (Primarina no longer lands with empty moves).
-- Mega sprite path fixed for irregular formes — Mega Floette and Mega Magearna-Original render correctly via the MEGA_STONES lookup.
-- Settings tab is now an icon-only gear on both mobile and desktop.
-- Showdown import textarea bumped to 16px so iOS doesn't auto-zoom on focus.

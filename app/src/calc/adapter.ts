@@ -227,6 +227,39 @@ export function typeEffectiveness(moveType: string, defenderTypes: readonly stri
   return mult;
 }
 
+const WEATHER_BALL_TYPE: Record<string, string> = {
+  Sun: 'Fire',
+  'Harsh Sunshine': 'Fire',
+  Rain: 'Water',
+  'Heavy Rain': 'Water',
+  Sand: 'Rock',
+  Snow: 'Ice',
+  Hail: 'Ice',
+};
+
+const TERRAIN_PULSE_TYPE: Record<string, string> = {
+  Electric: 'Electric',
+  Grassy: 'Grass',
+  Psychic: 'Psychic',
+  Misty: 'Fairy',
+};
+
+/**
+ * Resolve a move's *displayed* type for moves whose type shifts with field
+ * state. Calc applies the shift internally for damage but leaves `move.type` at
+ * its static value, so the type badge and effectiveness would otherwise read
+ * wrong (e.g. Weather Ball shown as Normal/neutral in Sun instead of Fire/SE).
+ *   - Weather Ball → Fire / Water / Rock / Ice by weather (Normal otherwise).
+ *   - Terrain Pulse → Electric / Grass / Psychic / Fairy in the matching
+ *     terrain (assumes a grounded user, which the damage calc already enforces).
+ */
+function dynamicMoveType(move: Move, field: Field): string {
+  const f = field as unknown as { weather?: string; terrain?: string };
+  if (move.name === 'Weather Ball') return (f.weather && WEATHER_BALL_TYPE[f.weather]) || (move.type as string);
+  if (move.name === 'Terrain Pulse') return (f.terrain && TERRAIN_PULSE_TYPE[f.terrain]) || (move.type as string);
+  return move.type as string;
+}
+
 function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon, field: Field): MoveResult {
   if (!moveName) {
     return emptyMoveResult();
@@ -277,7 +310,7 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
   let singleTargetRange: MoveResult['singleTargetRange'];
   if (isSpread && !noDamage) {
     try {
-      const singleMove = new Move(GEN, moveName, { overrides: { target: 'normal' as 'normal' } });
+      const singleMove = new Move(GEN, moveName, { overrides: { target: 'normal' as const } });
       const singleResult = calculate(GEN, attacker, defender, singleMove, field);
       const sRange = singleResult.range();
       const sPercent: [number, number] = [
@@ -306,7 +339,8 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
   //     0, range is positive, so display neutral (1x).
   //   - Levitate / Flash Fire / Volt Absorb / Sap Sipper / etc. — chart
   //     may say 1x+ but calc returns 0 damage; display Immune.
-  const chartEff = typeEffectiveness(move.type as string, defender.species.types as readonly string[]);
+  const dispType = dynamicMoveType(move, field);
+  const chartEff = typeEffectiveness(dispType, defender.species.types as readonly string[]);
   let effectiveness: number;
   if (move.category === 'Status') {
     effectiveness = 1;
@@ -326,7 +360,7 @@ function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon,
   const priority = calcPriority === 0 && override !== null ? override : calcPriority;
   return {
     moveName: move.name,
-    type: move.type,
+    type: dispType,
     category: move.category,
     priority,
     damageRange: noDamage ? [0, 0] : [range[0], range[1]],
