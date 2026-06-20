@@ -63,9 +63,10 @@ test('Coverage section: all-Water team surfaces Grass/Dragon/Electric signals', 
   await activateTeam(page, 'New team');
   await nav(page, 'Builder');
 
-  // Offensive gaps: a pure-Water trio with no curated moves can't 2× Grass
-  // or Dragon. Both are missing from the team's collective STAB+move types.
-  await expect(page.getByTestId('offensive-gap-Grass')).toBeVisible();
+  // Offensive gaps: this Water trio can't hit Electric or Dragon for 2× - both
+  // are missing from the team's collective STAB + move attacking types. (Gaps
+  // are computed over all 18 types, not the threat list.)
+  await expect(page.getByTestId('offensive-gap-Electric')).toBeVisible();
   await expect(page.getByTestId('offensive-gap-Dragon')).toBeVisible();
 
   // Defensive overlap: 3 Water-type mons are all 2× weak to Electric.
@@ -124,7 +125,7 @@ test('Suggestions section: empty state for an empty team', async ({ page }) => {
   await expect(page.getByTestId('suggestions-empty')).toContainText(/Build a team first/i);
 });
 
-test('Threat list picker shows all four seeded lists by name', async ({ page }) => {
+test('Threat list picker shows all seeded lists by name', async ({ page }) => {
   await freshStartWithSeeds(page);
   // BuilderScreen needs at least one team to mount its sections.
   await nav(page, 'Teams');
@@ -134,9 +135,10 @@ test('Threat list picker shows all four seeded lists by name', async ({ page }) 
   const picker = page.getByTestId('threat-list-picker');
   await expect(picker).toBeVisible();
 
-  // Each seed list ships with a unique name (matched verbatim against the
-  // migration test in store/migrations.test.ts).
-  for (const name of ['Top Threats - Singles', 'Top Threats - Doubles / VGC', 'Most-Used']) {
+  // The build ships two seed lists (the obsolete "Most-Used" seed was dropped
+  // - see store/migrations.ts). Names are matched verbatim against the
+  // migration test in store/migrations.test.ts.
+  for (const name of ['Top Threats - Singles', 'Top Threats - Doubles / VGC']) {
     await expect(picker.getByText(name, { exact: true })).toBeVisible();
   }
 });
@@ -153,7 +155,7 @@ test('Fresh install (no migration path) seeds threat lists too', async ({ page }
 
   const picker = page.getByTestId('threat-list-picker');
   await expect(picker.getByText('Top Threats - Singles', { exact: true })).toBeVisible();
-  await expect(picker.getByText('Most-Used', { exact: true })).toBeVisible();
+  await expect(picker.getByText('Top Threats - Doubles / VGC', { exact: true })).toBeVisible();
 });
 
 test('Matchup matrix renders cells with percentages and never shows NaN', async ({ page }) => {
@@ -168,10 +170,10 @@ test('Matchup matrix renders cells with percentages and never shows NaN', async 
   const matrix = page.getByTestId('matchup-matrix');
   await expect(matrix).toBeVisible();
 
-  // The default selected list is the first seeded list (Top Threats - Singles)
-  // per BuilderScreen's lazy initializer. Switch to "Most-Used" so the test
-  // pins to a known threat list that maps to a fixed cell count (3 mons).
-  await page.getByText('Most-Used', { exact: true }).click();
+  // Switch to "Top Threats - Singles" so the test pins to a known threat list
+  // with a fixed roster (7 mons, including Garchomp). The "Most-Used" seed was
+  // removed; the doubles list leads by default.
+  await page.getByText('Top Threats - Singles', { exact: true }).click();
 
   // Below md (mobile) the matrix renders as a vertical per-mon list; above
   // it as a table. Use whichever is visible.
@@ -199,9 +201,10 @@ test('Threat list edit: changing a mon item persists across reload', async ({ pa
   await createTeam(page);
   await nav(page, 'Builder');
 
-  // Activate "Most-Used" so its mons are visible in the inline roster, then
-  // tap Garchomp (the third entry) to open MonEditor.
-  await page.getByText('Most-Used', { exact: true }).click();
+  // Activate "Top Threats - Singles" so its mons are visible in the inline
+  // roster, then tap Garchomp (its first entry) to open MonEditor. (The
+  // "Most-Used" seed was removed; Singles is a small list that holds Garchomp.)
+  await page.getByText('Top Threats - Singles', { exact: true }).click();
   await page
     .getByTestId('threat-mon-Garchomp')
     .getByRole('button', { name: /Edit Garchomp/ })
@@ -209,18 +212,19 @@ test('Threat list edit: changing a mon item persists across reload', async ({ pa
 
   // Change item via the field-item picker. Leftovers is in the Champions
   // item list (used by editor.spec.ts elsewhere) and isn't a mega stone, so
-  // it survives the species-filtering branch in ItemPicker.
+  // it survives the species-filtering branch in ItemPicker. Picker rows carry
+  // a description subline, so match the leading item name rather than exact.
   await page.getByTestId('field-item').click();
   await page.getByPlaceholder('Search items').fill('Leftovers');
-  await page.getByRole('button', { name: /^Leftovers$/ }).click();
+  await page.getByRole('button', { name: /^Leftovers\b/ }).first().click();
 
   await expect(page.getByTestId('field-item')).toContainText('Leftovers');
   await page.getByRole('button', { name: 'Save' }).click();
 
   // Reload and confirm persistence.
   await page.reload();
-  // Re-open the same list (default is Top Threats - Singles after reload).
-  await page.getByText('Most-Used', { exact: true }).click();
+  // Re-open the same list.
+  await page.getByText('Top Threats - Singles', { exact: true }).click();
   await page
     .getByTestId('threat-mon-Garchomp')
     .getByRole('button', { name: /Edit Garchomp/ })
@@ -277,10 +281,10 @@ test('Delete is hidden on seed lists and works on user lists', async ({ page }) 
   await createTeam(page);
   await nav(page, 'Builder');
 
-  // Open the menu on the seeded "Most-Used" list. The Delete button should
-  // NOT render at all (the component hides it for isSeed). The seed-list hint
-  // text confirms we're on a seed.
-  const seedCard = page.locator('[data-testid^="threat-list-card"]').filter({ hasText: 'Most-Used' });
+  // Open the menu on a seeded list ("Top Threats - Singles"). The Delete
+  // button should NOT render at all (the component hides it for isSeed). The
+  // seed-list hint text confirms we're on a seed.
+  const seedCard = page.locator('[data-testid^="threat-list-card"]').filter({ hasText: 'Top Threats - Singles' });
   await seedCard.getByRole('button', { name: 'Threat list menu' }).click();
   await expect(page.getByText(/Seed lists ship with the app/)).toBeVisible();
   await expect(page.getByTestId('threat-list-delete')).toHaveCount(0);
@@ -315,7 +319,8 @@ test('Builder tab on mobile has ≥44×44 hit target and reaches the screen', as
   await nav(page, 'Teams');
   await createTeam(page);
 
-  const btn = page.locator('nav.mobile-nav').getByRole('button', { name: 'Builder' });
+  // Mobile nav items are hash-router anchors (role=link), not buttons.
+  const btn = page.locator('nav.mobile-nav').getByRole('link', { name: 'Builder' });
   await expect(btn).toBeVisible();
   const box = await btn.boundingBox();
   expect(box).not.toBeNull();

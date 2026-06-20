@@ -21,7 +21,9 @@ test('Create Team works when crypto.randomUUID is unavailable', async ({ page })
   await freshStart(page);
   await nav(page, 'Teams');
 
-  await page.getByTestId('create-team').click();
+  // A fresh Teams screen shows the empty-state CTA (create-team-empty); the
+  // header "create-team" button only appears once a team exists.
+  await page.getByTestId('create-team-empty').click();
   await expect(page.getByText('New team').first()).toBeVisible();
 });
 

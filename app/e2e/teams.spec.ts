@@ -15,7 +15,7 @@ test('create a new team and see it in the list', async ({ page }) => {
 test('rename a team via the ⋯ menu', async ({ page }) => {
   await createTeam(page);
 
-  await page.getByRole('button', { name: 'Team menu' }).click();
+  await page.getByRole('button', { name: 'Team actions' }).click();
   await page.getByRole('button', { name: 'Rename' }).click();
 
   // The in-app PromptDialog (replaces window.prompt for iOS Brave compat).
@@ -33,7 +33,7 @@ test('duplicate a team', async ({ page }) => {
   // Add Garchomp so we can verify mons copy too.
   await addMonToFirstSlot(page, 'Garchomp', /Swords Dance/);
 
-  await page.getByRole('button', { name: 'Team menu' }).first().click();
+  await page.getByRole('button', { name: 'Team actions' }).first().click();
   await page.getByRole('button', { name: 'Duplicate' }).click();
 
   // Both teams are visible; the copy is named "New team (copy)".
@@ -43,7 +43,7 @@ test('duplicate a team', async ({ page }) => {
 
 test('delete a team after confirm', async ({ page }) => {
   await createTeam(page);
-  await page.getByRole('button', { name: 'Team menu' }).click();
+  await page.getByRole('button', { name: 'Team actions' }).click();
   await page.getByRole('button', { name: 'Delete' }).click();
 
   // ConfirmDialog now drives the destructive flow (replaces window.confirm).

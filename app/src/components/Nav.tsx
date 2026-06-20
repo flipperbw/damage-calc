@@ -65,7 +65,7 @@ export function Nav() {
               onClick={(e) => handleTabClick(e, setTab, it.id)}
               aria-label={it.label + (it.id === 'settings' && hasUnseenChangelog ? ' (unread changelog)' : '')}
               style={{ touchAction: 'manipulation' }}
-              className={`relative min-h-[40px] flex items-center justify-center rounded-lg text-[13px] font-semibold select-none transition-colors no-underline ${
+              className={`relative min-h-[44px] flex items-center justify-center rounded-lg text-[13px] font-semibold select-none transition-colors no-underline ${
                 tab === it.id
                   ? 'bg-accent-gradient text-white shadow-[0_2px_10px_rgba(124,92,255,0.35)]'
                   : 'bg-surface border border-surface-hi text-text-mute hover:text-text'

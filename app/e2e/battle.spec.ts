@@ -49,11 +49,13 @@ test('swap opponent species by tapping the opponent card surface', async ({ page
   // Tap the opponent card to swap.
   await swapOpponent(page, 'Skarmory');
 
-  // Opponent name flips; default build also auto-applies (Skarmory's only
-  // curated build uses Leftovers + Sturdy).
+  // Opponent name flips; the default curated set also auto-applies. Skarmory's
+  // default opponent build is the "Setup Sweeper" set, which holds Skarmorite
+  // (mega) + Keen Eye. We assert on that real auto-applied build to prove the
+  // swap carried a full set, not just the species name.
   await expect(page.getByTestId('edit-name-opp')).toContainText('Skarmory');
-  await expect(page.locator('[data-testid="swap-opp"]')).toContainText('Leftovers');
-  await expect(page.locator('[data-testid="swap-opp"]')).toContainText('Sturdy');
+  await expect(page.locator('[data-testid="swap-opp"]')).toContainText('Skarmorite');
+  await expect(page.locator('[data-testid="swap-opp"]')).toContainText('Keen Eye');
 });
 
 test('tap opponent name/sprite to open editor - distinct from swap', async ({ page }) => {

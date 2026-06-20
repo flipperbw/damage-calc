@@ -14,8 +14,10 @@ test('recent species appears as a Recent row in the species picker', async ({ pa
   await pickOpponent(page, 'Skarmory');
   await swapOpponent(page, 'Clefable');
 
-  // Re-open the picker by tapping the opponent card.
-  await page.getByTestId('swap-opp').click();
+  // Re-open the picker via the dedicated swap button. (Tapping the card's
+  // dead-center surface hits the stat grid, which stops propagation, so it
+  // doesn't open the picker on touch viewports.)
+  await page.getByTestId('swap-btn-opp').click();
 
   // SpeciesPicker keeps its query state across opens (it's always mounted),
   // so the search box may still hold "Clefable" from the swap. Recent header

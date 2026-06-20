@@ -8,6 +8,7 @@
 - **Opponent defaults to the most-used set.** Picking an opponent now auto-selects its single most common build (e.g. mostly-mega mons like Raichu default to their mega set, not a rare base set), and the set picker lists builds most-used first.
 - **Mega sets get their real EVs.** Pikalytics omits EV spreads on mega-forme pages, so mega sets were calcing at base stats. The scraper now grafts the base species' actual spread onto each mega set (remapping the attack stat per forme, so Charizard-Mega-X stays physical and Mega-Y special).
 - **Mega X/Y follows the held stone.** The mega toggle is a single Off/Mega control now; which forme you get (X vs Y) comes from the stone / chosen set rather than a separate X/Y switch that could contradict the item.
+- **Bigger mobile nav tap targets.** The bottom-nav tabs are now 44px tall (was 40), meeting the standard minimum touch-target size.
 - **Weather Ball shows its real type.** Weather Ball (and Terrain Pulse) now display the correct type and effectiveness in weather/terrain - Fire and super-effective in Sun, etc. - instead of always reading Normal. The damage was already correct.
 - **Auto build is a fallback.** The synthesized "Auto" set only appears for off-meta mons with no curated profiles now, instead of always topping the list.
 

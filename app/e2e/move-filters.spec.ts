@@ -19,8 +19,19 @@ async function openMovePicker(page: Page) {
     .getByRole('button', { name: /^Garchomp$/ })
     .first()
     .click();
-  // Tap the first move slot - it shows "- empty -" until a move is set.
-  await page.getByText('- empty -').first().click();
+  // Picking a species auto-applies the first curated build, so the move slots
+  // are pre-filled (no "- empty -" row) and the default Garchomp build holds
+  // Earthquake. Open the picker on the *Earthquake* slot: the picker excludes
+  // moves held in OTHER slots, but the slot being edited can re-pick its own
+  // move, so Earthquake stays in the list (these tests assert on Earthquake's
+  // presence/absence under various filters). Clicking the row container
+  // (parent of its info button) routes to setEditing, not the detail sheet.
+  const eqInfo = page.getByRole('button', { name: 'Earthquake details' });
+  if (await eqInfo.count()) {
+    await eqInfo.locator('..').click();
+  } else {
+    await page.getByText('- empty -').first().click();
+  }
   // The picker has its own search input; wait for it before interacting.
   await expect(page.getByPlaceholder('Search moves')).toBeVisible();
 }
@@ -39,11 +50,14 @@ test('type filter narrows the list to the selected type', async ({ page }) => {
   // The filter count badge surfaces.
   await expect(page.getByTestId('move-filters-count')).toContainText('1');
 
-  // Earthquake (Ground) should be visible; Dragon Claw (Dragon) should not
-  // be in the list at all once the Ground-only filter is active.
+  // Earthquake (Ground) should be visible; Outrage (Dragon) - a Garchomp
+  // learnable move that's otherwise in the list - should be filtered out once
+  // the Ground-only filter is active. (We assert on Outrage rather than the
+  // build's own Dragon Claw, which is excluded as another slot's move and so
+  // would be absent regardless of the filter.)
   const shell = page.getByTestId('picker-shell');
   await expect(shell.getByTestId('move-row-pick-Earthquake').first()).toBeVisible();
-  await expect(shell.getByTestId('move-row-pick-Dragon Claw')).toHaveCount(0);
+  await expect(shell.getByTestId('move-row-pick-Outrage')).toHaveCount(0);
 });
 
 test('Priority+ filter limits to moves with priority > 0', async ({ page }) => {
@@ -55,7 +69,7 @@ test('Priority+ filter limits to moves with priority > 0', async ({ page }) => {
 
   // Show all moves so the comparison is over the full move pool, not just
   // Garchomp's learnset (Garchomp's learnable priority moves are limited).
-  await page.getByRole('button', { name: 'Show all moves' }).click();
+  await page.getByTestId('move-show-all').click();
 
   const shell = page.getByTestId('picker-shell');
   // Quick Attack (+1) and Sucker Punch (+1) are positive-priority moves.
@@ -76,7 +90,7 @@ test('BP descending sort puts highest base power first', async ({ page }) => {
   // Show all moves so the gen's heavy hitters are in the list. The Common
   // section is sorted independently and only contains Garchomp's curated
   // moves, so we scope the assertion to the unfiltered "All" list below it.
-  await page.getByRole('button', { name: 'Show all moves' }).click();
+  await page.getByTestId('move-show-all').click();
 
   const shell = page.getByTestId('picker-shell');
   // The "All" / "Learnable" header divides curated Common picks from the

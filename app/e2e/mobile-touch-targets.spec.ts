@@ -31,7 +31,10 @@ test('Create-team button is reachable above iOS safe-area inset and is ≥44px',
   await injectFakeSafeArea(page);
   await nav(page, 'Teams');
 
-  const btn = page.getByTestId('create-team');
+  // A fresh Teams screen shows the empty-state CTA (create-team-empty); the
+  // header "create-team" button only renders once a team exists. The empty
+  // CTA is the real first-run entry point this test is guarding.
+  const btn = page.getByTestId('create-team-empty');
   await expect(btn).toBeVisible();
 
   const box = await btn.boundingBox();
@@ -65,7 +68,8 @@ test('Each mobile-nav tab button is ≥44×44 hit target', async ({ page, isMobi
 
   await freshStart(page);
   for (const label of ['Battle', 'Teams', 'Settings']) {
-    const btn = page.locator('nav.mobile-nav').getByRole('button', { name: label });
+    // Mobile nav items are hash-router anchors (role=link), not buttons.
+    const btn = page.locator('nav.mobile-nav').getByRole('link', { name: label });
     await expect(btn).toBeVisible();
     const box = await btn.boundingBox();
     expect(box, `${label} tab missing bounding box`).not.toBeNull();
