@@ -95,7 +95,9 @@ test('toggle a status on the active mon', async ({ page }) => {
   await page.getByRole('button', { name: '+ Status' }).first().click();
 
   // Pick Burned.
-  await page.getByRole('button', { name: 'Burned', exact: true }).click();
+  // StatusPicker options now carry a description line, so the button's
+  // accessible name is "Burned Halves Attack…"; match on the leading name.
+  await page.getByRole('button', { name: /^Burned/ }).click();
 
   // The chip now reads "Burned".
   await expect(page.getByRole('button', { name: /^Burned/ })).toBeVisible();
@@ -104,21 +106,13 @@ test('toggle a status on the active mon', async ({ page }) => {
 test('adjust a boost on the active mon', async ({ page }) => {
   await setUpBattle(page);
 
-  await page.getByRole('button', { name: '+ Boost' }).first().click();
+  // Boosts now live inline in the stat grid: each cell has a ± stepper. The
+  // your-side card renders first, so the first "Raise Atk boost" button is the
+  // active mon's. One tap should bump the Atk stage to +1.
+  await page.getByRole('button', { name: 'Raise Atk boost' }).first().click();
 
-  // BoostPicker has aria-label="Atk boost" on the slider input. Drive the
-  // value via a native setter so React's onChange fires (fill() on type=range
-  // doesn't trigger React's synthetic event reliably).
-  await page.getByLabel('Atk boost').evaluate((el: HTMLInputElement) => {
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
-    setter.call(el, '1');
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  await page.getByRole('button', { name: 'Apply' }).click();
-
-  // A "+1 atk" chip is now rendered on the active card.
-  await expect(page.getByRole('button', { name: /\+1 atk/ })).toBeVisible();
+  // The Atk cell's badge line now reads "+1".
+  await expect(page.getByTestId('boost-stage-you-atk')).toHaveText('+1');
 });
 
 test('open the field drawer and set weather to Sun', async ({ page }) => {
@@ -145,14 +139,18 @@ test('open the field drawer and set weather to Sun', async ({ page }) => {
 test('damage updates after toggling weather', async ({ page }) => {
   await setUpBattle(page);
 
-  // Capture the first damage row's % text before any change.
-  const firstRow = page.getByText(/%$/).first();
+  // Capture the first damage row's % text before any change. Match a damage
+  // *range* ("68-80%") so we don't accidentally grab the card's HP "100%"
+  // readout, which a burn wouldn't change.
+  const firstRow = page.getByText(/\d+\s*[-–]\s*\d+%/).first();
   await expect(firstRow).toBeVisible();
   const before = (await firstRow.textContent()) ?? '';
 
   // Burn the active mon - physical attacker damage should drop.
   await page.getByRole('button', { name: '+ Status' }).first().click();
-  await page.getByRole('button', { name: 'Burned', exact: true }).click();
+  // StatusPicker options now carry a description line, so the button's
+  // accessible name is "Burned Halves Attack…"; match on the leading name.
+  await page.getByRole('button', { name: /^Burned/ }).click();
 
   // After burn, the same row's text should differ. Wait for it to change.
   await expect(async () => {

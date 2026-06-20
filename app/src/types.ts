@@ -12,7 +12,10 @@ export const STAT_LABEL: Record<StatID, string> = {
 };
 
 export const STAT_ORDER: readonly StatID[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
-export const STAT_ORDER_NO_HP: readonly StatIDExceptHP[] = ['atk', 'def', 'spa', 'spd', 'spe'];
+// Battle-card order: the two offensive stats first (atk, spa), then the
+// defenses (def, spd), then spe. Only the battle card consumes this; the
+// editor uses STAT_ORDER.
+export const STAT_ORDER_NO_HP: readonly StatIDExceptHP[] = ['atk', 'spa', 'def', 'spd', 'spe'];
 export type StatusName = 'Healthy' | 'Poisoned' | 'Badly Poisoned' | 'Burned' | 'Paralyzed' | 'Asleep' | 'Frozen';
 
 export type MegaState = '' | 'mega' | 'mega-x' | 'mega-y';

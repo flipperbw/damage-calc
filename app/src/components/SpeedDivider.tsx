@@ -19,7 +19,7 @@ export function SpeedDivider({ speed, priorityWarning }: Props) {
   const color = speed.attackerOutspeeds ? 'text-ok' : speed.delta === 0 ? 'text-warn' : 'text-danger';
   return (
     <div
-      className="flex items-center gap-2.5 px-3 py-2 rounded-card text-[11px] my-2 flex-wrap"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-card text-[11px] mt-2 mb-3 flex-wrap"
       style={{ background: 'linear-gradient(90deg, transparent, rgba(124,92,255,0.15), transparent)' }}
     >
       <span className={`font-bold ${color}`}>{arrow}</span>

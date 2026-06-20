@@ -1,3 +1,11 @@
+## 2026-06-20
+
+- **Inline boosts on the battle card.** Stat boosts now live right in the stat grid - each stat has +/- steppers and the displayed value updates live as you step a stage, so you no longer open a separate popup mid-battle. The grid is ordered Atk / SpA / Def / SpD / Spe, and status moved up next to ability/item/nature.
+- **Reset battle state.** A reset button by the HP bar clears HP, boosts, and status back to fresh in one tap; it stays put (enabled only when there's something to reset) so the bar doesn't jump.
+- **Opponent profile switcher.** A set picker on the opponent card lets you one-tap swap between curated meta builds (or the Auto build) for that species, keeping your current HP / status / boosts. Shares a row with the Deadliest / Tankiest buttons and opens as a bottom sheet.
+- **Collapsible mon cards (mobile).** A chevron in the card corner tucks a mon down to just its sprite + name + types and hides its move rows, so you can focus the small screen on the other side.
+- **Mega sets no longer calc at base stats.** Curated mega builds ship without an EV spread in the meta data; they now backfill a sensible spread so a mega mon isn't treated as 0 EVs.
+
 ## 2026-06-19
 
 - **Keyboard navigation in pickers.** Search pickers (species, item, ability, move, nature) now let you arrow up/down through the results and hit Enter to pick - keep typing to filter while the highlight tracks the top match.

@@ -87,20 +87,35 @@ export function applySynthIfMissing(
   });
 }
 
+/**
+ * The Champions SP spread the auto-build uses, derived synchronously from a
+ * species' base stats: max the better attacking stat, then either max Spe
+ * (fast mons) or invest in bulk (slow mons). Exported so callers that need a
+ * sane default spread without the async move/ability lookup can reuse it -
+ * notably curated mega builds, whose scraped data ships with empty EVs.
+ */
+export function autoSpread(species: string): Partial<Record<StatID, number>> {
+  const sp = GEN.species.get(toID(species) as any);
+  const summary = summarizeSynth(species);
+  if (!sp || !summary) return {};
+  const { bestAtk, isFast } = summary;
+  return isFast
+    ? { [bestAtk]: 32, spe: 32, hp: 2 }
+    : sp.baseStats.def >= sp.baseStats.spd
+      ? { [bestAtk]: 32, hp: 18, def: 16 }
+      : { [bestAtk]: 32, hp: 18, spd: 16 };
+}
+
 export async function synthesizeBuild(species: string): Promise<SavedMon | null> {
   const sp = GEN.species.get(toID(species) as any);
   if (!sp) return null;
   const summary = summarizeSynth(species);
   if (!summary) return null;
-  const { bestAtk, isFast, nature } = summary;
+  const { bestAtk, nature } = summary;
 
-  // Slow mons can't reasonably outspeed by maxing Spe; spend the budget on
-  // bulk instead (HP + the higher of def/spd).
-  const sps: Partial<Record<StatID, number>> = isFast
-    ? { [bestAtk]: 32, spe: 32, hp: 2 }
-    : sp.baseStats.def >= sp.baseStats.spd
-      ? { [bestAtk]: 32, hp: 18, def: 16 }
-      : { [bestAtk]: 32, hp: 18, spd: 16 };
+  // Fast mons max Spe; slow mons spend the budget on bulk instead. Shared
+  // with curated mega builds via autoSpread.
+  const sps: Partial<Record<StatID, number>> = autoSpread(species);
 
   // Filter candidate moves: any non-status move the species can learn.
   // If learnset lookup fails or returns empty (species not in @pkmn/data),

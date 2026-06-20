@@ -60,8 +60,9 @@ export async function freshStartWithSeeds(page: Page) {
 
 /** Click a top-level nav item by name; works on both layouts. */
 export async function nav(page: Page, label: 'Battle' | 'Teams' | 'Builder' | 'Settings') {
+  // Nav items are hash-router anchors (role=link), not buttons.
   await page
-    .getByRole('button', { name: new RegExp(label) })
+    .getByRole('link', { name: new RegExp(label) })
     .filter({ visible: true })
     .first()
     .click();
@@ -72,7 +73,13 @@ export async function nav(page: Page, label: 'Battle' | 'Teams' | 'Builder' | 'S
  * already on the Teams screen.
  */
 export async function createTeam(page: Page) {
-  await page.getByTestId('create-team').click();
+  // The header "+ New team" button (create-team) only renders once at least
+  // one team exists; a fresh Teams screen shows the empty-state CTA
+  // (create-team-empty) instead. Click whichever is present.
+  const header = page.getByTestId('create-team');
+  const empty = page.getByTestId('create-team-empty');
+  if (await header.isVisible().catch(() => false)) await header.click();
+  else await empty.click();
   await expect(page.getByText('New team').first()).toBeVisible();
 }
 
@@ -131,6 +138,10 @@ export async function pickOpponent(page: Page, species: string) {
  * Assumes an opponent is already set.
  */
 export async function swapOpponent(page: Page, species: string) {
-  await page.getByTestId('swap-opp').click();
+  // Tap the card's top padding strip - reliably the swap surface. The card
+  // center is the stat-grid / boost-stepper region, which stops propagation
+  // (so stepping a boost never swaps the mon), and sprite/name route to the
+  // editor; clicking dead-center would hit one of those instead of swapping.
+  await page.getByTestId('swap-opp').click({ position: { x: 30, y: 8 } });
   await pickSpeciesInOpenPicker(page, species);
 }

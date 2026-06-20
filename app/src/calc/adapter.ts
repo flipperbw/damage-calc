@@ -382,7 +382,13 @@ function effectiveSpeed(pokemon: Pokemon, field: FieldState, side: SideState): n
   return Math.max(0, speed);
 }
 
-function withBoostStage(stat: number, stage: number): number {
+/**
+ * Apply a -6..+6 boost stage to a raw stat, matching the standard main-series
+ * multiplier table (+1 = ×1.5, +2 = ×2, ... -1 = ×2/3, -2 = ×0.5, ...).
+ * Exported so the MonCard's stat grid can show the live boosted value as the
+ * user steps a boost, without re-running the whole matchup just to read it.
+ */
+export function withBoostStage(stat: number, stage: number): number {
   if (stage === 0) return stat;
   const num = stage > 0 ? 2 + stage : 2;
   const den = stage < 0 ? 2 - stage : 2;

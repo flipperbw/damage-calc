@@ -6,6 +6,7 @@ import { GEN, toID } from '@/calc/gen';
 import { megaFormeName } from '@/calc/helpers';
 import { findHardestHitter, findTankiestBuild } from '@/calc/worst-case';
 import { DisguiseBanner } from '@/components/DisguiseBanner';
+import { BuildDropdown } from '@/components/editor/BuildDropdown';
 import { MonEditor } from '@/components/editor/MonEditor';
 import { FieldBar } from '@/components/FieldBar';
 import { MonCard } from '@/components/MonCard';
@@ -63,6 +64,12 @@ export function BattleScreen() {
   // styling and prevents redundant re-clicks. Cleared by Revert or when
   // either button switches modes (one snapshot covers the whole session).
   const [oppMode, setOppMode] = useState<'hardest' | 'tankiest' | null>(null);
+  // Per-side mobile collapse. Collapsing a side hides its card body AND its
+  // move rows so only the identity header shows - useful for focusing on the
+  // other mon on a small screen. Mobile-only (the cards hide via hidden
+  // md:block / md:flex). Ephemeral, not persisted.
+  const [youCollapsed, setYouCollapsed] = useState(false);
+  const [oppCollapsed, setOppCollapsed] = useState(false);
 
   // Resolve the persisted editor target into the live mon to edit. If the
   // target has gone stale (team deleted, opponent cleared), the resolution
@@ -372,6 +379,13 @@ export function BattleScreen() {
             onChangeAbility={
               youOverride ? (ability) => setYouOverride({ ...youOverride, ability }) : undefined
             }
+            collapsed={youCollapsed}
+            onToggleCollapse={() => setYouCollapsed((c) => !c)}
+            onResetBattle={() =>
+              youOverride
+                ? setYouOverride({ ...youOverride, currentHp: undefined, boosts: {}, status: undefined })
+                : upsertMon(team!.id, { ...you!, currentHp: undefined, boosts: {}, status: undefined })
+            }
           />
           {youOverride && team && (
             // Only meaningful when there's a real team mon to restore to.
@@ -387,7 +401,9 @@ export function BattleScreen() {
               <span aria-hidden>· Restore ✕</span>
             </button>
           )}
-          <div>
+          {/* Move rows hide on mobile when this side is collapsed (md+ always
+              shows them so collapse stays mobile-only). */}
+          <div className={youCollapsed ? 'hidden md:block' : ''}>
             <div className="flex items-center justify-between mb-1.5">
               <div className="text-xxs uppercase tracking-wider opacity-55">Your moves → opponent</div>
               {isDoubles && yourHasSpread && (
@@ -427,8 +443,32 @@ export function BattleScreen() {
             onChangeAbility={(ability) => updateOpponent({ ability })}
             onChangeItem={(item) => updateOpponent({ item })}
             onChangeNature={(nature) => updateOpponent({ nature })}
+            collapsed={oppCollapsed}
+            onToggleCollapse={() => setOppCollapsed((c) => !c)}
+            onResetBattle={() => updateOpponent({ currentHp: undefined, boosts: {}, status: undefined })}
           />
-          <div className="flex gap-1.5 -mt-1 mb-2.5">
+          {/* Opponent controls + move rows. Hidden on mobile when collapsed so
+              only the identity header shows. One row holds the profile switcher
+              (icon dropdown), the worst-case buttons, and Revert. md:flex keeps
+              the row laid out on desktop where the wrapper is forced visible. */}
+          <div className={oppCollapsed ? 'hidden md:block' : ''}>
+          {/* Opponent profile switcher: one-tap swap to any curated meta set
+              (or the Auto build) for this species. Reuses the editor's
+              BuildDropdown in compact (icon) mode. Applying a set preserves the
+              user's tweaked battle state (HP / status / boosts / mega survive
+              the merge) and clears any active worst-case mode + its revert
+              snapshot, since the user is now on a deliberately-chosen build. */}
+          <div className="flex gap-1.5 mb-2.5 -mt-1 items-stretch">
+            <BuildDropdown
+              species={opponent.species}
+              selectedName={opponent.buildName}
+              compact
+              onApply={(patch) => {
+                updateOpponent(patch);
+                setOppMode(null);
+                setOppPreWorstCase(null);
+              }}
+            />
             <button
               type="button"
               disabled={oppMode === 'hardest'}
@@ -464,7 +504,7 @@ export function BattleScreen() {
               }`}
             >
               <span aria-hidden>🔥</span>
-              <span>Hardest hitter</span>
+              <span>Deadliest</span>
             </button>
             <button
               type="button"
@@ -497,22 +537,24 @@ export function BattleScreen() {
               <span aria-hidden>🛡</span>
               <span>Tankiest</span>
             </button>
-            {oppPreWorstCase && (
-              <button
-                type="button"
-                onClick={() => {
-                  setOpponent(oppPreWorstCase);
-                  setOppPreWorstCase(null);
-                  setOppMode(null);
-                }}
-                data-testid="opp-revert"
-                className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-surface border border-surface-hi text-[11px] font-semibold opacity-80 hover:opacity-100"
-                aria-label="Revert opponent build"
-              >
-                <span aria-hidden>↺</span>
-                <span>Revert</span>
-              </button>
-            )}
+            {/* Always rendered (disabled with no snapshot) so the button row
+                stays put instead of jumping when a worst-case build is applied. */}
+            <button
+              type="button"
+              disabled={!oppPreWorstCase}
+              onClick={() => {
+                if (!oppPreWorstCase) return;
+                setOpponent(oppPreWorstCase);
+                setOppPreWorstCase(null);
+                setOppMode(null);
+              }}
+              data-testid="opp-revert"
+              className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-surface border border-surface-hi text-[11px] font-semibold opacity-80 hover:opacity-100 disabled:opacity-30 disabled:hover:opacity-30"
+              aria-label="Revert opponent build"
+            >
+              <span aria-hidden>↺</span>
+              <span>Revert</span>
+            </button>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -525,6 +567,7 @@ export function BattleScreen() {
             {matchup.defenderMoves.map((r, i) => (
               <MoveRow key={i} result={r} defenderForSturdy={you} spreadView={theirSpreadView} />
             ))}
+          </div>
           </div>
         </div>
       </div>

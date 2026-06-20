@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { natureMods } from '@/calc/helpers';
+import { PickerShell } from '@/components/pickers/PickerShell';
 import { getBuild, getBuildsForSpecies } from '@/data/setdex-champions';
 import { monFromBuild } from '@/store/factories';
 import { summarizeSynth, synthesizeBuild } from '@/store/synthesize';
@@ -71,12 +72,18 @@ interface Props {
   species: string;
   selectedName?: string;
   onApply: (patch: Partial<SavedMon>, buildName: string) => void;
+  /**
+   * Compact trigger: an icon-only button sized to sit in a button row (the
+   * BattleScreen opponent controls) instead of the full-width labeled trigger
+   * the editor uses. The dropdown list itself is identical.
+   */
+  compact?: boolean;
 }
 
 const AUTO_BUILD_NAME = 'Auto · Max-Speed Sweeper';
 const AUTO_BUILD_PREFIX = 'Auto · ';
 
-export function BuildDropdown({ species, selectedName, onApply }: Props) {
+export function BuildDropdown({ species, selectedName, onApply, compact = false }: Props) {
   const builds = getBuildsForSpecies(species);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -145,76 +152,109 @@ export function BuildDropdown({ species, selectedName, onApply }: Props) {
       : { primary: selectedName, secondary: undefined };
   })();
 
+  // The option list, shared between the inline dropdown (editor) and the
+  // bottom-sheet (compact / BattleScreen) so they never drift.
+  const listItems = (
+    <>
+      {summary && (
+        <button
+          onClick={pickAuto}
+          disabled={busy}
+          data-testid="build-auto"
+          className="w-full text-left px-2 py-1.5 rounded text-sm bg-accent/10 hover:bg-accent/20 mb-1"
+        >
+          <span className="font-semibold">{busy ? 'Building…' : AUTO_BUILD_NAME}</span>
+        </button>
+      )}
+      {builds.length === 0 && !summary && <div className="px-2 py-2 text-xs opacity-60">No builds for {species}</div>}
+      {builds.map((name) => {
+        const b = getBuild(species, name);
+        // Pikalytics builds carry their own item+role in the name
+        // ("Sitrus Pivot"); skip the legacy role inference so we don't
+        // override the picker label with a less-specific guess.
+        const role = b && b.origin !== 'pikalytics' ? deriveRoleLabel(b) : null;
+        const origin = b?.origin;
+        return (
+          <button
+            key={name}
+            onClick={() => pick(name)}
+            className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-surface flex justify-between items-center gap-2"
+          >
+            <span className="min-w-0 flex-1">
+              {role ? (
+                <>
+                  <div className="font-semibold truncate">{role}</div>
+                  <div className="text-[11px] opacity-60 italic truncate">{name}</div>
+                </>
+              ) : (
+                <span className="font-semibold truncate block">{name}</span>
+              )}
+            </span>
+            {origin === 'pikalytics' && (
+              <span
+                title="Current Champions VGC meta"
+                className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent"
+              >
+                Meta
+              </span>
+            )}
+            {origin === 'legacy' && (
+              <span
+                title="Legacy SM/USUM Smogon set"
+                className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-surface-hi opacity-60"
+              >
+                SM
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </>
+  );
+
   return (
     <div className="relative">
-      <button
-        type="button"
-        data-testid="build-trigger"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full bg-accent/10 border border-accent/30 rounded-lg px-3 py-2 text-sm flex justify-between items-center text-accent"
-      >
-        <span className="text-left min-w-0 flex-1">
-          <span className="font-semibold block truncate">{triggerLabel.primary}</span>
-          {triggerLabel.secondary && <span className="text-[11px] opacity-60 italic block truncate">{triggerLabel.secondary}</span>}
-        </span>
-        <span className="opacity-60 shrink-0 ml-2">{totalCount} builds ▾</span>
-      </button>
-      {open && (
-        <div className="absolute z-10 left-0 right-0 mt-1 bg-bg-base bg-panel-gradient border border-surface-hi rounded-lg max-h-64 overflow-y-auto p-1.5">
-          {summary && (
-            <button
-              onClick={pickAuto}
-              disabled={busy}
-              data-testid="build-auto"
-              className="w-full text-left px-2 py-1.5 rounded text-sm bg-accent/10 hover:bg-accent/20 mb-1"
-            >
-              <span className="font-semibold">{busy ? 'Building…' : AUTO_BUILD_NAME}</span>
-            </button>
-          )}
-          {builds.length === 0 && !summary && <div className="px-2 py-2 text-xs opacity-60">No builds for {species}</div>}
-          {builds.map((name) => {
-            const b = getBuild(species, name);
-            // Pikalytics builds carry their own item+role in the name
-            // ("Sitrus Pivot"); skip the legacy role inference so we don't
-            // override the picker label with a less-specific guess.
-            const role = b && b.origin !== 'pikalytics' ? deriveRoleLabel(b) : null;
-            const origin = b?.origin;
-            return (
-              <button
-                key={name}
-                onClick={() => pick(name)}
-                className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-surface flex justify-between items-center gap-2"
-              >
-                <span className="min-w-0 flex-1">
-                  {role ? (
-                    <>
-                      <div className="font-semibold truncate">{role}</div>
-                      <div className="text-[11px] opacity-60 italic truncate">{name}</div>
-                    </>
-                  ) : (
-                    <span className="font-semibold truncate block">{name}</span>
-                  )}
-                </span>
-                {origin === 'pikalytics' && (
-                  <span
-                    title="Current Champions VGC meta"
-                    className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent"
-                  >
-                    Meta
-                  </span>
-                )}
-                {origin === 'legacy' && (
-                  <span
-                    title="Legacy SM/USUM Smogon set"
-                    className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-surface-hi opacity-60"
-                  >
-                    SM
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      {compact ? (
+        // Icon-only trigger for the BattleScreen opponent controls row. The
+        // current set name rides on aria-label / title so the glyph stays
+        // compact; the full descriptive build name would make the row too tall.
+        <button
+          type="button"
+          data-testid="build-trigger"
+          onClick={() => setOpen((o) => !o)}
+          aria-label={selectedName ? `Change set (current: ${triggerLabel.primary})` : 'Choose a set'}
+          title={selectedName ? `Set: ${triggerLabel.primary}` : 'Choose a set'}
+          className="h-full flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-[11px] font-semibold"
+        >
+          <span aria-hidden>🎭</span>
+          <span aria-hidden className="opacity-60">▾</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          data-testid="build-trigger"
+          onClick={() => setOpen((o) => !o)}
+          className="w-full bg-accent/10 border border-accent/30 rounded-lg px-3 py-2 text-sm flex justify-between items-center text-accent"
+        >
+          <span className="text-left min-w-0 flex-1">
+            <span className="font-semibold block truncate">{triggerLabel.primary}</span>
+            {triggerLabel.secondary && <span className="text-[11px] opacity-60 italic block truncate">{triggerLabel.secondary}</span>}
+          </span>
+          <span className="opacity-60 shrink-0 ml-2">{totalCount} builds ▾</span>
+        </button>
+      )}
+      {/* Compact (BattleScreen) opens the list as a bottom sheet so it never
+          runs off a small screen; the editor keeps the inline dropdown. */}
+      {compact ? (
+        <PickerShell open={open} onClose={() => setOpen(false)} title="Choose a set">
+          <div className="flex flex-col gap-1">{listItems}</div>
+        </PickerShell>
+      ) : (
+        open && (
+          <div className="absolute z-10 left-0 right-0 mt-1 bg-bg-base bg-panel-gradient border border-surface-hi rounded-lg max-h-64 overflow-y-auto p-1.5">
+            {listItems}
+          </div>
+        )
       )}
     </div>
   );

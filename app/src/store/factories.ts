@@ -1,4 +1,6 @@
+import { megaFormeName } from '@/calc/helpers';
 import { getBuild, getBuildsForSpecies } from '@/data/setdex-champions';
+import { autoSpread } from '@/store/synthesize';
 import type { FieldState, SavedMon } from '@/types';
 import { uuid } from '@/util/uuid';
 
@@ -26,6 +28,12 @@ export function emptyField(): FieldState {
 export function monFromBuild(species: string, buildName: string): SavedMon | null {
   const b = getBuild(species, buildName);
   if (!b) return null;
+  // Curated mega builds ship with empty EVs (Pikalytics doesn't report a
+  // spread for mega formes), which would render the mon at base stats. Fall
+  // back to the auto-build spread for the *mega forme's* base stats so a
+  // mega set isn't a 0-EV mon. Non-mega builds always carry real EVs.
+  const hasSps = Object.keys(b.sps).length > 0;
+  const sps = hasSps ? { ...b.sps } : autoSpread(b.mega ? megaFormeName(species, b.mega, b.item) : species);
   return {
     id: uuid(),
     species,
@@ -35,7 +43,7 @@ export function monFromBuild(species: string, buildName: string): SavedMon | nul
     nature: b.nature,
     // Shallow-copy so multiple mons spawned from the same build don't alias
     // the SETDEX_CHAMPIONS object; future in-place edits stay isolated.
-    sps: { ...b.sps },
+    sps,
     moves: [b.moves[0] ?? '', b.moves[1] ?? '', b.moves[2] ?? '', b.moves[3] ?? ''],
     // Pikalytics meta variants extracted from a mega forme carry their own
     // mega state (e.g. Charizard "Sweeper · Mega Y" → mega='mega-y'). Apply
