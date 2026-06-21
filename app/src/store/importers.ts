@@ -4,6 +4,22 @@ import { GEN, toID } from '@/calc/gen';
 import { megaFormeName } from '@/calc/helpers';
 import { SP_PER_STAT_MAX, SP_TOTAL_MAX, STAT_LABEL, STAT_ORDER, type MegaState, type SavedMon, type StatID } from '@/types';
 
+// Matches a bare pokepaste URL — both the modern 16-hex id (`/abcdef0123456789`)
+// and the legacy numeric id (`/1234567`), with or without a `/raw` or `/json`
+// suffix. Whitespace before/after is fine so the user can paste mid-sentence
+// and we still trigger, but anything else on the line means it's not a bare URL.
+export const POKEPASTE_RE = /^\s*https?:\/\/pokepast\.es\/([0-9a-f]{16}|\d{1,10})(?:\/(?:raw|json))?\/?\s*$/i;
+
+/**
+ * Pull the paste id out of a bare pokepaste URL, or return null when `text`
+ * isn't one (surrounding prose, wrong host, malformed id, etc.). Lives here
+ * next to the Showdown parser since the import dialog feeds a resolved
+ * pokepaste body straight into `parseShowdownText`.
+ */
+export function matchPokepasteId(text: string): string | null {
+  return POKEPASTE_RE.exec(text)?.[1] ?? null;
+}
+
 export type ImportChangeKind =
   | 'item-dropped'
   | 'ability-dropped'

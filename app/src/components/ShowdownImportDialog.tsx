@@ -3,19 +3,12 @@ import { toast } from 'sonner';
 
 import { Sprite } from '@/components/Sprite';
 import { useStore } from '@/store';
-import { type ImportChange, type ImportChangeKind, parseShowdownText, type ParsedMon } from '@/store/importers';
+import { type ImportChange, type ImportChangeKind, matchPokepasteId, parseShowdownText, type ParsedMon } from '@/store/importers';
 import type { SavedMon } from '@/types';
 import { uuid } from '@/util/uuid';
 
 const TEAM_CAP = 6;
 const EXAMPLE = `Garchomp @ Choice Scarf\nAbility: Rough Skin\nEVs: 32 Atk / 32 Spe\nAdamant Nature\n- Earthquake\n- Outrage\n- Stone Edge\n- Fire Fang`;
-
-// Matches a bare pokepaste URL — both the modern 16-hex id (`/abcdef0123456789`)
-// and the legacy numeric id (`/1234567`), with or without a `/raw` or `/json`
-// suffix. Whitespace before/after is fine so the user can paste mid-sentence
-// and we still trigger. Source server runs at https://pokepast.es and sets
-// `Access-Control-Allow-Origin: *` on `/raw`, so a client-side fetch works.
-const POKEPASTE_RE = /^\s*https?:\/\/pokepast\.es\/([0-9a-f]{16}|\d{1,10})(?:\/(?:raw|json))?\/?\s*$/i;
 
 type Props =
   | { mode: 'team'; open: boolean; onClose: () => void }
@@ -69,9 +62,8 @@ export function ShowdownImportDialog(props: Props) {
   // so the user can see and edit the resolved content before importing.
   useEffect(() => {
     if (!open) return;
-    const match = POKEPASTE_RE.exec(text);
-    if (!match) return;
-    const id = match[1];
+    const id = matchPokepasteId(text);
+    if (!id) return;
     let cancelled = false;
     setFetchingPokepaste(true);
     fetch(`https://pokepast.es/${id}/raw`)

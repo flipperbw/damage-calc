@@ -160,3 +160,108 @@ test('damage updates after toggling weather', async ({ page }) => {
     expect(after).not.toEqual(before);
   }).toPass({ timeout: 3000 });
 });
+
+// Concatenated text of every damage-range readout on the page (e.g.
+// "68-80%"). Used to detect that a toggle actually moved the numbers.
+function damageRanges(page: Page) {
+  return page.getByText(/\d+\s*[-–]\s*\d+%/).allTextContents();
+}
+
+test('spread toggle swaps spread for single-target damage (doubles)', async ({ page }) => {
+  await freshStart(page);
+  await nav(page, 'Teams');
+  await createTeam(page);
+  // Garchomp's Swords Dance set runs Earthquake, a spread move in doubles.
+  await addMonToFirstSlot(page, 'Garchomp', /Swords Dance/);
+
+  // Flip the team to Doubles via the ⋯ menu so the 0.75x spread reduction
+  // applies and the per-move spread toggle becomes relevant.
+  await page.getByRole('button', { name: 'Team actions' }).first().click();
+  await page.getByRole('button', { name: 'Switch to Doubles' }).click();
+
+  await activateTeam(page, 'New team');
+  await pickOpponent(page, 'Clefable');
+
+  // A spread move is queued, so the toggle renders, defaulting to spread.
+  const toggle = page.getByTestId('your-spread-toggle');
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+  const before = await damageRanges(page);
+
+  // Switch to single-target: at least one move's % rises (drops the 0.75x).
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(async () => {
+    expect(await damageRanges(page)).not.toEqual(before);
+  }).toPass({ timeout: 3000 });
+});
+
+test('toggling mega on the battle card changes damage', async ({ page }) => {
+  await freshStart(page);
+  await nav(page, 'Teams');
+  await createTeam(page);
+  // The Mixed Mega set holds Garchompite, so the card exposes a mega toggle.
+  await addMonToFirstSlot(page, 'Garchomp', /Mixed Mega/);
+  await activateTeam(page, 'New team');
+  // Clefable has no mega stone, so only your Garchomp card carries the toggle.
+  await pickOpponent(page, 'Clefable');
+
+  const toggle = page.getByTestId('mega-toggle');
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+  const before = await damageRanges(page);
+
+  // Mega-evolving raises Garchomp's offenses, so the damage readouts move.
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(async () => {
+    expect(await damageRanges(page)).not.toEqual(before);
+  }).toPass({ timeout: 3000 });
+});
+
+test('opponent Deadliest worst-case build applies and reverts', async ({ page }) => {
+  await setUpBattle(page);
+
+  const deadliest = page.getByTestId('opp-hardest-hitter');
+  const revert = page.getByTestId('opp-revert');
+
+  // Nothing applied yet, so there's nothing to revert.
+  await expect(revert).toBeDisabled();
+
+  // Applying the deadliest synthesised build marks the mode active (button
+  // becomes pressed) and enables Revert.
+  await deadliest.click();
+  await expect(deadliest).toHaveAttribute('aria-pressed', 'true');
+  await expect(revert).toBeEnabled();
+
+  // Revert restores the original build and resets the controls.
+  await revert.click();
+  await expect(revert).toBeDisabled();
+  await expect(deadliest).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('no-team quick battle: pick two ad-hoc mons and see damage', async ({ page }) => {
+  await freshStart(page);
+  await nav(page, 'Battle');
+
+  // With no team, the quick-compare CTA is shown above the pick cards.
+  await expect(page.getByTestId('battle-no-team-cta')).toBeVisible();
+
+  // Pick your ad-hoc mon from the "you" skeleton card.
+  await page.getByTestId('pick-you-adhoc').click();
+  const shell = page.getByTestId('picker-shell');
+  await shell.getByPlaceholder('Search Pokémon').fill('Garchomp');
+  await shell
+    .getByRole('button', { name: /^Garchomp$/ })
+    .first()
+    .click();
+
+  // Pick the opponent via the standard pick-opponent card.
+  await pickOpponent(page, 'Skarmory');
+
+  // Both sides are set without a saved team, so damage ranges now render
+  // (synth fills the ad-hoc mon's moveset, hence the generous timeout).
+  await expect(page.getByText(/\d+\s*[-–]\s*\d+%/).first()).toBeVisible({ timeout: 5000 });
+});

@@ -82,3 +82,36 @@ test('remove a mon from a team via the trash button in MonEditor', async ({ page
   // Slot is empty again - no sprites in the slot row.
   await expect(page.locator('div.flex.gap-1\\.5.mt-2\\.5 button:has(img)')).toHaveCount(0);
 });
+
+test('meta teams browser: collapse, filter, and use a preset', async ({ page }) => {
+  // MetaTeamsSection only renders once at least one team exists (the empty
+  // state shows the presets inline instead).
+  await createTeam(page);
+
+  const toggle = page.getByTestId('meta-teams-toggle');
+  const filter = page.getByTestId('meta-teams-filter');
+  await expect(toggle).toBeVisible();
+  await expect(filter).toBeVisible();
+
+  // Preset cards are present (each has a "Use <name> template" button).
+  const useButtons = page.getByRole('button', { name: /Use .* template/ });
+  expect(await useButtons.count()).toBeGreaterThan(0);
+
+  // A non-matching filter empties the list; clearing restores it.
+  await filter.fill('zzz-no-such-team');
+  await expect(page.getByText(/No teams match/)).toBeVisible();
+  await filter.fill('');
+  await expect(useButtons.first()).toBeVisible();
+
+  // Collapsing hides the filter + cards; expanding shows them again.
+  await toggle.click();
+  await expect(filter).toBeHidden();
+  await toggle.click();
+  await expect(filter).toBeVisible();
+
+  // Using a preset adds a second team to the list (1 "Team actions" menu → 2).
+  const teamActions = page.getByRole('button', { name: 'Team actions' });
+  await expect(teamActions).toHaveCount(1);
+  await useButtons.first().click();
+  await expect(teamActions).toHaveCount(2);
+});

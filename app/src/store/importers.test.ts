@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { monToShowdownText, teamToShowdownText } from '@/store/exporters';
-import { parseShowdownText } from '@/store/importers';
+import { matchPokepasteId, parseShowdownText } from '@/store/importers';
 import type { SavedMon, Team } from '@/types';
 
 function mon(overrides: Partial<SavedMon> = {}): SavedMon {
@@ -359,5 +359,44 @@ describe('parseShowdownText', () => {
     expect(r.mons).toHaveLength(2);
     expect(r.mons[0].draft.species).toBe('Venusaur');
     expect(r.mons[1].draft.species).toBe('Venusaur');
+  });
+});
+
+describe('matchPokepasteId', () => {
+  it('matches a modern 16-hex paste id', () => {
+    expect(matchPokepasteId('https://pokepast.es/0123456789abcdef')).toBe('0123456789abcdef');
+  });
+
+  it('matches a legacy numeric id', () => {
+    expect(matchPokepasteId('https://pokepast.es/1234567')).toBe('1234567');
+  });
+
+  it('matches with a /raw or /json suffix and a trailing slash', () => {
+    expect(matchPokepasteId('https://pokepast.es/0123456789abcdef/raw')).toBe('0123456789abcdef');
+    expect(matchPokepasteId('https://pokepast.es/0123456789abcdef/json')).toBe('0123456789abcdef');
+    expect(matchPokepasteId('https://pokepast.es/0123456789abcdef/')).toBe('0123456789abcdef');
+  });
+
+  it('tolerates surrounding whitespace (paste-and-go) and http / case', () => {
+    expect(matchPokepasteId('  https://pokepast.es/0123456789ABCDEF  \n')).toBe('0123456789ABCDEF');
+    expect(matchPokepasteId('http://pokepast.es/1234567')).toBe('1234567');
+  });
+
+  it('rejects a link with surrounding prose (not a bare URL)', () => {
+    expect(matchPokepasteId('my team: https://pokepast.es/0123456789abcdef')).toBeNull();
+    expect(matchPokepasteId('https://pokepast.es/0123456789abcdef is great')).toBeNull();
+  });
+
+  it('rejects the wrong host and malformed ids', () => {
+    expect(matchPokepasteId('https://pokepaste.es/0123456789abcdef')).toBeNull();
+    expect(matchPokepasteId('https://example.com/0123456789abcdef')).toBeNull();
+    // 15 hex chars (one short of the modern id) and a 17-char id both miss.
+    expect(matchPokepasteId('https://pokepast.es/0123456789abcde')).toBeNull();
+    expect(matchPokepasteId('https://pokepast.es/0123456789abcdef0')).toBeNull();
+  });
+
+  it('returns null for plain Showdown text', () => {
+    expect(matchPokepasteId('Garchomp @ Choice Scarf\n- Earthquake')).toBeNull();
+    expect(matchPokepasteId('')).toBeNull();
   });
 });
