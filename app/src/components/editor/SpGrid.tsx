@@ -105,7 +105,7 @@ export function SpGrid({ sps, onChange }: Props) {
                 <button
                   aria-label={`${id} -`}
                   onClick={() => bump(id, -1)}
-                  className="h-9 rounded bg-white/5 text-sm"
+                  className="h-9 rounded bg-white/5 text-sm transition-colors hover:bg-white/10"
                   style={{ touchAction: 'manipulation' }}
                 >
                   −
@@ -113,7 +113,7 @@ export function SpGrid({ sps, onChange }: Props) {
                 <button
                   aria-label={`${id} +`}
                   onClick={() => bump(id, 1)}
-                  className="h-9 rounded bg-white/5 text-sm"
+                  className="h-9 rounded bg-white/5 text-sm transition-colors hover:bg-white/10"
                   style={{ touchAction: 'manipulation' }}
                 >
                   +
@@ -121,7 +121,7 @@ export function SpGrid({ sps, onChange }: Props) {
                 <button
                   aria-label={`${id} 0`}
                   onClick={() => setStat(id, 0)}
-                  className="h-9 rounded bg-white/5 text-[10px] font-bold tracking-wider opacity-70"
+                  className="h-9 rounded bg-white/5 text-[10px] font-bold tracking-wider opacity-70 transition hover:opacity-100 hover:bg-white/10"
                   style={{ touchAction: 'manipulation' }}
                 >
                   0
@@ -129,7 +129,7 @@ export function SpGrid({ sps, onChange }: Props) {
                 <button
                   aria-label={`${id} max`}
                   onClick={() => setStat(id, SP_PER_STAT_MAX)}
-                  className="h-9 rounded bg-white/5 text-[10px] font-bold tracking-wider opacity-70"
+                  className="h-9 rounded bg-white/5 text-[10px] font-bold tracking-wider opacity-70 transition hover:opacity-100 hover:bg-white/10"
                   style={{ touchAction: 'manipulation' }}
                 >
                   MAX
@@ -217,7 +217,7 @@ function SpValueInput({ stat, value, valueCls, onCommit }: SpValueInputProps) {
       onClick={() => setEditing(true)}
       aria-label={`Edit ${stat} value`}
       data-testid={`sp-value-${stat}`}
-      className={`${valueCls} w-full bg-transparent`}
+      className={`${valueCls} w-full bg-transparent rounded cursor-pointer transition-colors hover:bg-white/[0.06]`}
       style={{ touchAction: 'manipulation' }}
     >
       {value}

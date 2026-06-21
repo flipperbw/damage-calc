@@ -51,7 +51,7 @@ export function Nav() {
           href={tabHref('battle')}
           onClick={(e) => handleTabClick(e, setTab, 'battle')}
           aria-label="FutureSight — home"
-          className="relative min-w-[44px] min-h-[44px] flex items-center justify-center select-none shrink-0"
+          className="relative min-w-[44px] min-h-[44px] flex items-center justify-center select-none shrink-0 transition-opacity hover:opacity-80"
           style={{ touchAction: 'manipulation' }}
         >
           <Logo className="w-7 h-7" />
@@ -101,7 +101,7 @@ export function Nav() {
               href={tabHref(it.id)}
               onClick={(e) => handleTabClick(e, setTab, it.id)}
               aria-label={it.id === 'settings' && hasUnseenChangelog ? `${it.label} (unread changelog)` : undefined}
-              className={`relative px-4 py-2 rounded-lg text-sm no-underline ${tab === it.id ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70 text-text'}`}
+              className={`relative px-4 py-2 rounded-lg text-sm no-underline transition ${tab === it.id ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70 text-text hover:opacity-100 hover:border-accent/40 hover:bg-accent/[0.06]'}`}
             >
               <span className="mr-1.5">{it.icon}</span>
               {it.label}

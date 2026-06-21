@@ -262,7 +262,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
               onClick={onClose}
               aria-label="Close editor"
               style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer transition-opacity hover:opacity-100"
             >
               ←
             </button>
@@ -280,7 +280,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
               {...copyHandlers}
               data-testid="copy-mon"
               style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.25)' }}
-              className={`min-h-[44px] px-2.5 flex items-center justify-center gap-1.5 rounded-lg select-none cursor-pointer ${copied ? 'bg-ok/20' : 'bg-surface border border-surface-hi'}`}
+              className={`min-h-[44px] px-2.5 flex items-center justify-center gap-1.5 rounded-lg select-none cursor-pointer transition-colors ${copied ? 'bg-ok/20' : 'bg-surface border border-surface-hi hover:border-accent/50 hover:bg-accent/[0.06]'}`}
             >
               <span className="text-base" style={{ pointerEvents: 'none' }}>📋</span>
               <span className="text-xs font-semibold" style={{ pointerEvents: 'none' }}>Copy</span>
@@ -291,7 +291,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
               onClick={() => setImportOpen(true)}
               data-testid="paste-mon"
               style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.25)' }}
-              className="min-h-[44px] px-2.5 flex items-center justify-center gap-1.5 rounded-lg select-none cursor-pointer bg-surface border border-surface-hi"
+              className="min-h-[44px] px-2.5 flex items-center justify-center gap-1.5 rounded-lg select-none cursor-pointer bg-surface border border-surface-hi transition-colors hover:border-accent/50 hover:bg-accent/[0.06]"
             >
               <span className="text-base" style={{ pointerEvents: 'none' }}>📥</span>
               <span className="text-xs font-semibold" style={{ pointerEvents: 'none' }}>Paste</span>
@@ -405,7 +405,7 @@ export function MonEditor({ open, initial, onClose, onSave, onDelete, teamName, 
           <button
             disabled={!valid}
             onClick={() => onSave(draft)}
-            className={`w-full py-3 rounded-card font-bold text-base ${valid ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
+            className={`w-full py-3 rounded-card font-bold text-base transition ${valid ? 'bg-accent-gradient text-white hover:brightness-110' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
           >
             Save
           </button>
@@ -451,7 +451,7 @@ function Field({ label, value, onClick }: { label: string; value: string; onClic
       <button
         onClick={onClick}
         data-testid={`field-${label.toLowerCase()}`}
-        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-sm flex justify-between items-center"
+        className="w-full bg-surface border border-surface-hi rounded-lg px-3 py-2 text-sm flex justify-between items-center transition-colors hover:border-accent/50 hover:bg-accent/[0.06]"
       >
         <span>{value}</span>
         <span className="opacity-40">▾</span>

@@ -118,7 +118,7 @@ function Segmented({ ariaPrefix, options, value, onChange }: SegProps) {
             aria-label={`${ariaPrefix}: ${o.label}`}
             aria-pressed={active}
             style={{ touchAction: 'manipulation' }}
-            className={`min-w-9 min-h-9 px-2 ${active ? 'bg-accent-gradient text-white' : 'bg-surface opacity-70'}`}
+            className={`min-w-9 min-h-9 px-2 transition ${active ? 'bg-accent-gradient text-white' : 'bg-surface opacity-70 hover:opacity-100 hover:bg-surface-hi'}`}
           >
             {o.label}
           </button>

@@ -111,7 +111,7 @@ export function FeedbackDialog({ open, onClose }: Props) {
             onClick={close}
             aria-label="Close feedback"
             style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer transition-opacity hover:opacity-100"
           >
             ←
           </button>
@@ -132,7 +132,7 @@ export function FeedbackDialog({ open, onClose }: Props) {
               <button
                 type="button"
                 onClick={close}
-                className="mt-6 px-5 py-2 rounded-card bg-surface border border-surface-hi text-sm font-semibold"
+                className="mt-6 px-5 py-2 rounded-card bg-surface border border-surface-hi text-sm font-semibold transition-colors hover:border-accent/50 hover:bg-accent/[0.06]"
               >
                 Close
               </button>
@@ -147,7 +147,7 @@ export function FeedbackDialog({ open, onClose }: Props) {
                     type="button"
                     onClick={() => setCategory(c.id)}
                     aria-pressed={category === c.id}
-                    className={`px-3 py-1.5 rounded-lg text-sm ${category === c.id ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70'}`}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition ${category === c.id ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70 hover:opacity-100 hover:border-accent/40'}`}
                   >
                     {c.label}
                   </button>
@@ -208,7 +208,7 @@ export function FeedbackDialog({ open, onClose }: Props) {
               disabled={!canSend}
               data-testid="feedback-send"
               style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-              className={`w-full py-3 px-4 rounded-card font-bold text-base ${canSend ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
+              className={`w-full py-3 px-4 rounded-card font-bold text-base transition ${canSend ? 'bg-accent-gradient text-white hover:brightness-110' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
             >
               {status === 'sending' ? 'Sending…' : 'Send'}
             </button>

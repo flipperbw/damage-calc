@@ -27,7 +27,7 @@ export function MarkdownSheet({ open, title, source, onClose }: Props) {
             onClick={onClose}
             aria-label={`Close ${title}`}
             style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer transition-opacity hover:opacity-100"
           >
             ←
           </button>

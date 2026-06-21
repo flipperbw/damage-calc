@@ -214,7 +214,7 @@ function Cell({ cell, onTap }: { cell: CellInfo; onTap: () => void }) {
         type="button"
         onClick={onTap}
         aria-label="Show matchup details"
-        className={`inline-flex items-center justify-center w-full min-w-[36px] md:min-w-[44px] px-0.5 md:px-1 py-0.5 md:py-1 text-[10px] md:text-xs rounded font-semibold ${cls}`}
+        className={`inline-flex items-center justify-center w-full min-w-[36px] md:min-w-[44px] px-0.5 md:px-1 py-0.5 md:py-1 text-[10px] md:text-xs rounded font-semibold transition hover:brightness-110 ${cls}`}
         data-pct={cell.pct}
       >
         {label}

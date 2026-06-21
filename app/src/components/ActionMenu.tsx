@@ -39,7 +39,7 @@ export function ActionMenu({ open, onClose, title, items, footer }: ActionMenuPr
               onClick={item.onClick}
               disabled={item.disabled}
               data-testid={item.testId}
-              className={`text-left px-3 py-2 rounded-lg border text-sm ${cls} disabled:opacity-50`}
+              className={`text-left px-3 py-2 rounded-lg border text-sm ${cls} disabled:opacity-50 transition enabled:hover:brightness-110`}
             >
               {item.label}
             </button>

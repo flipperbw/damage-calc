@@ -128,7 +128,7 @@ export function SettingsScreen() {
 
       <div className="mt-8 pt-4 border-t border-surface-hi text-[11px] opacity-50">
         <div>FutureSight v{APP_VERSION}</div>
-        <a href={REPO_URL} target="_blank" rel="noreferrer" className="text-accent">
+        <a href={REPO_URL} target="_blank" rel="noreferrer" className="text-accent hover:underline">
           {REPO_URL.replace(/^https?:\/\//, '')}
         </a>
       </div>
@@ -149,7 +149,7 @@ function Toggle({ value, onClick, label }: { value: boolean; onClick: () => void
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-sm ${value ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70'}`}
+      className={`px-3 py-1.5 rounded-lg text-sm transition ${value ? 'bg-accent-gradient text-white' : 'bg-surface border border-surface-hi opacity-70 hover:opacity-100 hover:border-accent/40'}`}
     >
       {label}
     </button>
@@ -161,7 +161,7 @@ function Action({ label, onClick, tone, badge }: { label: string; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-3 py-2 rounded-lg border ${c} text-sm flex items-center justify-between gap-2`}
+      className={`w-full text-left px-3 py-2 rounded-lg border ${c} text-sm flex items-center justify-between gap-2 transition enabled:hover:brightness-110`}
     >
       <span>{label}</span>
       {badge === 'new' && (

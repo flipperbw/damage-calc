@@ -22,7 +22,7 @@ export function StatChip({ icon, label, tone = 'default', editable, onClick }: P
     <button
       type="button"
       onClick={onClick}
-      className={`px-2 py-0.5 rounded-lg border text-[11px] flex gap-1 items-center ${toneClass} ${editable ? 'after:content-["✎"] after:opacity-40 after:ml-1' : ''}`}
+      className={`px-2 py-0.5 rounded-lg border text-[11px] flex gap-1 items-center ${toneClass} ${editable ? 'after:content-["✎"] after:opacity-40 after:ml-1' : ''} ${onClick ? 'cursor-pointer transition hover:brightness-125' : ''}`}
     >
       {icon && <span>{icon}</span>}
       <span>{label}</span>

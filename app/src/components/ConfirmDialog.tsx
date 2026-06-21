@@ -139,7 +139,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                   type="button"
                   data-testid="confirm-cancel"
                   onClick={() => closeConfirm(false)}
-                  className="px-4 py-2 rounded-lg bg-surface border border-surface-hi text-sm"
+                  className="px-4 py-2 rounded-lg bg-surface border border-surface-hi text-sm transition-colors hover:border-accent/50 hover:bg-accent/[0.06]"
                 >
                   {confirmState.cancelLabel ?? 'Cancel'}
                 </button>
@@ -148,7 +148,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 type="button"
                 data-testid="confirm-ok"
                 onClick={() => closeConfirm(true)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition hover:brightness-110 ${
                   confirmState.danger ? 'bg-danger/20 border border-danger/40 text-danger' : 'bg-accent text-white'
                 }`}
               >
@@ -184,7 +184,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 type="button"
                 data-testid="prompt-cancel"
                 onClick={() => closePrompt(null)}
-                className="px-4 py-2 rounded-lg bg-surface border border-surface-hi text-sm"
+                className="px-4 py-2 rounded-lg bg-surface border border-surface-hi text-sm transition-colors hover:border-accent/50 hover:bg-accent/[0.06]"
               >
                 {promptState.cancelLabel ?? 'Cancel'}
               </button>

@@ -160,7 +160,7 @@ export function BattleScreen() {
           type="button"
           data-testid="battle-empty-create-team"
           onClick={() => createTeam({ name: 'New team', format: 'singles' })}
-          className="px-4 py-2.5 rounded-lg bg-accent-gradient text-white text-sm font-bold"
+          className="px-4 py-2.5 rounded-lg bg-accent-gradient text-white text-sm font-bold transition hover:brightness-110"
         >
           Create your first team
         </button>
@@ -168,7 +168,7 @@ export function BattleScreen() {
           type="button"
           data-testid="battle-empty-browse-teams"
           onClick={() => setTab('teams')}
-          className="px-4 py-2.5 rounded-lg bg-surface border border-surface-hi text-sm font-semibold"
+          className="px-4 py-2.5 rounded-lg bg-surface border border-surface-hi text-sm font-semibold transition-colors hover:border-accent/50 hover:bg-accent/[0.06]"
         >
           Browse teams
         </button>
@@ -729,7 +729,7 @@ function SpreadToggle({
           : 'Showing single-target damage. Tap to revert to spread.'
       }
       style={{ touchAction: 'manipulation' }}
-      className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border select-none cursor-pointer ${
+      className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border select-none cursor-pointer transition-colors hover:border-accent/40 ${
         value === 'single'
           ? 'bg-accent/20 text-accent border-accent/40'
           : 'bg-white/[0.04] text-text-mute border-surface-hi'

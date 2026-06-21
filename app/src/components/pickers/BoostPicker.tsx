@@ -47,7 +47,7 @@ export function BoostPicker({ open, boosts, onClose, onSave }: Props) {
               <button
                 onClick={() => set(stat, v - 1)}
                 disabled={v <= -6}
-                className="w-7 h-7 rounded bg-surface border border-surface-hi text-sm disabled:opacity-30"
+                className="w-7 h-7 rounded bg-surface border border-surface-hi text-sm disabled:opacity-30 transition-colors enabled:hover:border-accent/50 enabled:hover:bg-accent/[0.06]"
               >
                 −
               </button>
@@ -64,7 +64,7 @@ export function BoostPicker({ open, boosts, onClose, onSave }: Props) {
               <button
                 onClick={() => set(stat, v + 1)}
                 disabled={v >= 6}
-                className="w-7 h-7 rounded bg-surface border border-surface-hi text-sm disabled:opacity-30"
+                className="w-7 h-7 rounded bg-surface border border-surface-hi text-sm disabled:opacity-30 transition-colors enabled:hover:border-accent/50 enabled:hover:bg-accent/[0.06]"
               >
                 +
               </button>
@@ -75,10 +75,10 @@ export function BoostPicker({ open, boosts, onClose, onSave }: Props) {
           );
         })}
         <div className="flex gap-2 mt-2">
-          <button onClick={() => setDraft({})} className="flex-1 py-2 rounded-lg bg-surface border border-surface-hi text-sm">
+          <button onClick={() => setDraft({})} className="flex-1 py-2 rounded-lg bg-surface border border-surface-hi text-sm transition-colors hover:border-accent/50 hover:bg-accent/[0.06]">
             Reset
           </button>
-          <button onClick={commit} className="flex-1 py-2 rounded-lg bg-accent-gradient text-white text-sm font-bold">
+          <button onClick={commit} className="flex-1 py-2 rounded-lg bg-accent-gradient text-white text-sm font-bold transition hover:brightness-110">
             Apply
           </button>
         </div>

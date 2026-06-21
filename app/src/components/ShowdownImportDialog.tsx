@@ -192,7 +192,7 @@ export function ShowdownImportDialog(props: Props) {
             onClick={onClose}
             aria-label="Close import"
             style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-lg opacity-70 select-none cursor-pointer transition-opacity hover:opacity-100"
           >
             ←
           </button>
@@ -277,7 +277,7 @@ export function ShowdownImportDialog(props: Props) {
                   disabled={!canCommit}
                   onClick={() => commitTeam(parsed.mons, parsed.teamName)}
                   data-testid="showdown-import-commit-team"
-                  className={`w-full py-3 px-4 rounded-card font-bold text-base ${canCommit ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
+                  className={`w-full py-3 px-4 rounded-card font-bold text-base transition ${canCommit ? 'bg-accent-gradient text-white hover:brightness-110' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
                 >
                   {canCommit
                     ? `Import as new team${importable < parsed.mons.length ? ` (${importable} of ${parsed.mons.length})` : ''}`
@@ -291,7 +291,7 @@ export function ShowdownImportDialog(props: Props) {
               onClick={() => firstSlotEligible && fillSlot(firstSlotEligible)}
               disabled={!firstSlotEligible}
               data-testid="showdown-import-commit-slot"
-              className={`w-full py-3 rounded-card font-bold text-base ${firstSlotEligible ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
+              className={`w-full py-3 rounded-card font-bold text-base transition ${firstSlotEligible ? 'bg-accent-gradient text-white hover:brightness-110' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
             >
               {firstSlotEligible
                 ? `Fill slot with ${firstSlotEligible.displayName}`
@@ -307,7 +307,7 @@ export function ShowdownImportDialog(props: Props) {
                 onClick={() => firstSlotEligible && fillSlot(firstSlotEligible)}
                 disabled={!firstSlotEligible}
                 data-testid="showdown-import-commit-slot-first"
-                className={`w-full py-3 rounded-card font-bold text-sm ${firstSlotEligible ? 'bg-accent-gradient text-white' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
+                className={`w-full py-3 rounded-card font-bold text-sm transition ${firstSlotEligible ? 'bg-accent-gradient text-white hover:brightness-110' : 'bg-white/10 text-white/40 cursor-not-allowed'}`}
               >
                 {firstSlotEligible
                   ? `Fill slot with ${firstSlotEligible.displayName}`
@@ -323,7 +323,7 @@ export function ShowdownImportDialog(props: Props) {
                     onClick={() => commitTeam(parsed.mons, parsed.teamName)}
                     disabled={importable === 0}
                     data-testid="showdown-import-commit-slot-team"
-                    className={`w-full py-3 px-4 rounded-card font-semibold text-sm ${importable === 0 ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-surface border border-surface-hi'}`}
+                    className={`w-full py-3 px-4 rounded-card font-semibold text-sm transition-colors ${importable === 0 ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-surface border border-surface-hi hover:border-accent/50 hover:bg-accent/[0.06]'}`}
                   >
                     {importable === 0
                       ? 'No importable mons'

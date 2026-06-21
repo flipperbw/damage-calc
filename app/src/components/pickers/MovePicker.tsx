@@ -575,7 +575,7 @@ function Row({ option, onPick, onInfo }: { option: MoveOption; onPick: () => voi
         onClick={onPick}
         data-testid={`move-row-pick-${option.name}`}
         data-picker-option
-        className="flex-1 flex items-center gap-2 px-1.5 py-1 rounded text-left"
+        className="flex-1 flex items-center gap-2 px-1.5 py-1 rounded text-left transition-colors hover:text-accent"
       >
         <TypeBadge type={option.type} fixedWidth />
         <span className="font-medium flex-1 text-left truncate">{option.name}</span>

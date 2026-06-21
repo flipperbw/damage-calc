@@ -71,7 +71,7 @@ export function MoveRow({ result, defenderForSturdy, spreadView = 'spread' }: Pr
         aria-label={`${result.moveName} details`}
         data-testid={`move-row-${result.moveName}`}
         style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.15)' }}
-        className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg border ${tone} mb-1.5 select-none cursor-pointer`}
+        className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg border ${tone} mb-1.5 select-none cursor-pointer transition hover:brightness-110`}
       >
         {/* Fixed-width type badge so move names line up vertically across
             rows regardless of type-name length. */}

@@ -75,7 +75,7 @@ export function FieldDrawer({ open, onClose }: Props) {
             aria-label="Done editing pins"
             data-testid="field-pin-done"
             style={{ touchAction: 'manipulation' }}
-            className="min-h-[36px] px-3 rounded-lg text-xs font-bold uppercase tracking-wider bg-accent-gradient text-white"
+            className="min-h-[36px] px-3 rounded-lg text-xs font-bold uppercase tracking-wider bg-accent-gradient text-white transition hover:brightness-110"
           >
             Done
           </button>
@@ -277,7 +277,7 @@ function Toggle({
       onClick={handle}
       disabled={inPinMode && !isPinnable}
       aria-pressed={inPinMode ? !!pinned : active}
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs border ${cls}`}
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs border transition enabled:hover:brightness-110 ${cls}`}
     >
       {isPinnable && pinned && <span aria-hidden>★</span>}
       {children}

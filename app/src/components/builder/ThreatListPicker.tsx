@@ -120,7 +120,7 @@ export function ThreatListPicker({ selectedListId, onSelectList, onEditThreatMon
             type="button"
             onClick={handleCreate}
             data-testid="threat-list-new"
-            className="text-xs px-2.5 py-1.5 rounded-lg bg-accent text-white font-semibold"
+            className="text-xs px-2.5 py-1.5 rounded-lg bg-accent text-white font-semibold transition-colors hover:bg-accent-2"
           >
             + New
           </button>
@@ -238,9 +238,9 @@ function ThreatListCard({
       className={`bg-surface border rounded-card p-3 ${active ? 'border-accent shadow-[0_0_24px_rgba(124,92,255,0.25)]' : 'border-surface-hi'}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <button onClick={onSelect} className="text-left flex-1 min-w-0">
+        <button onClick={onSelect} className="group text-left flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-sm truncate">{list.name}</span>
+            <span className="font-bold text-sm truncate transition-colors group-hover:text-accent">{list.name}</span>
             {/* Format pill is meaningful only for seed lists where it reflects
                 a hand-curated meta context (singles vs doubles). User-created
                 lists default to 'any' and have no editable format selector,
@@ -273,7 +273,7 @@ function ThreatListCard({
                 data-testid={`threat-mon-${mon.species}`}
                 className="relative bg-bg-base/40 border border-surface-hi rounded-lg p-1.5 flex flex-col items-center gap-0.5"
               >
-                <button type="button" onClick={() => onEditMon(mon.id)} aria-label={`Edit ${mon.species}`} className="flex flex-col items-center">
+                <button type="button" onClick={() => onEditMon(mon.id)} aria-label={`Edit ${mon.species}`} className="flex flex-col items-center transition-colors hover:text-accent">
                   <Sprite species={mon.species} className="w-10 h-10" />
                   <span className="text-[10px] truncate max-w-[64px]">{mon.species}</span>
                 </button>
@@ -292,7 +292,7 @@ function ThreatListCard({
               onClick={onAddMon}
               data-testid="threat-mon-add"
               aria-label="Add Pokémon to threat list"
-              className="w-[60px] h-[60px] flex items-center justify-center rounded-lg border border-dashed border-accent/30 text-accent text-xl"
+              className="w-[60px] h-[60px] flex items-center justify-center rounded-lg border border-dashed border-accent/30 text-accent text-xl transition-colors hover:bg-accent/10 hover:border-accent/60"
             >
               +
             </button>

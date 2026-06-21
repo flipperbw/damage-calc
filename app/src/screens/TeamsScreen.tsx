@@ -125,7 +125,7 @@ export function TeamsScreen() {
               // hit-testing on transformed/blurred elements. touch-action +
               // tap-highlight-color make taps deterministic on WebKit.
               style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-              className="flex-1 min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer"
+              className="flex-1 min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer transition-colors hover:bg-accent-2"
             >
               <span className="text-xl leading-none">+</span>
               <span>Create Team</span>
@@ -136,7 +136,7 @@ export function TeamsScreen() {
               aria-label="Import team from Showdown"
               data-testid="import-team"
               style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-              className="min-h-[52px] px-4 rounded-card bg-surface border border-surface-hi text-sm font-semibold select-none cursor-pointer"
+              className="min-h-[52px] px-4 rounded-card bg-surface border border-surface-hi text-sm font-semibold select-none cursor-pointer transition-colors hover:border-accent/50 hover:bg-accent/[0.06]"
             >
               Import
             </button>
@@ -304,8 +304,8 @@ function TeamCard({
       className={`bg-surface border rounded-card p-3 mb-2.5 ${active ? 'border-accent shadow-[0_0_24px_rgba(124,92,255,0.25)]' : 'border-surface-hi'}`}
     >
       <div className="flex justify-between items-center">
-        <button onClick={onActivate} className="text-left flex-1 min-w-0">
-          <div className="font-bold text-[15px] truncate">{team.name}</div>
+        <button onClick={onActivate} className="group text-left flex-1 min-w-0">
+          <div className="font-bold text-[15px] truncate transition-colors group-hover:text-accent">{team.name}</div>
           <div className="text-[11px] opacity-55">
             {team.format === 'singles' ? 'Singles' : 'Doubles'} · last edited {new Date(team.updatedAt).toLocaleDateString()}
           </div>
@@ -375,7 +375,7 @@ function EmptyState({
           onClick={onCreate}
           data-testid="create-team-empty"
           style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-          className="flex-1 min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer"
+          className="flex-1 min-h-[52px] py-3 px-4 rounded-card bg-accent text-white text-base font-bold flex items-center justify-center gap-2 select-none cursor-pointer transition-colors hover:bg-accent-2"
         >
           <span className="text-xl leading-none">+</span>
           <span>Create a team</span>
@@ -385,7 +385,7 @@ function EmptyState({
           onClick={onImport}
           data-testid="import-team-empty"
           style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.15)' }}
-          className="flex-1 sm:flex-initial sm:px-5 min-h-[52px] py-3 px-4 rounded-card bg-surface border border-surface-hi text-sm font-semibold select-none cursor-pointer"
+          className="flex-1 sm:flex-initial sm:px-5 min-h-[52px] py-3 px-4 rounded-card bg-surface border border-surface-hi text-sm font-semibold select-none cursor-pointer transition-colors hover:border-accent/50 hover:bg-accent/[0.06]"
         >
           Import from Showdown
         </button>

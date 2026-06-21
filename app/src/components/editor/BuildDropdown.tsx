@@ -227,7 +227,7 @@ export function BuildDropdown({ species, selectedName, onApply, compact = false 
           onClick={() => setOpen((o) => !o)}
           aria-label={selectedName ? `Change set (current: ${triggerLabel.primary})` : 'Choose a set'}
           title={selectedName ? `Set: ${triggerLabel.primary}` : 'Choose a set'}
-          className="h-full flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-[11px] font-semibold"
+          className="h-full flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent/10 border border-accent/30 text-accent text-[11px] font-semibold transition-colors hover:bg-accent/20"
         >
           <span aria-hidden>🎭</span>
           <span aria-hidden className="opacity-60">▾</span>
@@ -237,7 +237,7 @@ export function BuildDropdown({ species, selectedName, onApply, compact = false 
           type="button"
           data-testid="build-trigger"
           onClick={() => setOpen((o) => !o)}
-          className="w-full bg-accent/10 border border-accent/30 rounded-lg px-3 py-2 text-sm flex justify-between items-center text-accent"
+          className="w-full bg-accent/10 border border-accent/30 rounded-lg px-3 py-2 text-sm flex justify-between items-center text-accent transition-colors hover:bg-accent/20"
         >
           <span className="text-left min-w-0 flex-1">
             <span className="font-semibold block truncate">{triggerLabel.primary}</span>

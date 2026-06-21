@@ -83,8 +83,8 @@ export function MegaToggle({ mega, onChange, species, item }: Props) {
       aria-pressed={isMega}
       data-testid="mega-toggle"
       style={{ touchAction: 'manipulation' }}
-      className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${
-        isMega ? 'bg-accent-gradient text-white border-accent' : 'bg-surface border-surface-hi opacity-70'
+      className={`min-h-9 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition ${
+        isMega ? 'bg-accent-gradient text-white border-accent' : 'bg-surface border-surface-hi opacity-70 hover:opacity-100 hover:border-accent/40'
       }`}
     >
       {isMega ? `✦ ${label}` : label}

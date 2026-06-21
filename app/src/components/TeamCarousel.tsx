@@ -65,8 +65,8 @@ export function TeamCarousel({ vertical = false, onAddMon, suppressActive = fals
               setActiveMonIndex(i);
               onSlotTap?.(i);
             }}
-            className={`${slotBaseCls} rounded-xl flex items-center justify-center relative ${
-              active ? 'bg-accent/20 border-1.5 border-accent shadow-[0_0_20px_rgba(124,92,255,0.3)]' : 'bg-surface border border-surface-hi'
+            className={`${slotBaseCls} rounded-xl flex items-center justify-center relative transition-colors ${
+              active ? 'bg-accent/20 border-1.5 border-accent shadow-[0_0_20px_rgba(124,92,255,0.3)]' : 'bg-surface border border-surface-hi hover:border-accent/40'
             } ${fainted ? 'opacity-30' : ''}`}
           >
             <Sprite species={mon.species} alt={mon.species} className="w-3/4 h-3/4" />

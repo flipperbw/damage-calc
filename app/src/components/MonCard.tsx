@@ -264,7 +264,7 @@ export function MonCard({
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-name-${side}`} className="font-bold text-base text-left truncate">
+            <button onClick={(e) => stop(e, onEdit)} data-testid={`edit-name-${side}`} className="font-bold text-base text-left truncate transition-colors hover:text-accent">
               {mon.species}
             </button>
             <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -369,7 +369,7 @@ export function MonCard({
                           aria-label={`Lower ${STAT_LABEL[k]} boost`}
                           data-testid={`boost-down-${side}-${k}`}
                           style={{ touchAction: 'manipulation' }}
-                          className="flex-1 h-6 rounded bg-white/[0.05] border border-surface-hi text-xs leading-none text-text-mute disabled:opacity-25 hover:border-danger hover:text-danger"
+                          className="flex-1 h-6 rounded bg-white/[0.05] border border-surface-hi text-xs leading-none text-text-mute disabled:opacity-25 hover:border-danger/50 hover:text-danger/50"
                         >
                           −
                         </button>
@@ -380,7 +380,7 @@ export function MonCard({
                           aria-label={`Raise ${STAT_LABEL[k]} boost`}
                           data-testid={`boost-up-${side}-${k}`}
                           style={{ touchAction: 'manipulation' }}
-                          className="flex-1 h-6 rounded bg-white/[0.05] border border-surface-hi text-xs leading-none text-text-mute disabled:opacity-25 hover:border-ok hover:text-ok"
+                          className="flex-1 h-6 rounded bg-white/[0.05] border border-surface-hi text-xs leading-none text-text-mute disabled:opacity-25 hover:border-ok/50 hover:text-ok/50"
                         >
                           +
                         </button>
