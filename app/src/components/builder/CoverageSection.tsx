@@ -27,7 +27,9 @@ export function CoverageSection({ selectedTeamId, onSelectTeam }: Props) {
 
   // analyzeCoverage is pure but reads species/move data via calc. Memo so
   // unrelated re-renders (e.g. picker open/close) don't redo the chart math.
-  const report = useMemo(() => analyzeCoverage(team?.mons ?? []), [team?.id, team?.updatedAt]);
+  // `team.mons` is referentially stable from the store, so it only busts when
+  // the roster actually changes.
+  const report = useMemo(() => analyzeCoverage(team?.mons ?? []), [team?.mons]);
 
   // Slot index the user tapped while empty - opens the SpeciesPicker. Once a
   // species is picked, we add a new mon to the team and immediately open the

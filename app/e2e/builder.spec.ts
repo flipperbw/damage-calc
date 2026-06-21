@@ -113,6 +113,43 @@ test('Suggestions section: partial team yields cards with reasons; team mons exc
   await expect(suggestions.locator('[data-testid="suggestion-Garchomp"]')).toHaveCount(0);
 });
 
+test('Suggestions "Focus on": searchable picker filters and selects a threat', async ({ page }) => {
+  await freshStartWithSeeds(page);
+  await nav(page, 'Teams');
+  await createTeam(page);
+  await addMonToFirstSlot(page, 'Garchomp');
+  await activateTeam(page, 'New team');
+  await nav(page, 'Builder');
+
+  // The trigger defaults to "All threats".
+  const trigger = page.getByTestId('suggestions-focus');
+  await expect(trigger).toBeVisible();
+  await expect(trigger).toContainText('All threats');
+
+  // Opening it reveals the search box and the "All threats" reset row plus
+  // at least one seeded threat option.
+  await trigger.click();
+  const search = page.getByTestId('suggestions-focus-search');
+  await expect(search).toBeVisible();
+  await expect(page.getByTestId('suggestions-focus-option-all')).toBeVisible();
+  const options = page.locator('[data-testid^="suggestions-focus-option-"]');
+  expect(await options.count()).toBeGreaterThan(1);
+
+  // A non-matching query empties the list (All threats is filtered out too).
+  await search.fill('zzzznotathreat');
+  await expect(page.getByTestId('picker-no-results')).toBeVisible();
+
+  // Clearing and picking the first real threat closes the sheet and updates
+  // the trigger label to that species. "All threats" is always row 0, so the
+  // first seeded threat is nth(1).
+  await search.fill('');
+  const firstThreat = options.nth(1);
+  const picked = (await firstThreat.innerText()).trim();
+  await firstThreat.click();
+  await expect(search).toBeHidden();
+  await expect(trigger).toContainText(picked);
+});
+
 test('Suggestions section: empty state for an empty team', async ({ page }) => {
   await freshStart(page);
   await nav(page, 'Teams');

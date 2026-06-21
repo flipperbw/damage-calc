@@ -178,7 +178,13 @@ function catRank(m: MoveOption, mode: 'phys' | 'spec'): number {
 
 export function MovePicker({ open, onClose, onPick, species, isForOpponent, excludeMoves }: Props) {
   const pkmnReady = usePkmnReady();
-  const ALL_MOVES = useMemo(() => buildAllMoves(), [pkmnReady]);
+  // `pkmnReady` isn't an argument to buildAllMoves(); it gates the global pkmn
+  // move data the builder reads, so we rebuild once it flips. Reference it so
+  // the dep is genuine (not flagged "unnecessary") and intent is explicit.
+  const ALL_MOVES = useMemo(() => {
+    void pkmnReady;
+    return buildAllMoves();
+  }, [pkmnReady]);
   // Filter out moves already assigned to other slots on this Pokemon.
   // Empty string in excludeMoves (from a not-yet-set slot) is ignored.
   const excluded = useMemo(() => new Set((excludeMoves ?? []).filter(Boolean).map((m) => toID(m) as unknown as string)), [excludeMoves]);

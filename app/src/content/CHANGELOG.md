@@ -1,3 +1,8 @@
+## 2026-06-21
+
+- **Suggestion cards stop fibbing about resistances.** A "resists Ice" tag on a team-suggestion card now only shows when the mon actually resists (or is immune to) that type (rather than showing for neutral).
+- **Searchable "Focus on" picker.** The Suggestions "Focus on" control is now a searchable bottom sheet (sprites + type-to-filter + keyboard nav) instead of a plain dropdown, so picking a target from a long threat list is quick.
+
 ## 2026-06-20
 
 - **Inline boosts on the battle card.** Stat boosts now live right in the stat grid - each stat has +/- steppers and the displayed value updates live as you step a stage, so you no longer open a separate popup mid-battle. The grid is ordered Atk / SpA / Def / SpD / Spe, and status moved up next to ability/item/nature.

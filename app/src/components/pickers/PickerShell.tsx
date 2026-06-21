@@ -132,9 +132,13 @@ function SearchBody({ search, filters, children }: { search: SearchProps; filter
   // `data-picker-option` participates automatically.
   const [activeIndex, setActiveIndex] = useState(0);
   // Mirror activeIndex into a ref so the document-level key listener (bound once
-  // on open) always reads the latest value without re-binding.
+  // on open) always reads the latest value without re-binding. Synced in an
+  // effect (not during render) - the listener only reads it inside a keydown,
+  // which always fires after the commit, so it never sees a stale value.
   const activeIndexRef = useRef(0);
-  activeIndexRef.current = activeIndex;
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
   // Whether the filtered list rendered zero option rows (drives the
   // "No results" message). Derived from the DOM in the layout effect below.
   const [isEmpty, setIsEmpty] = useState(false);
@@ -190,6 +194,10 @@ function SearchBody({ search, filters, children }: { search: SearchProps; filter
   // user types/filters) and keep the active row scrolled into view. block:
   // 'nearest' is a no-op when it's already visible, so manual scrolls aren't
   // yanked — and the body only re-renders on navigation-style changes anyway.
+  // Intentionally no dep array: the option DOM is reactive to filtering, which
+  // a value-based dep list can't capture, and setIsEmpty is a no-op when the
+  // value is unchanged so there's no update loop.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     const opts = optionEls();
     // React bails out when the value is unchanged, so this won't loop.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { typeEffectiveness } from '@/calc/adapter';
 import { suggestAdditions } from '@/calc/suggestions';
 import { TOP_POOL, type TopPoolEntry } from '@/data/top-pool';
 import type { SavedMon } from '@/types';
@@ -76,6 +77,32 @@ describe('suggestAdditions', () => {
     // Should mention Grass somewhere in the reason texts.
     const texts = ferro.reasons.map((r) => r.text).join(' ');
     expect(texts).toMatch(/Grass/);
+  });
+
+  it('defensive-overlap chips only appear for a real resist/immunity, worded correctly', () => {
+    // Regression: a 1× (neutral) matchup was mislabeled "resists" (the
+    // reported Gengar-resists-Ice bug). A neutral matchup must now produce
+    // NO chip at all, and the prefix on the chips that remain must track the
+    // real multiplier from the live (Champions gen-0) chart: 0 → immune,
+    // <1 → resists. Walk the full meta pool so we catch any species, and
+    // recompute effectiveness from the same source the UI uses so the test
+    // stays chart-agnostic.
+    const team = [mon('Vaporeon'), mon('Politoed'), mon('Milotic')];
+    const out = suggestAdditions(team, [], TOP_POOL);
+    let checked = 0;
+    for (const s of out) {
+      for (const r of s.reasons) {
+        if (r.kind !== 'defensive-overlap') continue;
+        const m = /^(immune to|resists) (\w+)$/.exec(r.text);
+        expect(m, `unexpected reason text: "${r.text}"`).toBeTruthy();
+        const [, prefix, type] = m!;
+        const mult = typeEffectiveness(type, s.types);
+        expect(mult, `${s.species} vs ${type} should be <1× to earn a chip`).toBeLessThan(1);
+        expect(prefix, `${s.species} vs ${type} = ${mult}`).toBe(mult === 0 ? 'immune to' : 'resists');
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 
   it('skips candidates that are already on the team', () => {

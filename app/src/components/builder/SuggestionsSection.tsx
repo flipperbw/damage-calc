@@ -1,4 +1,12 @@
-import { useMemo, useState } from 'react';
+/* eslint-disable react-hooks/preserve-manual-memoization --
+ * React Compiler is NOT enabled in this build (vite.config.ts uses plain
+ * @vitejs/plugin-react), so this rule only checks whether these manual memos
+ * *would* survive the compiler - it has no runtime effect here. The `reference`
+ * and `suggestions` memos are intentional and load-bearing (their store-slice
+ * deps are referentially stable), but the rule can't prove preservation because
+ * `team`/`reference` flow into cross-module calls it can't analyze. exhaustive-deps
+ * still applies. Drop this disable if/when the compiler is adopted. */
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { suggestCountersTo } from '@/calc/counter-suggestions';
@@ -79,6 +87,7 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
   // threat list. Empty string === "All threats" (scored against the
   // top-three slice of the seeded doubles list).
   const [focusThreatId, setFocusThreatId] = useState<string>('');
+  const [focusPickerOpen, setFocusPickerOpen] = useState(false);
   // Drop stale focus when the selected threat list changes underneath us.
   const focusValid = !!focusThreatId && !!focusableThreats?.some((m) => m.id === focusThreatId);
   const focusedThreat = focusValid ? focusableThreats!.find((m) => m.id === focusThreatId) ?? null : null;
@@ -94,7 +103,12 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
   // The field used for scoring is otherwise the live one (weather,
   // screens, terrain).
   const tempo = team ? inferTeamTempo(team, field) : 'normal';
-  const scoringField = tempo === 'trick-room' && !field.isTrickRoom ? { ...field, isTrickRoom: true } : field;
+  // Memoized so a TR team doesn't mint a fresh field object every render
+  // (which would bust the suggestions memo below on each pass).
+  const scoringField = useMemo(
+    () => (tempo === 'trick-room' && !field.isTrickRoom ? { ...field, isTrickRoom: true } : field),
+    [tempo, field],
+  );
 
   // When the focused threat has no damaging moves modelled, the calc
   // returns 0% across the board for it. The counter scorer correctly
@@ -115,7 +129,9 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
     }
     if (!reference) return [];
     return suggestAdditions(team.mons, reference.mons);
-  }, [team?.id, team?.updatedAt, team?.format, reference?.id, reference?.updatedAt, focusedThreat, scoringField, tempo]);
+    // `team`, `reference`, and `scoringField` are all referentially stable
+    // (store slices / memoized), so this only recomputes on a real change.
+  }, [team, reference, focusedThreat, scoringField]);
 
   const [detail, setDetail] = useState<Suggestion | null>(null);
   const [open, setOpen] = useState(true);
@@ -140,23 +156,27 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
 
       {focusableThreats && focusableThreats.length > 0 && (
         <div className="flex items-center gap-2 mb-2.5">
-          <label htmlFor="suggestions-focus" className="text-[10px] uppercase tracking-wider opacity-55 shrink-0">
+          <label id="suggestions-focus-label" className="text-[10px] uppercase tracking-wider opacity-55 shrink-0">
             Focus on
           </label>
-          <select
-            id="suggestions-focus"
-            value={focusThreatId}
-            onChange={(e) => setFocusThreatId(e.target.value)}
+          <button
+            type="button"
+            onClick={() => setFocusPickerOpen(true)}
+            aria-labelledby="suggestions-focus-label"
+            aria-haspopup="dialog"
             data-testid="suggestions-focus"
-            className="flex-1 min-w-0 bg-surface border border-surface-hi rounded-lg px-2 py-1.5 text-sm text-text"
+            className="flex-1 min-w-0 flex items-center gap-2 bg-surface border border-surface-hi rounded-lg px-2 py-1.5 text-sm text-text text-left hover:border-accent/40 transition-colors"
           >
-            <option value="" className="bg-bg-base">All threats</option>
-            {focusableThreats.map((m) => (
-              <option key={m.id} value={m.id} className="bg-bg-base">
-                {m.species}
-              </option>
-            ))}
-          </select>
+            {focusedThreat ? (
+              <>
+                <Sprite species={focusedThreat.species} alt="" className="w-5 h-5 shrink-0" />
+                <span className="flex-1 min-w-0 truncate">{focusedThreat.species}</span>
+              </>
+            ) : (
+              <span className="flex-1 min-w-0 truncate">All threats</span>
+            )}
+            <span aria-hidden className="opacity-50 shrink-0 text-xs">▾</span>
+          </button>
         </div>
       )}
 
@@ -197,6 +217,19 @@ export function SuggestionsSection({ selectedTeamId, focusableThreats }: Props) 
       )}
 
       </>
+      )}
+
+      {focusableThreats && focusableThreats.length > 0 && (
+        <FocusThreatPicker
+          open={focusPickerOpen}
+          threats={focusableThreats}
+          selectedId={focusThreatId}
+          onPick={(id) => {
+            setFocusThreatId(id);
+            setFocusPickerOpen(false);
+          }}
+          onClose={() => setFocusPickerOpen(false)}
+        />
       )}
 
       <SuggestionDetailSheet
@@ -286,6 +319,84 @@ function SuggestionCard({
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * Bottom-sheet picker for the "Focus on" target. The seeded threat lists run
+ * to ~40 mons, so a plain <select> is a long scroll; this gives a search box
+ * (and keyboard nav, via PickerShell's data-picker-option contract) plus an
+ * "All threats" reset row pinned to the top. Empty `selectedId` === all.
+ */
+function FocusThreatPicker({
+  open,
+  threats,
+  selectedId,
+  onPick,
+  onClose,
+}: {
+  open: boolean;
+  threats: SavedMon[];
+  selectedId: string;
+  onPick: (id: string) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState('');
+
+  // Clear a stale search every time the sheet (re)opens.
+  useEffect(() => {
+    if (open) setQuery('');
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return threats;
+    return threats.filter((m) => m.species.toLowerCase().includes(q));
+  }, [threats, query]);
+
+  // "All threats" only shows when it isn't filtered out by the query, mirroring
+  // the way every other row obeys the search box.
+  const showAll = !query.trim() || 'all threats'.includes(query.trim().toLowerCase());
+
+  return (
+    <PickerShell
+      open={open}
+      onClose={onClose}
+      title="Focus on"
+      search={{ value: query, onChange: setQuery, placeholder: 'Search threats', testId: 'suggestions-focus-search' }}
+    >
+      <div className="mt-2">
+        {showAll && (
+          <button
+            type="button"
+            onClick={() => onPick('')}
+            data-picker-option
+            data-testid="suggestions-focus-option-all"
+            className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-surface data-[active=true]:bg-surface ${
+              selectedId === '' ? 'text-accent font-semibold' : ''
+            }`}
+          >
+            <span className="w-8 h-8 shrink-0 rounded flex items-center justify-center text-base opacity-70">✶</span>
+            <span className="font-medium">All threats</span>
+          </button>
+        )}
+        {filtered.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => onPick(m.id)}
+            data-picker-option
+            data-testid={`suggestions-focus-option-${m.id}`}
+            className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-surface data-[active=true]:bg-surface ${
+              selectedId === m.id ? 'text-accent font-semibold' : ''
+            }`}
+          >
+            <Sprite species={m.species} alt="" className="w-8 h-8 rounded" />
+            <span className="font-medium truncate">{m.species}</span>
+          </button>
+        ))}
+      </div>
+    </PickerShell>
   );
 }
 

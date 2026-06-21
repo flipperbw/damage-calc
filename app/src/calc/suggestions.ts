@@ -79,16 +79,19 @@ function scoreCandidate(
     }
   }
 
-  // --- Defensive overlaps the candidate is NOT weak to ----------------
-  // Threshold mirrors the chart: ≥2× combined across both defender types
-  // counts as a weakness; anything below means the candidate "resists" the
-  // overlap in coverage-analysis terms (neutral or better is a win here).
+  // --- Defensive overlaps the candidate actively answers --------------
+  // Only a genuine resist (<1×) or immunity (0×) earns a chip here. A
+  // neutral (1×) matchup is no better than what most of the team already
+  // has, so it neither scores nor renders - "neutral to X" is implied by
+  // the absence of a chip. (An earlier version mislabeled neutral matchups
+  // as "resists", e.g. Gengar "resists Ice", which was simply wrong.)
   for (const overlap of defensiveOverlaps) {
     if (candidate.types.length === 0) continue;
     const mult = typeEffectiveness(overlap, candidate.types);
-    if (mult < 2) {
+    if (mult < 1) {
       score += SCORE_DEFENSIVE_OVERLAP;
-      reasons.push({ kind: 'defensive-overlap', text: `resists ${overlap}` });
+      const text = mult === 0 ? `immune to ${overlap}` : `resists ${overlap}`;
+      reasons.push({ kind: 'defensive-overlap', text });
     }
   }
 

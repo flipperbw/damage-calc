@@ -9,6 +9,9 @@ import { TypeBadge } from '@/components/TypeBadge';
 import { useStore } from '@/store';
 import type { FieldState, SavedMon, Team, ThreatList } from '@/types';
 
+// Shared stable empty roster - see the memo note in MatchupMatrix.
+const NO_MONS: SavedMon[] = [];
+
 interface CellInfo {
   /** Best move's max % (used for the cell label and color tier). */
   pct: number;
@@ -40,13 +43,17 @@ export function MatchupMatrix({ team, threatList }: Props) {
   const battleField = useStore((s) => s.field);
   const [open, setOpen] = useState(true);
 
-  const yourMons = team?.mons ?? [];
-  const threats = threatList?.mons ?? [];
+  // NO_MONS is a shared stable empty array so the memo below doesn't bust on
+  // every render when a side is absent (a fresh `[]` would be a new ref each
+  // time). `team.mons` / `threatList.mons` are referentially stable from the
+  // store otherwise.
+  const yourMons = team?.mons ?? NO_MONS;
+  const threats = threatList?.mons ?? NO_MONS;
 
   const grid = useMemo<CellInfo[][]>(() => {
     if (yourMons.length === 0 || threats.length === 0) return [];
     return yourMons.map((you) => threats.map((threat) => bestCellInfo(you, threat, battleField, team?.format)));
-  }, [team?.id, team?.updatedAt, team?.format, threatList?.id, threatList?.updatedAt, battleField]);
+  }, [yourMons, threats, team?.format, battleField]);
 
   // Cell tap → drill-down sheet showing the best move's full range and
   // KO chance text, plus the species names so the user knows which side
