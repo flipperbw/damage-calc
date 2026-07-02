@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import type { MoveResult } from '@/calc/adapter';
 import { effectivenessBadge, koBadge, koTagFromText, priorityFlag, sturdyWarning } from '@/calc/format';
+import { clampMoveStateValue, getMoveStateSpec } from '@/calc/move-state';
 import { MoveDetailSheet } from '@/components/MoveDetailSheet';
 import { TypeBadge } from '@/components/TypeBadge';
 import { effectiveMoveAccuracy, usePkmnReady } from '@/data/pkmn';
@@ -19,9 +20,17 @@ interface Props {
    * callers don't have to thread it.
    */
   spreadView?: 'spread' | 'single';
+  /**
+   * Current battle-state counter value for this move (Last Respects fainted
+   * count, Rage Fist times-hit, ...), and a setter. Only wired on the Battle
+   * screen where a mon owns the move; when `onChangeMoveState` is omitted the
+   * stepper is hidden (e.g. read-only contexts).
+   */
+  moveStateValue?: number;
+  onChangeMoveState?: (value: number) => void;
 }
 
-export function MoveRow({ result, defenderForSturdy, spreadView = 'spread' }: Props) {
+export function MoveRow({ result, defenderForSturdy, spreadView = 'spread', moveStateValue, onChangeMoveState }: Props) {
   const [showDetail, setShowDetail] = useState(false);
   // Subscribe to @pkmn/data readiness — moveAccuracy returns null until
   // the cache is warm, so without this the "acc 90%" badge only shows up
@@ -63,15 +72,27 @@ export function MoveRow({ result, defenderForSturdy, spreadView = 'spread' }: Pr
 
   const eff = effectivenessBadge(result.effectiveness, result.isStatus);
 
+  // Battle-state moves (Last Respects, Rage Fist, ...) get a footer stepper so
+  // the user can supply the hidden counter the calc can't infer. Only shown
+  // when a setter is wired (i.e. this row's move belongs to an editable mon).
+  const stateSpec = getMoveStateSpec(result.moveName);
+  const showStepper = !!stateSpec && !!onChangeMoveState;
+  const stateValue = stateSpec ? clampMoveStateValue(stateSpec, moveStateValue ?? stateSpec.default) : 0;
+  const stepState = (delta: number) => {
+    if (!stateSpec || !onChangeMoveState) return;
+    onChangeMoveState(clampMoveStateValue(stateSpec, stateValue + delta));
+  };
+
   return (
     <>
+      <div className={`rounded-lg border ${tone} mb-1.5 overflow-hidden`}>
       <button
         type="button"
         onClick={() => setShowDetail(true)}
         aria-label={`${result.moveName} details`}
         data-testid={`move-row-${result.moveName}`}
         style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(124,92,255,0.15)' }}
-        className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg border ${tone} mb-1.5 select-none cursor-pointer transition hover:brightness-110`}
+        className="w-full text-left flex items-center gap-2 px-3 py-2 select-none cursor-pointer transition hover:brightness-110"
       >
         {/* Fixed-width type badge so move names line up vertically across
             rows regardless of type-name length. */}
@@ -115,6 +136,38 @@ export function MoveRow({ result, defenderForSturdy, spreadView = 'spread' }: Pr
           )}
         </div>
       </button>
+      {showStepper && stateSpec && (
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 border-t border-white/10 bg-black/20"
+          data-testid={`move-state-${result.moveName}`}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-text-mute flex-1">{stateSpec.label}</span>
+          <button
+            type="button"
+            onClick={() => stepState(-1)}
+            disabled={stateValue <= stateSpec.min}
+            aria-label={`Decrease ${stateSpec.label}`}
+            data-testid={`move-state-dec-${result.moveName}`}
+            className="min-w-[28px] min-h-[28px] rounded-md bg-surface border border-surface-hi text-sm font-bold leading-none disabled:opacity-30 enabled:hover:border-accent/50 enabled:hover:text-accent transition-colors"
+          >
+            -
+          </button>
+          <span className="min-w-[20px] text-center font-bold tabular-nums text-[13px]" data-testid={`move-state-value-${result.moveName}`}>
+            {stateValue}
+          </span>
+          <button
+            type="button"
+            onClick={() => stepState(1)}
+            disabled={stateValue >= stateSpec.max}
+            aria-label={`Increase ${stateSpec.label}`}
+            data-testid={`move-state-inc-${result.moveName}`}
+            className="min-w-[28px] min-h-[28px] rounded-md bg-surface border border-surface-hi text-sm font-bold leading-none disabled:opacity-30 enabled:hover:border-accent/50 enabled:hover:text-accent transition-colors"
+          >
+            +
+          </button>
+        </div>
+      )}
+      </div>
       <MoveDetailSheet open={showDetail} moveName={result.moveName} result={result} onClose={() => setShowDetail(false)} />
     </>
   );

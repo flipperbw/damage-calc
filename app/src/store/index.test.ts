@@ -391,3 +391,60 @@ describe('store: threat lists', () => {
     });
   });
 });
+
+describe('store: reorderMon', () => {
+  const seed = () => {
+    const id = useStore.getState().createTeam({ name: 'Order', format: 'singles' });
+    for (const sp of ['Garchomp', 'Rotom', 'Kingambit']) {
+      useStore.getState().upsertMon(id, mon(sp));
+    }
+    return id;
+  };
+  const order = (teamId: string) => useStore.getState().teams.find((t) => t.id === teamId)!.mons.map((m) => m.species);
+
+  it('moves a mon down (up-arrow semantics reversed)', () => {
+    const id = seed();
+    useStore.getState().reorderMon(id, 0, 1);
+    expect(order(id)).toEqual(['Rotom', 'Garchomp', 'Kingambit']);
+  });
+
+  it('moves a mon up', () => {
+    const id = seed();
+    useStore.getState().reorderMon(id, 2, 1);
+    expect(order(id)).toEqual(['Garchomp', 'Kingambit', 'Rotom']);
+  });
+
+  it('preserves mon ids across the move', () => {
+    const id = seed();
+    const before = useStore.getState().teams.find((t) => t.id === id)!.mons[0].id;
+    useStore.getState().reorderMon(id, 0, 2);
+    const after = useStore.getState().teams.find((t) => t.id === id)!.mons[2].id;
+    expect(after).toBe(before);
+  });
+
+  it('is a no-op for out-of-range or identical indices', () => {
+    const id = seed();
+    const updatedAt = useStore.getState().teams.find((t) => t.id === id)!.updatedAt;
+    useStore.getState().reorderMon(id, 0, 0);
+    useStore.getState().reorderMon(id, -1, 1);
+    useStore.getState().reorderMon(id, 0, 9);
+    expect(order(id)).toEqual(['Garchomp', 'Rotom', 'Kingambit']);
+    expect(useStore.getState().teams.find((t) => t.id === id)!.updatedAt).toBe(updatedAt);
+  });
+});
+
+describe('store: resetField', () => {
+  it('clears top-level field keys that a shallow setField merge would leave set', () => {
+    useStore.getState().setField({ weather: 'Rain', terrain: 'Electric', isTrickRoom: true });
+    useStore.getState().setField({ yourSide: { tailwind: true } });
+    expect(useStore.getState().field.weather).toBe('Rain');
+
+    useStore.getState().resetField();
+    const f = useStore.getState().field;
+    expect(f.weather).toBeUndefined();
+    expect(f.terrain).toBeUndefined();
+    expect(f.isTrickRoom).toBeUndefined();
+    expect(f.yourSide).toEqual({});
+    expect(f.oppSide).toEqual({});
+  });
+});

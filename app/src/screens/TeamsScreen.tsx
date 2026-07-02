@@ -28,6 +28,7 @@ export function TeamsScreen() {
   const setActiveTeam = useStore((s) => s.setActiveTeam);
   const upsertMon = useStore((s) => s.upsertMon);
   const removeMon = useStore((s) => s.removeMon);
+  const reorderMon = useStore((s) => s.reorderMon);
   const renameTeam = useStore((s) => s.renameTeam);
   const setTeamFormat = useStore((s) => s.setTeamFormat);
   const duplicateTeam = useStore((s) => s.duplicateTeam);
@@ -160,6 +161,7 @@ export function TeamsScreen() {
             else setPicker({ teamId: t.id, slotIndex: i });
           }}
           onOpenMon={(monId) => setEditor({ kind: 'team-mon', teamId: t.id, monId })}
+          onReorder={(from, to) => reorderMon(t.id, from, to)}
         />
       ))}
 
@@ -282,6 +284,7 @@ function TeamCard({
   onSlot,
   onMenu,
   onOpenMon,
+  onReorder,
 }: {
   team: Team;
   active: boolean;
@@ -289,6 +292,7 @@ function TeamCard({
   onSlot: (i: number) => void;
   onMenu: () => void;
   onOpenMon: (monId: string) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
 }) {
   // Active team starts expanded; inactive teams start collapsed. After
   // mount, manual toggles win until the team becomes active again — the
@@ -338,8 +342,16 @@ function TeamCard({
         // Empty slots get a dashed-border placeholder card that opens the
         // species picker — keeps the grid balanced and signals where to add.
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
-          {team.mons.map((mon) => (
-            <TeamMonCard key={mon.id} mon={mon} onEdit={() => onOpenMon(mon.id)} />
+          {team.mons.map((mon, i) => (
+            <TeamMonCard
+              key={mon.id}
+              mon={mon}
+              onEdit={() => onOpenMon(mon.id)}
+              onMoveUp={() => onReorder(i, i - 1)}
+              onMoveDown={() => onReorder(i, i + 1)}
+              canMoveUp={i > 0}
+              canMoveDown={i < team.mons.length - 1}
+            />
           ))}
           {Array.from({ length: 6 - team.mons.length }, (_, k) => {
             const slotIndex = team.mons.length + k;
@@ -546,14 +558,16 @@ function MetaTeamsSection({ onUsePreset }: { onUsePreset: (preset: PresetTeam) =
 function PresetCard({ preset, onUse }: { preset: PresetTeam; onUse: () => void }) {
   return (
     <div
-      className="bg-surface border border-surface-hi rounded-card p-3 flex flex-col gap-4"
+      className="bg-surface border border-surface-hi rounded-card p-3 flex flex-col gap-4 h-full"
       data-testid={`preset-${preset.name.toLowerCase().replace(/\s+/g, '-')}`}
     >
       <div>
         <div className="font-bold text-[15px]">{preset.name}</div>
         <div className="text-[11px] opacity-60 leading-snug">{preset.blurb}</div>
       </div>
-      <div className="flex gap-1.5">
+      {/* Sprites + button pin to the bottom (mt-auto) so cards in a row share
+          a height regardless of how many lines the tournament name wraps to. */}
+      <div className="flex gap-1.5 mt-auto">
         {preset.mons.map((m, i) => (
           <div
             key={i}

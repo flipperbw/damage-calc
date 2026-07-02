@@ -31,6 +31,7 @@ export function BattleScreen() {
   const createTeam = useStore((s) => s.createTeam);
   const setTab = useStore((s) => s.setTab);
   const field = useStore((s) => s.field);
+  const resetField = useStore((s) => s.resetField);
   // Editor target lives in the store so it survives iOS unloading the tab.
   // The editor is rendered for the *current* `you` or `opponent` mon based
   // on the persisted target - losing the WIP draft on reload is the agreed
@@ -98,6 +99,50 @@ export function BattleScreen() {
     setYouOverrideEditing(false);
   }
   const you = youOverride ?? teamYou;
+
+  // Battle-state move counters (Last Respects fainted, Rage Fist times-hit).
+  // Writes follow the same routing as HP/status/boost edits: the ad-hoc
+  // override when present, otherwise the team mon. Keyed by move id so the
+  // value tracks the move, not the slot.
+  const setYouMoveState = (moveName: string, value: number) => {
+    if (!you) return;
+    const next = { ...(you.moveState ?? {}), [toID(moveName)]: value };
+    if (youOverride) setYouOverride({ ...youOverride, moveState: next });
+    else if (team) upsertMon(team.id, { ...you, moveState: next });
+  };
+  const setOppMoveState = (moveName: string, value: number) => {
+    if (!opponent) return;
+    updateOpponent({ moveState: { ...(opponent.moveState ?? {}), [toID(moveName)]: value } });
+  };
+
+  // "Reset battle" - one tap returns the whole battle to a clean slate. Clears
+  // transient battle state on BOTH sides (HP / status / boosts / mega / move-
+  // state counters), reverts any active worst-case swap to the pre-worst-case
+  // build, and resets the field. Never touches saved team data beyond these
+  // transient knobs, so no confirm dialog. Distinct from the per-card reset
+  // (one side) and the opponent Revert (worst-case only).
+  const clearBattleState = <T extends SavedMon>(mon: T): T => ({
+    ...mon,
+    currentHp: undefined,
+    boosts: {},
+    status: undefined,
+    mega: '',
+    moveState: {},
+  });
+  const resetBattle = () => {
+    // You side: route through the override when present, else the team mon.
+    if (youOverride) setYouOverride(clearBattleState(youOverride));
+    else if (team && you) upsertMon(team.id, clearBattleState(you));
+    // Opponent: fold any worst-case swap back to the snapshot first.
+    const oppBase = oppPreWorstCase ?? opponent;
+    if (oppBase) setOpponent(clearBattleState(oppBase));
+    setOppPreWorstCase(null);
+    setOppMode(null);
+    // Field back to defaults (weather / terrain / screens / rooms). resetField
+    // replaces the field wholesale - a shallow setField merge would leave
+    // top-level keys like weather/terrain set.
+    resetField();
+  };
 
   // Memo so we don't recompute when unrelated store slices change. Pass the
   // team's format so calc applies the Doubles 0.75x spread reduction to
@@ -342,6 +387,18 @@ export function BattleScreen() {
       />
       <SpeedDivider speed={matchup.speed} priorityWarning={priorityWarning} />
 
+      <div className="flex justify-end mb-2">
+        <button
+          type="button"
+          onClick={resetBattle}
+          data-testid="reset-battle"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-surface-hi bg-surface text-[11px] font-semibold text-text-mute hover:border-accent/50 hover:text-accent transition-colors"
+        >
+          <span aria-hidden>↺</span>
+          <span>Reset battle</span>
+        </button>
+      </div>
+
       <div className="md:grid md:grid-cols-2 md:gap-4">
         {/* You */}
         <div>
@@ -412,7 +469,14 @@ export function BattleScreen() {
             </div>
             <DisguiseBanner mon={opponent} />
             {matchup.attackerMoves.map((r, i) => (
-              <MoveRow key={i} result={r} defenderForSturdy={opponent} spreadView={yourSpreadView} />
+              <MoveRow
+                key={i}
+                result={r}
+                defenderForSturdy={opponent}
+                spreadView={yourSpreadView}
+                moveStateValue={r.moveName ? you?.moveState?.[toID(r.moveName)] : undefined}
+                onChangeMoveState={r.moveName ? (v) => setYouMoveState(r.moveName, v) : undefined}
+              />
             ))}
           </div>
         </div>
@@ -565,7 +629,14 @@ export function BattleScreen() {
             </div>
             <DisguiseBanner mon={you} />
             {matchup.defenderMoves.map((r, i) => (
-              <MoveRow key={i} result={r} defenderForSturdy={you} spreadView={theirSpreadView} />
+              <MoveRow
+                key={i}
+                result={r}
+                defenderForSturdy={you}
+                spreadView={theirSpreadView}
+                moveStateValue={r.moveName ? opponent?.moveState?.[toID(r.moveName)] : undefined}
+                onChangeMoveState={r.moveName ? (v) => setOppMoveState(r.moveName, v) : undefined}
+              />
             ))}
           </div>
           </div>

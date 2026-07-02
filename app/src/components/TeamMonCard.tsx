@@ -1,4 +1,5 @@
 import { calcStat } from '@smogon/calc';
+import type { MouseEvent } from 'react';
 
 import { GEN, toID } from '@/calc/gen';
 import { effectiveAbility, megaFormeName, natureMods } from '@/calc/helpers';
@@ -16,6 +17,14 @@ interface Props {
    * all to the editor too.
    */
   onEdit?: () => void;
+  /**
+   * Reorder controls. When provided, up/down arrows render in the header;
+   * each disables at its end of the list. Omitted in read-only contexts.
+   */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }
 
 /**
@@ -27,7 +36,14 @@ interface Props {
  * Designed to lay out in a responsive grid (1 column on mobile, 3 on
  * desktop) inside the TeamsScreen's expanded team card.
  */
-export function TeamMonCard({ mon, onEdit }: Props) {
+export function TeamMonCard({ mon, onEdit, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: Props) {
+  const showReorder = !!onMoveUp || !!onMoveDown;
+  // Stop the card's own onClick (which opens the editor) from firing when an
+  // arrow is tapped.
+  const reorder = (fn?: () => void) => (e: MouseEvent) => {
+    e.stopPropagation();
+    fn?.();
+  };
   const effectiveSpecies = mon.mega ? megaFormeName(mon.species, mon.mega, mon.item) : mon.species;
   const sp = GEN.species.get(toID(effectiveSpecies) as any) ?? GEN.species.get(toID(mon.species) as any);
   const types = (sp?.types ?? []) as string[];
@@ -68,6 +84,30 @@ export function TeamMonCard({ mon, onEdit }: Props) {
             ))}
           </div>
         </div>
+        {showReorder && (
+          <div className="flex flex-col gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={reorder(onMoveUp)}
+              disabled={!canMoveUp}
+              aria-label={`Move ${mon.species} up`}
+              data-testid={`team-mon-up-${mon.id}`}
+              className="min-w-[32px] min-h-[32px] rounded-lg bg-surface border border-surface-hi text-xs leading-none opacity-70 disabled:opacity-25 enabled:hover:opacity-100 enabled:hover:border-accent/50 transition-colors"
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              onClick={reorder(onMoveDown)}
+              disabled={!canMoveDown}
+              aria-label={`Move ${mon.species} down`}
+              data-testid={`team-mon-down-${mon.id}`}
+              className="min-w-[32px] min-h-[32px] rounded-lg bg-surface border border-surface-hi text-xs leading-none opacity-70 disabled:opacity-25 enabled:hover:opacity-100 enabled:hover:border-accent/50 transition-colors"
+            >
+              ▼
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Stats grid — same look as BattleScreen's MonCard so the eye picks

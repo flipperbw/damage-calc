@@ -2,6 +2,7 @@ import { calculate, Field, Move, Pokemon, TYPE_CHART } from '@smogon/calc';
 
 import { GEN, toID } from '@/calc/gen';
 import { effectiveAbility, megaFormeName } from '@/calc/helpers';
+import { moveStateBasePower } from '@/calc/move-state';
 import { priorityOverride } from '@/data/pkmn';
 import type { FieldState, InBattleForme, SavedMon, SideState, StatusName } from '@/types';
 
@@ -260,14 +261,19 @@ function dynamicMoveType(move: Move, field: Field): string {
   return move.type as string;
 }
 
-function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon, field: Field): MoveResult {
+function buildMoveResult(moveName: string, attacker: Pokemon, defender: Pokemon, field: Field, bpOverride?: number): MoveResult {
   if (!moveName) {
     return emptyMoveResult();
   }
   let move: Move;
   let result: ReturnType<typeof calculate>;
+  // Battle-state moves (Last Respects, Rage Fist, ...) scale their base power
+  // with hidden state the calc can't infer. The caller resolves the effective
+  // BP from the mon's stored counter and we inject it via the same `overrides`
+  // path used for the spread single-target recalc below.
+  const overrides = bpOverride !== undefined ? { basePower: bpOverride } : undefined;
   try {
-    move = new Move(GEN, moveName);
+    move = new Move(GEN, moveName, overrides ? { overrides } : undefined);
     result = calculate(GEN, attacker, defender, move, field);
   } catch (err) {
     // Calc can throw when its internal data lookups fail (e.g. an unknown
@@ -482,8 +488,8 @@ export function calculateMatchup(you: SavedMon, opp: SavedMon, field: FieldState
     return emptyMatchup();
   }
 
-  const attackerMoves = you.moves.map((m) => buildMoveResult(m, yourAsAttacker.clone(), oppAsDefender.clone(), yourSide));
-  const defenderMoves = opp.moves.map((m) => buildMoveResult(m, oppAsAttacker.clone(), yourAsDefender.clone(), oppSide));
+  const attackerMoves = you.moves.map((m) => buildMoveResult(m, yourAsAttacker.clone(), oppAsDefender.clone(), yourSide, moveStateBasePower(m, you)));
+  const defenderMoves = opp.moves.map((m) => buildMoveResult(m, oppAsAttacker.clone(), yourAsDefender.clone(), oppSide, moveStateBasePower(m, opp)));
 
   // Effective speed accounts for Tailwind, Choice Scarf, Iron Ball,
   // paralysis, Chlorophyll/Swift Swim/Sand Rush/Slush Rush in the right

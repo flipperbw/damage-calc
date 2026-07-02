@@ -63,6 +63,15 @@ export interface SavedMon {
   currentHp?: number; // raw HP; undefined = full
   status?: StatusName;
   boosts: Partial<Record<StatIDExceptHP, number>>; // -6..+6
+  /**
+   * Per-move battle-state values for moves whose base power depends on hidden
+   * battle state the calc can't infer from a static build (Last Respects scales
+   * with fainted allies, Rage Fist with times hit). Keyed by move id (toID),
+   * not slot index, so values survive move reordering. Absent / 0 means the
+   * move behaves at its flat base power - existing saved teams are unaffected.
+   * See app/src/calc/move-state.ts for the registry of qualifying moves.
+   */
+  moveState?: Record<string, number>;
 }
 
 export type Format = 'singles' | 'doubles';

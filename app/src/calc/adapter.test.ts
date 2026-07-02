@@ -398,3 +398,54 @@ describe('Weather Ball dynamic type', () => {
     expect(calculateMatchup(wbUser, venusaur, { ...blankField(), weather: 'Sand' }).attackerMoves[0].type).toBe('Rock');
   });
 });
+
+describe('battle-state move base power (moveState)', () => {
+  beforeAll(async () => {
+    await preloadPkmn();
+  });
+
+  // Annihilape learns Rage Fist; damage must climb as the "times hit" counter
+  // rises because BP goes 50 -> 100 -> ... -> 350.
+  const rageUser: SavedMon = {
+    id: 'rage',
+    species: 'Annihilape',
+    ability: 'Defiant',
+    nature: 'Adamant',
+    sps: { atk: 32, spe: 32 },
+    moves: ['Rage Fist', 'Close Combat', 'Drain Punch', 'Bulk Up'],
+    mega: '',
+    boosts: {},
+  };
+
+  it('defaults to flat base power when no counter is set', () => {
+    const zero = calculateMatchup(rageUser, tyranitar, blankField()).attackerMoves[0];
+    const explicitZero = calculateMatchup({ ...rageUser, moveState: { ragefist: 0 } }, tyranitar, blankField()).attackerMoves[0];
+    expect(zero.moveName).toBe('Rage Fist');
+    expect(explicitZero.damageRange).toEqual(zero.damageRange);
+  });
+
+  it('scales Rage Fist damage up with the times-hit counter', () => {
+    const zero = calculateMatchup(rageUser, tyranitar, blankField()).attackerMoves[0];
+    const six = calculateMatchup({ ...rageUser, moveState: { ragefist: 6 } }, tyranitar, blankField()).attackerMoves[0];
+    expect(six.damageRange[1]).toBeGreaterThan(zero.damageRange[1]);
+  });
+
+  it('scales opponent Last Respects with fainted allies', () => {
+    const lrUser: SavedMon = {
+      id: 'lr',
+      species: 'Basculegion',
+      ability: 'Adaptability',
+      nature: 'Adamant',
+      sps: { atk: 32, spe: 32 },
+      moves: ['Last Respects', 'Wave Crash', 'Aqua Jet', 'Flip Turn'],
+      mega: '',
+      boosts: {},
+    };
+    // Last Respects sits in the opponent (defender-role) slot here, exercising
+    // the defenderMoves path.
+    const zero = calculateMatchup(tyranitar, lrUser, blankField()).defenderMoves[0];
+    const five = calculateMatchup(tyranitar, { ...lrUser, moveState: { lastrespects: 5 } }, blankField()).defenderMoves[0];
+    expect(zero.moveName).toBe('Last Respects');
+    expect(five.damageRange[1]).toBeGreaterThan(zero.damageRange[1]);
+  });
+});

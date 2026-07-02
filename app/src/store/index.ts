@@ -43,6 +43,7 @@ interface Actions {
   setActiveMonIndex: (i: number) => void;
   upsertMon: (teamId: string, mon: SavedMon) => void;
   removeMon: (teamId: string, monId: string) => void;
+  reorderMon: (teamId: string, fromIndex: number, toIndex: number) => void;
   // Opponent
   setOpponent: (mon: SavedMon | null) => void;
   updateOpponent: (patch: Partial<SavedMon>) => void;
@@ -64,6 +65,10 @@ interface Actions {
   ensureSeedThreatLists: () => void;
   // Field
   setField: (patch: Partial<FieldState>) => void;
+  /** Replace the field wholesale with defaults. Unlike setField (a shallow
+   *  merge), this clears top-level keys like weather/terrain that a partial
+   *  patch of {...s.field} would leave intact. */
+  resetField: () => void;
   togglePinnedFieldKey: (key: string) => void;
   // UI
   setTab: (t: Tab) => void;
@@ -147,6 +152,21 @@ export const useStore = create<AppState & Actions>()(
       setActiveTeam: (id) => set({ activeTeamId: id, activeMonIndex: 0 }),
       setActiveMonIndex: (i) => set({ activeMonIndex: i }),
       upsertMon: (teamId, mon) => set((s) => ({ teams: upsertChild(s.teams, teamId, mon) })),
+      reorderMon: (teamId, fromIndex, toIndex) =>
+        set((s) => ({
+          teams: s.teams.map((t) => {
+            if (t.id !== teamId) return t;
+            const mons = [...t.mons];
+            // Guard against out-of-range indices (e.g. an arrow tapped at an
+            // end); a no-op reorder shouldn't bump updatedAt or reshuffle.
+            if (fromIndex < 0 || fromIndex >= mons.length || toIndex < 0 || toIndex >= mons.length || fromIndex === toIndex) {
+              return t;
+            }
+            const [moved] = mons.splice(fromIndex, 1);
+            mons.splice(toIndex, 0, moved);
+            return { ...t, mons, updatedAt: Date.now() };
+          }),
+        })),
       removeMon: (teamId, monId) =>
         set((s) => {
           const teams = removeChild(s.teams, teamId, monId);
@@ -305,6 +325,7 @@ export const useStore = create<AppState & Actions>()(
         }),
 
       setField: (patch) => set((s) => ({ field: { ...s.field, ...patch } })),
+      resetField: () => set({ field: emptyField() }),
       togglePinnedFieldKey: (key) =>
         set((s) => {
           const has = s.pinnedFieldKeys.includes(key);

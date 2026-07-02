@@ -99,3 +99,42 @@ describe('findHardestHitter', () => {
     expect(() => findHardestHitter('Garchomp', target, blankField(), 'singles', garchomp)).not.toThrow();
   });
 });
+
+describe('mega opponents stay mega', () => {
+  // A mega Swampert with a deliberately weak, defensively-invested kit so the
+  // synth can find a strictly better build (non-null result) in both searches.
+  const megaSwampert = (over: Partial<SavedMon> = {}): SavedMon => ({
+    id: 'msw',
+    species: 'Swampert',
+    ability: 'Torrent',
+    item: 'Swampertite',
+    nature: 'Relaxed',
+    sps: { hp: 32, def: 2 },
+    moves: ['Rest', 'Curse', 'Amnesia', 'Protect'], // no damaging moves
+    mega: 'mega',
+    boosts: {},
+    ...over,
+  });
+
+  it('findHardestHitter keeps the mega flag and mega stone', () => {
+    const res = findHardestHitter('Swampert', garchomp, blankField(), 'singles', megaSwampert());
+    expect(res).not.toBeNull();
+    expect(res!.mon.mega).toBe('mega');
+    expect(res!.mon.item).toBe('Swampertite');
+  });
+
+  it('findTankiestBuild keeps the mega flag and mega stone', () => {
+    // Offensive current build (poor wall) so the defensive synth takes less.
+    const res = findTankiestBuild('Swampert', garchomp, blankField(), 'singles', megaSwampert({ nature: 'Adamant', sps: { atk: 32, spe: 32 } }));
+    expect(res).not.toBeNull();
+    expect(res!.mon.mega).toBe('mega');
+    expect(res!.mon.item).toBe('Swampertite');
+  });
+
+  it('non-mega opponents are unaffected (no mega flag leaks in)', () => {
+    const res = findHardestHitter('Garchomp', blastoise, blankField(), 'singles');
+    // May be null only if blastoise walls everything; Garchomp vs Blastoise it
+    // won't be. Guard the assertion behind non-null.
+    if (res) expect(res.mon.mega).toBe('');
+  });
+});

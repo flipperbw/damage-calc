@@ -1,3 +1,10 @@
+## 2026-07-01
+
+- **Reorder your team.** Each mon card in the expanded team now has up/down arrows so you can set the order (lead first, etc.).
+- **Deadliest / Tankiest keep megas mega.** Clicking Deadliest or Tankiest on a mega opponent no longer reverts it to the base forme - the worst-case search now keeps the mega stone and scores damage on the true mega forme.
+- **Reset battle in one tap.** A "Reset battle" button clears HP, status, boosts, mega state, and battle-state counters on both sides, undoes any Deadliest / Tankiest swap, and resets the field back to defaults.
+- **Battle-state moves are adjustable.** Moves whose power depends on hidden battle state - Last Respects (allies fainted) and Rage Fist (times hit) - get an inline +/- stepper on the move row, so the calc reflects their real base power instead of the flat minimum.
+
 ## 2026-06-21
 
 - **Suggestion cards stop fibbing about resistances.** A "resists Ice" tag on a team-suggestion card now only shows when the mon actually resists (or is immune to) that type (rather than showing for neutral).

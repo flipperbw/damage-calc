@@ -2,7 +2,7 @@ import { calculateMatchup } from '@/calc/adapter';
 import { GEN, toID } from '@/calc/gen';
 import { getSpeciesAbilities } from '@/data/pkmn';
 import { getKnownMovesForSpecies } from '@/data/setdex-champions';
-import type { FieldState, SavedMon } from '@/types';
+import type { FieldState, MegaState, SavedMon } from '@/types';
 
 /**
  * Worst-case opponent build search. Two flavors, both purely synthesized
@@ -64,6 +64,14 @@ export function findHardestHitter(
     })
     .filter((x) => x.bp > 0 && (x.cat === 'Physical' || x.cat === 'Special'));
 
+  // If the current opponent is mega, the synth must stay mega: keep the mega
+  // flag and lock the held item to the existing mega stone (megas can't hold
+  // boosters). Damage then scores on the true mega forme, and BattleScreen's
+  // preserved `mega` flag lines up with a stone-holding item so the MegaToggle
+  // keeps rendering. See the un-megaing bug fix.
+  const oppMega: MegaState = currentOpponent?.mega ?? '';
+  const megaItem = oppMega ? currentOpponent?.item : undefined;
+
   let best: { mon: SavedMon; damage: number; label: string } | null = null;
 
   // Search (category × ability × top-move). For each combo, score damage
@@ -78,8 +86,9 @@ export function findHardestHitter(
     const fillers = [...catMoves].sort((a, b) => b.bp - a.bp);
     for (const ability of abilities) {
       for (const top of catMoves) {
-        const item = top.type ? TYPE_BOOSTER[top.type] : undefined;
-        const candidate = buildAttacker(species, category, ability, top.name, top.type, fillers, item);
+        // Mega: forced to the mega stone. Non-mega: best type-matched booster.
+        const item = oppMega ? megaItem : top.type ? TYPE_BOOSTER[top.type] : undefined;
+        const candidate = buildAttacker(species, category, ability, top.name, top.type, fillers, item, oppMega);
         const damage = maxDamageOf(candidate, defender, field, format);
         if (!best || damage > best.damage) {
           best = { mon: candidate, damage, label: `Max-threat ${category}` };
@@ -133,13 +142,20 @@ export function findTankiestBuild(
   // but Aura Sphere (4× SE on Dark/Steel) is the move that actually one-
   // shots Kingambit, and Chople Berry is what saves it. Adding all types
   // lets the damage-scored search find the right berry.
-  const items: (string | undefined)[] = ['Leftovers', 'Focus Sash'];
-  const seenBerry = new Set<string>();
-  for (const type of attackerMoveTypes(attacker, field, format)) {
-    const berry = RESIST_BERRY_BY_TYPE[type];
-    if (berry && !seenBerry.has(berry)) {
-      seenBerry.add(berry);
-      items.push(berry);
+  // Mega opponent: stay mega. Lock the item to the existing mega stone (megas
+  // can't hold Leftovers / a resist berry) and score tankiness on the true
+  // mega forme. Otherwise search the defensive item set as before.
+  const oppMega: MegaState = currentOpponent?.mega ?? '';
+  const megaItem = oppMega ? currentOpponent?.item : undefined;
+  const items: (string | undefined)[] = oppMega ? [megaItem] : ['Leftovers', 'Focus Sash'];
+  if (!oppMega) {
+    const seenBerry = new Set<string>();
+    for (const type of attackerMoveTypes(attacker, field, format)) {
+      const berry = RESIST_BERRY_BY_TYPE[type];
+      if (berry && !seenBerry.has(berry)) {
+        seenBerry.add(berry);
+        items.push(berry);
+      }
     }
   }
 
@@ -153,7 +169,7 @@ export function findTankiestBuild(
   let best: { mon: SavedMon; damage: number } | null = null;
   for (const ability of abilities) {
     for (const item of items) {
-      const wall = buildWall(species, primary, ability, item, moveFallback);
+      const wall = buildWall(species, primary, ability, item, moveFallback, oppMega);
       const damage = maxDamageOf(attacker, wall, field, format);
       if (!best || damage < best.damage) {
         best = { mon: wall, damage };
@@ -313,6 +329,7 @@ function buildAttacker(
   topType: string | undefined,
   fillers: { name: string }[],
   item: string | undefined,
+  mega: MegaState = '',
 ): SavedMon {
   void topType;
   const isPhysical = category === 'Physical';
@@ -329,7 +346,7 @@ function buildAttacker(
     // worst case can move first), leftover to HP. Total = 66.
     sps: isPhysical ? { atk: 32, spe: 32, hp: 2 } : { spa: 32, spe: 32, hp: 2 },
     moves,
-    mega: '',
+    mega,
     boosts: {},
   };
 }
@@ -345,6 +362,7 @@ function buildWall(
   ability: string,
   item: string | undefined,
   moveFallback?: readonly string[],
+  mega: MegaState = '',
 ): SavedMon {
   const known = getKnownMovesForSpecies(species);
   // Prefer the curated Champions moveset; if none exists for this species
@@ -367,7 +385,7 @@ function buildWall(
     // side to keep the build legal (66 total in Champions).
     sps: isPhys ? { hp: 32, def: 32, spd: 2 } : { hp: 32, spd: 32, def: 2 },
     moves,
-    mega: '',
+    mega,
     boosts: {},
   };
 }
