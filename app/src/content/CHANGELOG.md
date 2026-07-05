@@ -1,3 +1,7 @@
+## 2026-07-05
+
+- **Reset battle now clears your whole team.** Was only wiping the mon you had selected.
+
 ## 2026-07-01
 
 - **Reorder your team.** Each mon card in the expanded team now has up/down arrows so you can set the order (lead first, etc.).

@@ -84,6 +84,35 @@ test('reset battle clears both sides and the field', async ({ page }) => {
   await expect(oppMega).toHaveAttribute('aria-pressed', 'false');
 });
 
+test('reset battle also clears benched (non-active) team mons', async ({ page }) => {
+  await freshStart(page);
+  await nav(page, 'Teams');
+  await createTeam(page);
+  await addMonToFirstSlot(page, 'Garchomp', /Swords Dance/);
+  await addSecondMon(page, 'Skarmory', /Defensive/);
+  await activateTeam(page, 'New team');
+  await pickOpponent(page, 'Swampert');
+
+  // Boost the active mon (Garchomp, slot 0).
+  await page.getByRole('button', { name: 'Raise Atk boost' }).first().click();
+  await expect(page.getByTestId('boost-stage-you-atk')).toHaveText('+1');
+
+  // Switch to the benched mon (Skarmory, slot 1) and boost it too. This state
+  // lives on the benched mon, which the old reset left untouched.
+  await page.getByTestId('carousel-slot-1').click();
+  await page.getByRole('button', { name: 'Raise Atk boost' }).first().click();
+  await expect(page.getByTestId('boost-stage-you-atk')).toHaveText('+1');
+
+  // Reset from the benched mon's view: it clears immediately.
+  await page.getByTestId('reset-battle').click();
+  await expect(page.getByTestId('boost-stage-you-atk')).not.toHaveText('+1');
+
+  // The originally-active mon (slot 0) must be clear too - the bug was that
+  // only the currently-selected mon got reset.
+  await page.getByTestId('carousel-slot-0').click();
+  await expect(page.getByTestId('boost-stage-you-atk')).not.toHaveText('+1');
+});
+
 test('battle-state move stepper raises the damage readout', async ({ page }) => {
   await freshStart(page);
   await nav(page, 'Teams');

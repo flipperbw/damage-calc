@@ -130,9 +130,12 @@ export function BattleScreen() {
     moveState: {},
   });
   const resetBattle = () => {
-    // You side: route through the override when present, else the team mon.
+    // You side: clear the ad-hoc override when present, AND every mon on the
+    // team - not just the active slot. Benched mons carry their own transient
+    // battle state (HP / status / boosts / mega / move-state), so a true reset
+    // has to wipe all of them or a swapped-in mon shows stale mid-battle knobs.
     if (youOverride) setYouOverride(clearBattleState(youOverride));
-    else if (team && you) upsertMon(team.id, clearBattleState(you));
+    if (team) team.mons.forEach((m) => upsertMon(team.id, clearBattleState(m)));
     // Opponent: fold any worst-case swap back to the snapshot first.
     const oppBase = oppPreWorstCase ?? opponent;
     if (oppBase) setOpponent(clearBattleState(oppBase));

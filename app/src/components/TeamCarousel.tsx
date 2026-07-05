@@ -61,6 +61,7 @@ export function TeamCarousel({ vertical = false, onAddMon, suppressActive = fals
         return (
           <button
             key={i}
+            data-testid={`carousel-slot-${i}`}
             onClick={() => {
               setActiveMonIndex(i);
               onSlotTap?.(i);
