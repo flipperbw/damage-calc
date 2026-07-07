@@ -27,6 +27,24 @@ describe('getBuildsForSpecies', () => {
   });
 });
 
+describe('mostly-mega mons default to their mega set', () => {
+  // These species run their mega stone as the overwhelmingly most-used item on
+  // Pikalytics, but their base-forme tournament sheets (the scraper's usual
+  // variant source) don't contain the stone - it lives under the separate
+  // "<Mon>-Mega" endpoint. The scraper's mega-forme correction folds the
+  // dominant stone back in so the default (first build) is the mega set. Guard
+  // against a future re-scrape silently regressing that to a rare base build.
+  const MOSTLY_MEGA = ['Staraptor', 'Scrafty', 'Tyranitar', 'Dragonite', 'Aerodactyl', 'Blaziken', 'Kangaskhan', 'Venusaur'];
+  for (const species of MOSTLY_MEGA) {
+    it(`${species}'s first build is a mega set`, () => {
+      const first = getBuildsForSpecies(species)[0];
+      expect(first).toBeDefined();
+      const build = getBuild(species, first);
+      expect(build?.mega).toBeTruthy();
+    });
+  }
+});
+
 describe('getBuild', () => {
   it('returns a specific build', () => {
     const b = getBuild('Charizard', 'SM OU Dragon Dance');

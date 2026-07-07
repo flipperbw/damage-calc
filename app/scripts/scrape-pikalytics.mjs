@@ -67,6 +67,12 @@ const ITEM_MIN_USAGE = 10; // percent
 // top-team snapshot. Mega stones get this lower bar (each stone is a distinct
 // forme worth surfacing, e.g. Charizardite X at ~4%).
 const MEGA_STONE_MIN_USAGE = 1; // percent
+// Minimum aggregate usage (%) for a base mon's dominant mega stone to override
+// its base-forme sheet variants as the default. Base-endpoint sheets only carry
+// the mon's base forme, so a mostly-mega mon looks base-forme-only here; when
+// its top aggregate item is a mega stone this dominant, we lead with the mega
+// set instead (see the mega-forme correction in transformBuilds).
+const MEGA_DEFAULT_MIN_USAGE = 30; // percent
 const FETCH_CONCURRENCY = 6;
 // Retry genuine HTTP failures (network error / non-200) with backoff. A 200
 // with an empty `teams` array is NOT a failure — that species just has no
@@ -517,6 +523,21 @@ function movesAbilityFor(entry, entryName, item) {
   return { moves: aggMoves(entry), ability: aggAbility(entry) };
 }
 
+// Item variants from a mon's aggregate item usage (the fall-back when it has no
+// team sheets of its own, and the source for the mega-forme correction). Mega
+// stones clear a low bar (each stone is a distinct forme worth surfacing);
+// other items must clear ITEM_MIN_USAGE. Always emits at least one when any item
+// data exists. Share is the aggregate fraction, so ordering reflects real usage.
+function aggregateItemCandidates(sp) {
+  let agg = (sp.items ?? []).filter((it) => {
+    const u = parseFloat(it.percent);
+    if (!Number.isFinite(u)) return false;
+    return u >= (isMegaStoneItem(it.item) ? MEGA_STONE_MIN_USAGE : ITEM_MIN_USAGE);
+  });
+  if (agg.length === 0 && (sp.items?.length ?? 0) > 0) agg = [sp.items[0]];
+  return agg.slice(0, MAX_VARIANTS_PER_SPECIES).map((it) => ({ item: it.item, share: (parseFloat(it.percent) || 0) / 100 }));
+}
+
 function transformBuilds(perSpecies) {
   // One build line per base species. We iterate base species only; mega-forme
   // entries (Charizard-Mega-Y, …) are pulled in as a per-forme moves/stats
@@ -544,14 +565,25 @@ function transformBuilds(perSpecies) {
       const picked = (passing.length >= MIN_VARIANTS_PER_SPECIES ? passing : buckets.slice(0, MIN_VARIANTS_PER_SPECIES))
         .slice(0, MAX_VARIANTS_PER_SPECIES);
       itemCandidates = picked.map((b) => ({ item: b.item, share: b.share }));
+
+      // Mega-forme correction. Base-endpoint team sheets only contain the mon's
+      // BASE forme; its mega instances live under the separate "<Mon>-Mega"
+      // endpoint. So a mostly-mega mon (Staraptor runs Staraptite 94.5%) surfaces
+      // only its handful of base-forme sheets here, and its dominant mega stone
+      // never becomes a variant — stranding the default on a rare base set. When
+      // aggregate item usage (which counts BOTH formes) is topped by a mega stone
+      // the base sheets miss, rebuild candidates from aggregate item usage (same
+      // path as sheet-less mons) so the mega set leads on its true usage. Using
+      // aggregate rather than merging sheet shares avoids tiny-base-sheet
+      // distortion (Dragonite's lone Lum Berry sheet would otherwise read 100%).
+      // Moves still come from the forme's own sheets via movesAbilityFor below.
+      const topAgg = (sp.items ?? [])[0];
+      const sheetItemSet = new Set(itemCandidates.map((c) => c.item));
+      if (topAgg && isMegaStoneItem(topAgg.item) && !sheetItemSet.has(topAgg.item) && parseFloat(topAgg.percent) >= MEGA_DEFAULT_MIN_USAGE) {
+        itemCandidates = aggregateItemCandidates(sp);
+      }
     } else {
-      let agg = (sp.items ?? []).filter((it) => {
-        const u = parseFloat(it.percent);
-        if (!Number.isFinite(u)) return false;
-        return u >= (isMegaStoneItem(it.item) ? MEGA_STONE_MIN_USAGE : ITEM_MIN_USAGE);
-      });
-      if (agg.length === 0 && (sp.items?.length ?? 0) > 0) agg = [sp.items[0]];
-      itemCandidates = agg.slice(0, MAX_VARIANTS_PER_SPECIES).map((it) => ({ item: it.item, share: (parseFloat(it.percent) || 0) / 100 }));
+      itemCandidates = aggregateItemCandidates(sp);
     }
     if (itemCandidates.length === 0) continue;
 

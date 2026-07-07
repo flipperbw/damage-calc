@@ -1,3 +1,8 @@
+## 2026-07-07
+
+- **Mostly-mega mons default to their mega set.** Staraptor, Tyranitar, Dragonite, Blaziken, Kangaskhan, Scrafty, Aerodactyl, and Venusaur now pre-fill their mega build (the most-used profile) instead of a rare base-forme set. Their mega stone was being missed because it only shows up on the mega-forme usage page, not the base mon's tournament sheets.
+- **Latest meta refresh.** Re-pulled current Reg M-B usage from Pikalytics - sets, top threats, candidate pool, and tournament teams updated to the latest numbers.
+
 ## 2026-07-05
 
 - **Reset battle now clears your whole team.** Was only wiping the mon you had selected.
