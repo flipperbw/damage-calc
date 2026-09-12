@@ -154,6 +154,56 @@ describe('Regulation M-B drift guards', () => {
   });
 });
 
+describe('Regulation M-C drift guards', () => {
+  // Newly-legal base species in Regulation M-C (launched 2026-09-09). Same
+  // contract as the M-B guards above: allowlisted in calc gen-0, so each must
+  // resolve to a non-empty learnset or the MovePicker comes up blank.
+  const MC_NEW_SPECIES = [
+    'Arboliva', 'Baxcalibur', 'Cinderace', 'Farfetch’d', 'Gogoat',
+    'Golisopod', 'Grapploct', 'Indeedee', 'Indeedee-F', 'Inteleon',
+    'Mabosstiff', 'Mr. Mime', 'Perrserker', 'Persian', 'Persian-Alola',
+    'Pincurchin', 'Rillaboom', 'Salamence', 'Sirfetch’d', 'Squawkabilly',
+    'Swalot', 'Thievul', 'Toxtricity', 'Toxtricity-Low-Key', 'Wigglytuff',
+  ];
+
+  it.each(MC_NEW_SPECIES)('new species %s resolves to a non-empty learnset', async (name) => {
+    const ids = await getLearnableMoveIds(name);
+    expect(ids.size).toBeGreaterThan(0);
+  });
+
+  // The six M-C megas, including the three Z Megas — a forme suffix the calc
+  // had never seen before this regulation.
+  const MC_NEW_MEGAS = [
+    'Absol-Mega-Z', 'Baxcalibur-Mega', 'Garchomp-Mega-Z', 'Golisopod-Mega',
+    'Lucario-Mega-Z', 'Salamence-Mega',
+  ];
+
+  it.each(MC_NEW_MEGAS)('new mega %s inherits its base learnset via suffix-strip', async (name) => {
+    const ids = await getLearnableMoveIds(name);
+    expect(ids.size).toBeGreaterThan(0);
+  });
+
+  it('Z Mega formes strip to the same base kit as their regular mega', async () => {
+    // Absol-Mega and Absol-Mega-Z are distinct formes of one species, so both
+    // must resolve to Absol's learnset rather than one of them falling through.
+    const base = await getLearnableMoveIds('Absol');
+    const mega = await getLearnableMoveIds('Absol-Mega');
+    const megaZ = await getLearnableMoveIds('Absol-Mega-Z');
+    expect([...mega].sort()).toEqual([...base].sort());
+    expect([...megaZ].sort()).toEqual([...base].sort());
+  });
+
+  it('M-C move removals are reflected in the vendored data', async () => {
+    // Politoed lost Pound; Archaludon lost Mirror Coat and Metal Burst.
+    const politoed = await getLearnableMoveIds('Politoed');
+    expect(politoed.has('pound')).toBe(false);
+    expect(politoed.has('icebeam')).toBe(true); // control: kit otherwise intact
+    const archaludon = await getLearnableMoveIds('Archaludon');
+    expect(archaludon.has('mirrorcoat')).toBe(false);
+    expect(archaludon.has('metalburst')).toBe(false);
+  });
+});
+
 describe('Champions learnset coverage (comprehensive drift guard)', () => {
   // The strongest future-proofing: every species the calc treats as
   // Champions-legal (gen-0) must resolve to a non-empty learnset. Catches

@@ -18,7 +18,7 @@ export const STAT_ORDER: readonly StatID[] = ['hp', 'atk', 'def', 'spa', 'spd', 
 export const STAT_ORDER_NO_HP: readonly StatIDExceptHP[] = ['atk', 'spa', 'def', 'spd', 'spe'];
 export type StatusName = 'Healthy' | 'Poisoned' | 'Badly Poisoned' | 'Burned' | 'Paralyzed' | 'Asleep' | 'Frozen';
 
-export type MegaState = '' | 'mega' | 'mega-x' | 'mega-y';
+export type MegaState = '' | 'mega' | 'mega-x' | 'mega-y' | 'mega-z';
 
 /**
  * Optional override for the in-battle forme of species whose stats /
@@ -58,7 +58,7 @@ export interface SavedMon {
   nature: string; // default 'Hardy'
   sps: Partial<Record<StatID, number>>; // each 0..32, sum ≤ 66
   moves: [string, string, string, string]; // '' for empty
-  mega: MegaState; // '' = no mega; 'mega', 'mega-x', or 'mega-y'
+  mega: MegaState; // '' = no mega; 'mega', 'mega-x', 'mega-y', or 'mega-z'
   inBattleForme?: InBattleForme; // override for Palafin / Aegislash
   currentHp?: number; // raw HP; undefined = full
   status?: StatusName;

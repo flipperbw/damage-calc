@@ -94,6 +94,7 @@ function stripMegaSuffix(species: string): { base: string; megaHint: MegaState }
   const lower = species.toLowerCase();
   if (lower.endsWith('-mega-x')) return { base: species.slice(0, -7), megaHint: 'mega-x' };
   if (lower.endsWith('-mega-y')) return { base: species.slice(0, -7), megaHint: 'mega-y' };
+  if (lower.endsWith('-mega-z')) return { base: species.slice(0, -7), megaHint: 'mega-z' };
   if (lower.endsWith('-mega')) return { base: species.slice(0, -5), megaHint: 'mega' };
   return { base: species, megaHint: '' };
 }
@@ -105,6 +106,7 @@ function megaStateForItem(species: string, item: string | undefined): MegaState 
   if (!forme) return '';
   if (forme.endsWith('-Mega-X')) return 'mega-x';
   if (forme.endsWith('-Mega-Y')) return 'mega-y';
+  if (forme.endsWith('-Mega-Z')) return 'mega-z';
   return 'mega';
 }
 
@@ -121,7 +123,8 @@ function megaStoneFor(species: string, hint: MegaState): string | null {
     if (!forme) continue;
     if (hint === 'mega-x' && forme.endsWith('-Mega-X')) return stone;
     if (hint === 'mega-y' && forme.endsWith('-Mega-Y')) return stone;
-    if (hint === 'mega' && forme.endsWith('-Mega') && !forme.endsWith('-Mega-X') && !forme.endsWith('-Mega-Y')) return stone;
+    if (hint === 'mega-z' && forme.endsWith('-Mega-Z')) return stone;
+    if (hint === 'mega' && forme.endsWith('-Mega')) return stone;
   }
   return null;
 }

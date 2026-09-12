@@ -4,7 +4,7 @@ import { defaultOpponentMon } from '@/store/factories';
 import type { Format, SavedMon, SeedKey, ThreatList } from '@/types';
 import { uuid } from '@/util/uuid';
 
-type MegaKind = 'mega' | 'mega-x' | 'mega-y';
+type MegaKind = 'mega' | 'mega-x' | 'mega-y' | 'mega-z';
 
 interface SeedEntry {
   species: string;

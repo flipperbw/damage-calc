@@ -449,3 +449,79 @@ describe('battle-state move base power (moveState)', () => {
     expect(five.damageRange[1]).toBeGreaterThan(zero.damageRange[1]);
   });
 });
+
+describe('Regulation M-C: Z Megas and Aura Guard', () => {
+  beforeAll(async () => {
+    await preloadPkmn();
+  });
+
+  const absol: SavedMon = {
+    id: 'z1',
+    species: 'Absol',
+    ability: 'Pressure',
+    nature: 'Jolly',
+    sps: { atk: 32, spe: 32 },
+    moves: ['Night Slash', '', '', ''],
+    mega: '',
+    boosts: {},
+  };
+
+  it('Absol-Mega-Z picks up its own typing, not the regular mega’s', () => {
+    // Absol-Mega is pure Dark (Fighting hits it 2x); Absol-Mega-Z is Dark/Ghost,
+    // which is immune to Fighting. If the adapter resolved the Z stone to the
+    // plain -Mega forme, this would land for heavy damage instead of zero.
+    const fighter: SavedMon = {
+      ...absol,
+      id: 'z2',
+      species: 'Machamp',
+      ability: 'Guts',
+      moves: ['Close Combat', '', '', ''],
+    };
+    const regular: SavedMon = { ...absol, item: 'Absolite', mega: 'mega' };
+    const zMega: SavedMon = { ...absol, item: 'Absolite Z', mega: 'mega-z' };
+
+    const vsRegular = calculateMatchup(fighter, regular, blankField()).attackerMoves[0];
+    const vsZ = calculateMatchup(fighter, zMega, blankField()).attackerMoves[0];
+    expect(vsRegular.damageRange[1]).toBeGreaterThan(0);
+    expect(vsZ.damageRange).toEqual([0, 0]);
+  });
+
+  it('Lucario-Mega-Z uses the Z forme’s special attack', () => {
+    const lucario: SavedMon = {
+      id: 'z3',
+      species: 'Lucario',
+      ability: 'Steadfast',
+      nature: 'Modest',
+      sps: { spa: 32, spe: 32 },
+      moves: ['Aura Sphere', '', '', ''],
+      mega: '',
+      boosts: {},
+    };
+    const zMega: SavedMon = { ...lucario, item: 'Lucarionite Z', mega: 'mega-z' };
+    const base = calculateMatchup(lucario, tyranitar, blankField());
+    const mega = calculateMatchup(zMega, tyranitar, blankField());
+    // Base Lucario has 115 SpA; Lucario-Mega-Z has 164.
+    expect(mega.attackerStats.spa).toBeGreaterThan(base.attackerStats.spa);
+    expect(mega.attackerMoves[0].damageRange[1]).toBeGreaterThan(base.attackerMoves[0].damageRange[1]);
+  });
+
+  it('Aura Guard halves contact damage and leaves non-contact alone', () => {
+    // Isolate the ability rather than the forme: same defender twice, only the
+    // ability differs. Outrage makes contact; Earthquake does not.
+    const guarded: SavedMon = { ...tyranitar, ability: 'Aura Guard' };
+    const plain: SavedMon = { ...tyranitar, ability: 'Pressure' };
+
+    const vsGuarded = calculateMatchup(garchomp, guarded, blankField()).attackerMoves;
+    const vsPlain = calculateMatchup(garchomp, plain, blankField()).attackerMoves;
+
+    const contactGuarded = vsGuarded.find((m) => m.moveName === 'Outrage')!.damageRange[1];
+    const contactPlain = vsPlain.find((m) => m.moveName === 'Outrage')!.damageRange[1];
+    const nonContactGuarded = vsGuarded.find((m) => m.moveName === 'Earthquake')!.damageRange[1];
+    const nonContactPlain = vsPlain.find((m) => m.moveName === 'Earthquake')!.damageRange[1];
+
+    expect(contactPlain).toBeGreaterThan(0);
+    expect(contactGuarded / contactPlain).toBeGreaterThan(0.47);
+    expect(contactGuarded / contactPlain).toBeLessThan(0.53);
+    expect(nonContactGuarded).toBe(nonContactPlain);
+  });
+});

@@ -6,6 +6,7 @@ interface MegaOptions {
   hasPlain: boolean;
   hasX: boolean;
   hasY: boolean;
+  hasZ: boolean;
 }
 
 function has(species: string): boolean {
@@ -13,11 +14,12 @@ function has(species: string): boolean {
 }
 
 function megaOptions(species: string): MegaOptions {
-  const baseName = species.replace(/-Mega(-X|-Y)?$/, '');
+  const baseName = species.replace(/-Mega(-X|-Y|-Z)?$/, '');
   const opts: MegaOptions = {
     hasPlain: has(`${baseName}-Mega`),
     hasX: has(`${baseName}-Mega-X`),
     hasY: has(`${baseName}-Mega-Y`),
+    hasZ: has(`${baseName}-Mega-Z`),
   };
   // Also catch mega formes whose name doesn't follow the `{base}-Mega(-X|-Y)?`
   // pattern but link back via calc's `baseSpecies` field. Floette-Eternal is
@@ -29,6 +31,7 @@ function megaOptions(species: string): MegaOptions {
     const n = sp.name;
     if (n.endsWith('-Mega-X')) opts.hasX = true;
     else if (n.endsWith('-Mega-Y')) opts.hasY = true;
+    else if (n.endsWith('-Mega-Z')) opts.hasZ = true;
     else if (n.endsWith('-Mega')) opts.hasPlain = true;
   }
   return opts;
@@ -51,12 +54,16 @@ interface Props {
 // Mega Y - NOT by a free toggle: holding the Y stone means Mega Y, full stop.
 // Single-stone mons are always 'mega'.
 function stoneVariant(item: string | undefined, opts: MegaOptions): MegaState {
+  // Regulation M-C's Z Megas (Absolite Z, Garchompite Z, Lucarionite Z) sit
+  // alongside the mon's regular stone, so the suffix picks the forme exactly
+  // the way it does for Charizard's X/Y stones.
+  if (opts.hasZ && /(?:\s|-)Z$/i.test(item ?? '')) return 'mega-z';
   if (opts.hasX || opts.hasY) {
     if (/(?:\s|-)X$/i.test(item ?? '')) return 'mega-x';
     if (/(?:\s|-)Y$/i.test(item ?? '')) return 'mega-y';
     return opts.hasPlain ? 'mega' : opts.hasX ? 'mega-x' : 'mega-y';
   }
-  return 'mega';
+  return opts.hasPlain ? 'mega' : 'mega-z';
 }
 
 export function MegaToggle({ mega, onChange, species, item }: Props) {
@@ -64,7 +71,7 @@ export function MegaToggle({ mega, onChange, species, item }: Props) {
   // there's nothing to toggle and we render nothing.
   if (!isMegaStone(item)) return null;
   const opts = megaOptions(species);
-  if (!opts.hasPlain && !opts.hasX && !opts.hasY) return null;
+  if (!opts.hasPlain && !opts.hasX && !opts.hasY && !opts.hasZ) return null;
 
   // The forme is decided by the stone, so this is always a 2-state Off/Mega
   // toggle - even for X/Y mons. To switch X↔Y you change the stone (item) or
@@ -74,7 +81,11 @@ export function MegaToggle({ mega, onChange, species, item }: Props) {
   const isMega = mega !== '';
   // When on, label the actual forme; when off, label what turning on yields.
   const shown = isMega ? mega : variant;
-  const label = shown === 'mega-x' ? 'Mega X' : shown === 'mega-y' ? 'Mega Y' : 'Mega';
+  const label =
+    shown === 'mega-x' ? 'Mega X'
+      : shown === 'mega-y' ? 'Mega Y'
+        : shown === 'mega-z' ? 'Mega Z'
+          : 'Mega';
 
   return (
     <button

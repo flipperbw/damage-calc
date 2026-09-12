@@ -101,8 +101,8 @@ export function calculateChampions(
   }
 
   const defenderAbilityIgnored = defender.hasAbility(
-    'Armor Tail', 'Aroma Veil', 'Battle Armor', 'Big Pecks',
-    'Bulletproof', 'Clear Body', 'Contrary', 'Damp',
+    'Armor Tail', 'Aroma Veil', 'Aura Guard', 'Battle Armor',
+    'Big Pecks', 'Bulletproof', 'Clear Body', 'Contrary', 'Damp',
     'Disguise', 'Dry Skin', 'Earth Eater', 'Eelevate',
     'Filter', 'Flash Fire', 'Flower Veil', 'Friend Guard',
     'Fur Coat', 'Heatproof', 'Heavy Metal', 'Hyper Cutter',
@@ -1082,6 +1082,14 @@ export function calculateFinalModsChampions(
       (!field.defenderSide.isSR && (!field.defenderSide.spikes || defender.hasType('Flying'))) &&
       !attacker.hasAbility('Parental Bond (Child)')
   ) {
+    finalMods.push(2048);
+    desc.defenderAbility = defender.ability;
+  }
+
+  // Aura Guard (Lucario-Mega-Z) halves damage from contact moves. Long Reach
+  // strips the contact flag, so it bypasses this the same way it does Fluffy.
+  if (defender.hasAbility('Aura Guard') && move.flags.contact &&
+      !attacker.hasAbility('Long Reach')) {
     finalMods.push(2048);
     desc.defenderAbility = defender.ability;
   }

@@ -25,6 +25,15 @@ describe('megaFormeName', () => {
     expect(megaFormeName('Mewtwo', 'mega-y', 'Mewtwonite Y')).toBe('Mewtwo-Mega-Y');
   });
 
+  it('resolves Regulation M-C Z Megas off the mega arg', () => {
+    // Absol, Garchomp and Lucario each have both a regular mega and a Z mega,
+    // so the two must stay distinguishable by the mega flag alone.
+    expect(megaFormeName('Absol', 'mega-z', 'Absolite Z')).toBe('Absol-Mega-Z');
+    expect(megaFormeName('Absol', 'mega', 'Absolite')).toBe('Absol-Mega');
+    expect(megaFormeName('Garchomp', 'mega-z', 'Garchompite Z')).toBe('Garchomp-Mega-Z');
+    expect(megaFormeName('Lucario', 'mega-z', 'Lucarionite Z')).toBe('Lucario-Mega-Z');
+  });
+
   it('falls back to the MEGA_STONES mapping for irregular formes', () => {
     // Floette-Eternal + Floettite → Floette-Mega (not Floette-Eternal-Mega).
     // The naive rule produces "Floette-Eternal-Mega" which doesn't exist in

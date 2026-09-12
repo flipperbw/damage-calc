@@ -148,6 +148,7 @@ function speciesForCalc(mon: SavedMon, role: CalcRole): string {
     const n = sp.name;
     if (mon.mega === 'mega-x' && n.endsWith('-Mega-X')) return n;
     if (mon.mega === 'mega-y' && n.endsWith('-Mega-Y')) return n;
+    if (mon.mega === 'mega-z' && n.endsWith('-Mega-Z')) return n;
     if (mon.mega === 'mega' && n.endsWith('-Mega') && !n.endsWith('-Mega-X') && !n.endsWith('-Mega-Y')) return n;
   }
   // eslint-disable-next-line no-console

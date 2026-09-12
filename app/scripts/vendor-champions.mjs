@@ -26,9 +26,11 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_PATH = path.resolve(__dirname, '..', 'src', 'data', 'generated', 'champions-learnsets.generated.ts');
 
-// smogon/pokemon-showdown @ "Champions: Fix missing signature moves" (2026-06-17),
-// the latest M-B learnset commit at time of vendoring.
-const DEFAULT_REF = '9e03ca096';
+// smogon/pokemon-showdown @ "Champions OU: Ban Mega Salamence" (2026-09-10),
+// the latest Champions commit at time of vendoring. This is three commits
+// past "Add Champions Regulation M-C" (812501ede, 2026-09-09) and picks up
+// its learnset follow-ups (#12305) along with the M-C roster itself.
+const DEFAULT_REF = '524413e84';
 
 function arg(name) {
   const i = process.argv.indexOf(name);
@@ -81,7 +83,15 @@ async function main() {
     '// Some cosmetic-forme entries are bare `{}` upstream — signalling "no',
     "// extra learnset, inherits everything from the base species\". Hence",
     '// `learnset` is optional; callers should treat missing as empty.',
-    'export type ChampionsLearnsetsTable = Record<string, { learnset?: Record<string, string[]> }>;',
+    '//',
+    '// `inherit` appears on entries Showdown layers over the base gen-9 table',
+    '// (Floette-Eternal in M-C). It carries no learnset information of its own,',
+    '// so callers ignore it; it is typed here only so the emitted literal',
+    '// type-checks.',
+    'export type ChampionsLearnsetsTable = Record<',
+    '  string,',
+    '  { inherit?: boolean; learnset?: Record<string, string[]> }',
+    '>;',
     '',
   ].join('\n');
 

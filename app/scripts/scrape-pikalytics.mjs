@@ -34,10 +34,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAW_CACHE_PATH = path.resolve(__dirname, 'pikalytics-raw-cache.json');
 const OUT_DIR = path.resolve(__dirname, '..', 'src', 'data', 'generated');
 
-// Regulation M-B (launched 2026-06; M-B ruleset was ladder-playable from
-// ~2026-05, so Pikalytics's 2026-05 period already carries mature M-B usage).
-const FORMAT_SLUG = 'gen9championsvgc2026regmb-1760';
-const EARLIEST_PERIOD = '2026-05'; // hard floor — earliest populated M-B period
+// Regulation M-C (launched 2026-09-09). Pikalytics buckets Champions usage
+// under a single populated period key rather than true calendar months — both
+// the M-B and M-C leaderboards serve from '2026-05' — so the period floor
+// below is a bucket id, not a date. The fallback walk in
+// fetchLeaderboardWithFallback lands on it regardless of today's date.
+const FORMAT_SLUG = 'gen9championsvgc2026regmc-1760';
+const EARLIEST_PERIOD = '2026-05'; // hard floor — the populated bucket key
 
 // Variant clustering tuning
 const VARIANT_USAGE_THRESHOLD = 0.15; // ≥15 % of that species's sheets
@@ -73,12 +76,18 @@ const MEGA_STONE_MIN_USAGE = 1; // percent
 // its top aggregate item is a mega stone this dominant, we lead with the mega
 // set instead (see the mega-forme correction in transformBuilds).
 const MEGA_DEFAULT_MIN_USAGE = 30; // percent
-const FETCH_CONCURRENCY = 6;
+// Pikalytics rate-limits hard: a concurrency-6 sweep over the ~290-species
+// M-C leaderboard drew 429s on 90% of requests. Three parallel workers with
+// the 429-aware backoff below clears the full sweep.
+const FETCH_CONCURRENCY = 3;
 // Retry genuine HTTP failures (network error / non-200) with backoff. A 200
 // with an empty `teams` array is NOT a failure — that species just has no
 // top-team sheets yet (common for mid-tier mons early in a regulation), so we
 // accept it without retrying.
-const PER_SPECIES_RETRIES = 3;
+const PER_SPECIES_RETRIES = 5;
+// Extra pause after a 429 specifically — the generic backoff below is tuned
+// for transient network blips and ramps too fast to clear a rate limit.
+const RATE_LIMIT_BACKOFF_MS = 4000;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -188,7 +197,8 @@ async function fetchPerSpeciesBatch(period, speciesNames) {
         // Genuine failure (network / non-200) — back off and retry.
         lastStatus = res.status;
         if (attempt < PER_SPECIES_RETRIES - 1) {
-          await delay(500 * 2 ** attempt + Math.floor(Math.random() * 250));
+          const base = res.status === 429 ? RATE_LIMIT_BACKOFF_MS : 500;
+          await delay(base * 2 ** attempt + Math.floor(Math.random() * 250));
         }
       }
       done += 1;
@@ -243,6 +253,13 @@ const STAT_KEYS_ORDER = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 const MEGA_ITEM_OVERRIDES = {
   Charizard: { 'mega-x': 'Charizardite X', 'mega-y': 'Charizardite Y' },
   Mewtwo: { 'mega-x': 'Mewtwonite X', 'mega-y': 'Mewtwonite Y' },
+  // Regulation M-C Z Megas. Each sits alongside the mon's regular stone, so
+  // the base species carries two entries.
+  Absol: { mega: 'Absolite', 'mega-z': 'Absolite Z' },
+  Garchomp: { mega: 'Garchompite', 'mega-z': 'Garchompite Z' },
+  Lucario: { mega: 'Lucarionite', 'mega-z': 'Lucarionite Z' },
+  Golisopod: { mega: 'Golisopite' },
+  Baxcalibur: { mega: 'Baxcalibrite' },
   Floette: { mega: 'Floettite' },           // base in our model is Floette-Eternal
   Dragonite: { mega: 'Dragoninite' },
   Skarmory: { mega: 'Skarmorite' },         // standard pattern would give "Skarmoryite"
@@ -269,12 +286,12 @@ function canonicalSpecies(name) {
   return CALC_SPECIES_OVERRIDES[name] ?? name;
 }
 
-// Map Pikalytics's "Foo-Mega"/"Foo-Mega-X"/"Foo-Mega-Y" → our SavedMon
+// Map Pikalytics's "Foo-Mega"/"Foo-Mega-X"/"Foo-Mega-Y"/"Foo-Mega-Z" → our SavedMon
 // shape. For non-mega names, returns species as-is. Floette is the one
 // odd duck — its Mega is actually Floette-Eternal's evolution; our app
 // keys it off "Floette-Eternal".
 function normalizeForm(name) {
-  const tail = name.match(/-Mega(?:-(X|Y))?$/);
+  const tail = name.match(/-Mega(?:-(X|Y|Z))?$/);
   if (!tail) return { species: canonicalSpecies(name), mega: '', item: undefined };
   const base = name.slice(0, -tail[0].length);
   const variant = tail[1] ? `mega-${tail[1].toLowerCase()}` : 'mega';
@@ -474,12 +491,14 @@ function stoneFormeName(baseName, item) {
   if (!isMegaStoneItem(item)) return null;
   if (/ X$/.test(item)) return `${baseName}-Mega-X`;
   if (/ Y$/.test(item)) return `${baseName}-Mega-Y`;
+  if (/ Z$/.test(item)) return `${baseName}-Mega-Z`;
   return `${baseName}-Mega`;
 }
 
 function formeToMegaState(forme) {
   if (/-Mega-X$/.test(forme)) return 'mega-x';
   if (/-Mega-Y$/.test(forme)) return 'mega-y';
+  if (/-Mega-Z$/.test(forme)) return 'mega-z';
   return 'mega';
 }
 
@@ -552,7 +571,7 @@ function transformBuilds(perSpecies) {
   // ship none) and remapped to the forme's attack stat.
   const bySpecies = new Map();
   for (const [canonicalName, sp] of perSpecies) {
-    if (/-Mega(?:-[XY])?$/.test(canonicalName)) continue; // moves/stats source only
+    if (/-Mega(?:-[XYZ])?$/.test(canonicalName)) continue; // moves/stats source only
 
     const baseSpread = modalSpread(sp);
     const sheets = extractSheets(sp, canonicalName);
@@ -951,7 +970,7 @@ async function main() {
     // base species too — its /api/p has the real aggregate spread we graft onto
     // the mega variants in transformBuilds.
     for (const name of [...targetSet]) {
-      const base = name.replace(/-Mega(?:-[XY])?$/, '');
+      const base = name.replace(/-Mega(?:-[XYZ])?$/, '');
       if (base !== name) targetSet.add(base);
     }
     const targetNames = [...targetSet];
@@ -963,7 +982,7 @@ async function main() {
     // longer depends on which mons happened to land in the top-team snapshot.
     const megaToFetch = new Set();
     for (const [name, blob] of perSpeciesMap) {
-      if (/-Mega(?:-[XY])?$/.test(name)) continue;
+      if (/-Mega(?:-[XYZ])?$/.test(name)) continue;
       for (const it of blob.items ?? []) {
         const u = parseFloat(it.percent);
         if (!Number.isFinite(u) || u < MEGA_STONE_MIN_USAGE) continue;
@@ -1013,14 +1032,38 @@ async function main() {
 
   await mkdir(OUT_DIR, { recursive: true });
   const speciesCount = leaderboard.length;
+
+  // Pikalytics publishes EV spreads well after a regulation opens — for the
+  // first weeks of M-C every /api/p came back `spreads: []`. A build with no
+  // spread hydrates the opponent at zero investment, which silently
+  // under-reports damage across the whole app, so refuse to overwrite good
+  // build data with spreadless builds. Everything else (threats, pool,
+  // presets, cores) comes off the leaderboard and stays current regardless.
+  const buildsPath = path.join(OUT_DIR, 'pikalytics-builds.generated.ts');
+  const withSpread = builds.reduce(
+    (n, sp) => n + sp.variants.filter((v) => Object.keys(v.sps ?? {}).length > 0).length,
+    0,
+  );
+  const totalVariants = builds.reduce((n, sp) => n + sp.variants.length, 0);
+  const existingBuilds = await readFile(buildsPath, 'utf8').catch(() => null);
+  const skipBuilds = withSpread === 0 && totalVariants > 0 && existingBuilds !== null;
+
   await writeFile(path.join(OUT_DIR, 'pikalytics-meta.generated.ts'), emitMeta({ period, fetchedAt, speciesCount }), 'utf8');
-  await writeFile(path.join(OUT_DIR, 'pikalytics-builds.generated.ts'), emitBuilds(builds, period, fetchedAt), 'utf8');
+  if (skipBuilds) {
+    console.warn(
+      `  ! builds NOT written: all ${totalVariants} scraped variants have empty EV spreads ` +
+      '(upstream has not published them for this format yet). Keeping the existing ' +
+      `${buildsPath}. Re-run once Pikalytics fills spreads in.`,
+    );
+  } else {
+    await writeFile(buildsPath, emitBuilds(builds, period, fetchedAt), 'utf8');
+  }
   await writeFile(path.join(OUT_DIR, 'pikalytics-threats.generated.ts'), emitThreats(threats, period, fetchedAt), 'utf8');
   await writeFile(path.join(OUT_DIR, 'pikalytics-pool.generated.ts'), emitPool(pool, period, fetchedAt), 'utf8');
   await writeFile(path.join(OUT_DIR, 'pikalytics-presets.generated.ts'), emitPresets(presets, period, fetchedAt), 'utf8');
   await writeFile(path.join(OUT_DIR, 'pikalytics-cores.generated.ts'), emitCores(cores, period, fetchedAt), 'utf8');
 
-  console.log(`emitted 6 files to ${OUT_DIR}`);
+  console.log(`emitted ${skipBuilds ? 5 : 6} files to ${OUT_DIR}`);
 }
 
 function argIndex(argv, flag) {

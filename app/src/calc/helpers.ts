@@ -27,7 +27,11 @@ export function isMegaStone(item: string | undefined): boolean {
 export function megaFormeName(species: string, mega: MegaState, item?: string): string {
   if (!mega) return species;
   if (species.endsWith('-Mega') || species.includes('-Mega-')) return species;
-  const naive = mega === 'mega-x' ? `${species}-Mega-X` : mega === 'mega-y' ? `${species}-Mega-Y` : `${species}-Mega`;
+  const naive =
+    mega === 'mega-x' ? `${species}-Mega-X`
+      : mega === 'mega-y' ? `${species}-Mega-Y`
+        : mega === 'mega-z' ? `${species}-Mega-Z`
+          : `${species}-Mega`;
   if (GEN.species.get(toID(naive) as any)) return naive;
   if (item) {
     const stoneMap = (MEGA_STONES as Record<string, Record<string, string>>)[item];

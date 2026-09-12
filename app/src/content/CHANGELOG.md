@@ -1,3 +1,12 @@
+## 2026-09-12
+
+- **Regulation M-C.** Added the new regulation's roster: 25 newly-legal Pokémon (Rillaboom, Cinderace, Inteleon, Salamence, Golisopod, Baxcalibur, Indeedee, Mr. Mime, and more) plus six new Mega Evolutions. The badge now reads M-C.
+- **Z Megas.** Absol, Garchomp and Lucario each get a second mega forme - Mega Absol Z, Mega Garchomp Z, Mega Lucario Z - and the stone you hold picks which one you get.
+- **Aura Guard.** Mega Lucario Z's new ability halves damage from contact moves, and the calc factors it in.
+- **New items.** The six new Mega Stones and Leek are now selectable.
+- **M-C move changes.** Politoed loses Pound; Archaludon loses Mirror Coat and Metal Burst.
+- **Latest meta refresh.** Sets, top threats, candidate pool, and tournament teams now come from live Regulation M-C usage.
+
 ## 2026-07-07
 
 - **Mostly-mega mons default to their mega set.** Staraptor, Tyranitar, Dragonite, Blaziken, Kangaskhan, Scrafty, Aerodactyl, and Venusaur now pre-fill their mega build (the most-used profile) instead of a rare base-forme set. Their mega stone was being missed because it only shows up on the mega-forme usage page, not the base mon's tournament sheets.
